@@ -1,0 +1,22 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+.env
+.env.*
+!.env.example
+.aws/
+.kube/
+*.pem
+*.key
+downloads/
+generated/
+evidence/
+__pycache__/
+
+# Python virtual environments
+.venv/
+venv/
