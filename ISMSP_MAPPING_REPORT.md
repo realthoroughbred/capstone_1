@@ -66,7 +66,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "evidence": [
     {
       "path": "evidence/terraform/mock-tests.txt",
-      "sha256": "e3c208f1226c4bf3d4ef469e62906529408251dab8b5607bd639413af8f69bbf"
+      "sha256": "b41793d12ce8027da67044db04e9d56fa953c8df18a457bd8850b882ed6e642b"
     }
   ],
   "policy_name": "인프라 보안 형상 검사",
@@ -630,11 +630,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "GitHub Actions CI",
   "scope": "github",
   "result": "PASS",
-  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `bade7718ba239a8a71f2872068474765c85a3fe9` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39116980831).",
+  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `17d88b79186bd9667063c27233aabfb3d1312053` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39117480292).",
   "evidence": [
     {
-      "path": "evidence/github/runs-bade7718ba239a8a71f2872068474765c85a3fe9.json",
-      "sha256": "77bc1e209a9a2d257a46cdddb291b6605e558bb39b35710aba421fd5b6df6378"
+      "path": "evidence/github/runs-17d88b79186bd9667063c27233aabfb3d1312053.json",
+      "sha256": "80ea6e74e1f2a60f7e20a0d93eb45c992f34e27d45b5f7480564ddf9431d1890"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -675,7 +675,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "evidence": [
     {
       "path": "evidence/aws/preflight.json",
-      "sha256": "19014042e5ea3abdb6f4defa81569c8d7ec940bc882aa0575134a2bed42848bb"
+      "sha256": "7b09236359fd62fe23a6e6ee5fe24a1b393834b4ddee1a881a10ca8d0de7caef"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -716,11 +716,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "evidence": [
     {
       "path": "evidence/aws/plan-summary.json",
-      "sha256": "0c9397a32ed46f981e94dc5de48f6ac6512088cfe0c8d3ff1ad0533352b85a6d"
+      "sha256": "1b07cda481c74c02f3cdcdefbe7ff59e5078d7fc01c4039dcd6a373d49970123"
     },
     {
       "path": "evidence/aws/demo-plan.txt",
-      "sha256": "40dcadb1dbeb2e4f23f0a1239d2e436a339d980ab6b429ecb4264ac275dfe071"
+      "sha256": "87a58d9beba2e7e40ea38ea6df319d112149ba6f32c31bbde530a0b78e18b0ea"
     }
   ],
   "policy_name": "인프라 보안 형상 검사",
@@ -761,7 +761,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "evidence": [
     {
       "path": "evidence/aws/preflight.json",
-      "sha256": "19014042e5ea3abdb6f4defa81569c8d7ec940bc882aa0575134a2bed42848bb"
+      "sha256": "7b09236359fd62fe23a6e6ee5fe24a1b393834b4ddee1a881a10ca8d0de7caef"
     }
   ],
   "policy_name": "공개 SSH 접근 금지",

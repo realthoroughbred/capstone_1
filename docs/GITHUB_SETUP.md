@@ -2,7 +2,7 @@
 
 대상 저장소는 `realthoroughbred/capstone_1`입니다. 이 문서는 설정 절차이며, GitHub 환경·runner·AWS 역할이 실제로 연결되었다는 증거는 아닙니다. AWS 리소스 생성과 유료 배포는 별도 승인 범위에서 진행합니다.
 
-AWS는 WSL의 `aws login --remote --profile team4 --region ap-northeast-2`로 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 처음 거부된 서비스 사전 조회 5개는 2026-10-18 09:45 UTC에 모두 통과했습니다(`evidence/aws/preflight.json`). 읽기 성공은 OIDC 역할/EKS 배포 준비 완료를 뜻하지 않습니다. 총예산 180,000원 안에서 실제 plan·비용을 검토한 명시적 생성 승인 전에는 AWS 배포 workflow를 실행하지 않습니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
+AWS는 WSL의 `aws login --remote --profile team4 --region ap-northeast-2`로 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 처음 거부된 서비스 사전 조회 5개는 2026-10-18 10:01 UTC에 모두 통과했습니다(`evidence/aws/preflight.json`). 읽기 성공은 OIDC 역할/EKS 배포 준비 완료를 뜻하지 않습니다. 총예산 180,000원 안에서 실제 plan·비용을 검토한 명시적 생성 승인 전에는 AWS 배포 workflow를 실행하지 않습니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
 
 현재는 [IAM 권한 문서](TEAM4_IAM_PERMISSIONS.md)에 따라 추가 provisioning 권한과 실제 plan을 준비하는 단계입니다. GitHub 일반 CI 실행과 AWS 배포 활성화를 구분하며, 개인 `team4` 로그인 cache를 GitHub runner로 복사하지 않습니다.
 

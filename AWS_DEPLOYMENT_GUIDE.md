@@ -1,6 +1,6 @@
 # AWS 배포 및 실환경 검증 절차
 
-AWS 인증은 WSL의 IAM 콘솔 브라우저 로그인으로 확인했다. STS 결과는 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`이며 profile은 `team4`이다. 초기 AccessDenied였던 EKS/EC2/Config/ECR/IAM 사전 조회 5개는 2026-10-18 09:45 UTC 재검증에서 모두 통과했다. 증적은 `evidence/aws/preflight.json`이다. 사용자 제공 public IPv4 `/32`를 반영한 실제 Terraform plan은 **67 add / 0 change / 0 destroy**이다. [생성 계획 검토](docs/AWS_PLAN_REVIEW.md)와 `evidence/aws/demo-plan.*`에 기록했다. AWS apply, EKS 배포, Config/Inspector 복구 실험은 실행하지 않았고 클라우드 리소스를 만들지 않았다.
+AWS 인증은 WSL의 IAM 콘솔 브라우저 로그인으로 확인했다. STS 결과는 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`이며 profile은 `team4`이다. 초기 AccessDenied였던 EKS/EC2/Config/ECR/IAM 사전 조회 5개는 2026-10-18 10:01 UTC 재검증에서 모두 통과했다. 증적은 `evidence/aws/preflight.json`이다. 사용자 제공 public IPv4 `/32`를 반영한 실제 Terraform plan은 **67 add / 0 change / 0 destroy**이다. [생성 계획 검토](docs/AWS_PLAN_REVIEW.md)와 `evidence/aws/demo-plan.*`에 기록했다. AWS apply, EKS 배포, Config/Inspector 복구 실험은 실행하지 않았고 클라우드 리소스를 만들지 않았다.
 
 사용자가 정한 **총예산은 180,000원**이다. 예산 제시는 생성 승인이 아니다. 남은 입력을 확정한 실제 plan·세금/환율을 포함한 비용·유지 기간을 제시하고, 과금 리소스 생성에 대한 명시적 승인을 받아야 한다.
 

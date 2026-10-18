@@ -17,7 +17,7 @@
 | ESO Fake/rotation | PASS | local | Kubernetes Secret와 실행중 Pod 볼륨의 값 변화 확인. 원문 출력 없음. AWS SM 검증 아님. |
 | Kyverno admission | PASS | local | 정상 Pod 허용 및 잘못된 보안 컨텍스트의 실제 webhook 거부. ECR 서명 정책은 별도 검증 필요. |
 | Argo CD GitOps 복구 | PASS | local | Git commit 기준 drift 감지→컨트롤러 복구→통신 재검증. admission과 구분. |
-| GitHub Actions CI | PASS | github | 실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `bade7718ba239a8a71f2872068474765c85a3fe9` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39116980831). |
+| GitHub Actions CI | PASS | github | 실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `17d88b79186bd9667063c27233aabfb3d1312053` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39117480292). |
 | AWS 신원·기존 자원 조회 | PASS | aws | team4 프로필, 계정 852093844554. STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회. |
 | AWS Terraform plan | PASS | aws | 실제 AWS provider 계획: {'add': 67, 'change': 0, 'destroy': 0}. apply 미실행. docs/AWS_PLAN_REVIEW.md 참고. |
 | AWS plan/ECR/EKS/Config/Inspector | BLOCKED | aws | 실제 plan 완료. 정확한 범위의 배포 IAM 준비 및 유료 생성 승인 대기. |

@@ -1,6 +1,6 @@
 # Self-Healing 구현 및 검증 보고서
 
-복구 코드와 로컬 테스트는 구현했으며, **AWS에서 실제 탐지·복구·EKS 교체를 검증한 결과는 아직 없다.** WSL에서 IAM 브라우저 로그인(`aws login --remote --profile team4 --region ap-northeast-2`) 후 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`의 STS 인증은 확인했다. SSO 로그인은 사용하지 않았다. 처음 거부된 EKS/EC2/Config/ECR/IAM 사전 조회 5개는 2026-10-18 09:45 UTC 재검증에서 모두 통과했으며 증적은 `evidence/aws/preflight.json`이다. 실제 plan은 운영자 public IPv4 입력 등 준비가 남았고, apply·취약 규칙 주입·실제 Inspector finding 수집은 수행하지 않았다. 클라우드 리소스를 만들지 않았다.
+복구 코드와 로컬 테스트는 구현했으며, **AWS에서 실제 탐지·복구·EKS 교체를 검증한 결과는 아직 없다.** WSL에서 IAM 브라우저 로그인(`aws login --remote --profile team4 --region ap-northeast-2`) 후 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`의 STS 인증은 확인했다. SSO 로그인은 사용하지 않았다. 처음 거부된 EKS/EC2/Config/ECR/IAM 사전 조회 5개는 2026-10-18 10:01 UTC 재검증에서 모두 통과했으며 증적은 `evidence/aws/preflight.json`이다. 사용자 제공 관리 PC IPv4의 `/32`를 반영한 실제 plan도 **67 add / 0 change / 0 destroy**로 통과했다([계획 검토](docs/AWS_PLAN_REVIEW.md)). apply·취약 규칙 주입·실제 Inspector finding 수집은 수행하지 않았으며 클라우드 리소스를 만들지 않았다.
 
 총예산은 180,000원이며, 권한 보완 후 실제 plan·비용을 확인한 별도 생성 승인이 필요하다. `automation/fixtures/*.simulated.json`과 fake AWS client 테스트는 명시적인 모의 자료이며 실제 CVE나 클라우드 증적으로 취급하지 않는다. 인증 성공, 권한 확인, 복구 성공은 서로 다른 검증 단계다.
 

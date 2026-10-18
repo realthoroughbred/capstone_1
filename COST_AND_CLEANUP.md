@@ -1,6 +1,6 @@
 # 비용, 보존 및 정리 결정
 
-현재 AWS apply 및 삭제를 실행하지 않았고 클라우드 리소스를 만들지 않았다. WSL `team4` profile의 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator`를 확인했고, 처음 AccessDenied였던 사전 조회 5개는 2026-10-18 09:45 UTC 재검증에서 모두 통과했다(`evidence/aws/preflight.json`). 사용자 제공 public IPv4 `/32`를 반영한 실제 plan은 **67 add / 0 change / 0 destroy**이며 [검토 문서](docs/AWS_PLAN_REVIEW.md)에 정리했다. 누적 청구액은 아직 확인하지 않았다. 생성 후에도 **사용자의 명시적 삭제 승인 전까지 리소스를 유지**한다. 자동 종료나 일괄 destroy를 예약하지 않았다.
+현재 AWS apply 및 삭제를 실행하지 않았고 클라우드 리소스를 만들지 않았다. WSL `team4` profile의 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator`를 확인했고, 사전 조회 5개는 최신 2026-10-18 10:01 UTC 재검증에서 모두 통과했다(`evidence/aws/preflight.json`). 사용자 제공 public IPv4 `/32`를 반영한 실제 plan은 **67 add / 0 change / 0 destroy**이며 [검토 문서](docs/AWS_PLAN_REVIEW.md)에 정리했다. 누적 청구액은 아직 확인하지 않았다. 생성 후에도 **사용자의 명시적 삭제 승인 전까지 리소스를 유지**한다. 자동 종료나 일괄 destroy를 예약하지 않았다.
 
 사용자가 지정한 **총예산은 180,000원**이다. 이는 자동 사용 허가가 아니다. 실제 plan·예상 비용·유지 기간을 제시한 다음 과금 리소스 생성 승인을 별도로 받아야 한다. 승인 대상 자원과 실행 조건은 [생성 계획 검토](docs/AWS_PLAN_REVIEW.md)에 명시했다.
 
@@ -12,32 +12,38 @@
 | --- | --- |
 | EKS control plane | 공식 **$0.10/cluster-hour**. standard support 조건이며 노드 비용 별도. [EKS 요금](https://aws.amazon.com/eks/pricing/) |
 | Public IPv4 | 공식 **$0.005/IP-hour**. [VPC 요금](https://aws.amazon.com/vpc/pricing/) |
-| `t3.large` Linux / shared / On-Demand | **임시 예산 입력 $0.12/node-hour**. 서울의 정확한 현재 단가를 공식 지역 데이터로 확보하지 못했으므로 AWS 확정 단가가 아니다. 최종 계산기 견적으로 교체한다. [EC2 요금](https://aws.amazon.com/ec2/pricing/on-demand/) |
-| gp3 기본 성능, 노드당 20 GiB | **임시 예산 입력 $0.12/GiB-month**. 서울 단가 미확정. 기본 3,000 IOPS·125 MB/s는 포함되며 추가 성능을 지정하지 않았다. [EBS 요금](https://aws.amazon.com/ebs/pricing/) |
+| `t3.large` Linux / Shared / On-Demand | 공식 서울 단가 **$0.104/node-hour**. SKU `822X28N5YHCZG5KZ`, `APN2-BoxUsage:t3.large`, USD/Hrs, `CapacityStatus=Used`, 추가 설치 소프트웨어 없음. [공식 지역 가격 CSV](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/20261015191316/ap-northeast-2/index.csv) |
+| gp3 기본 성능, 노드당 20 GiB | 공식 서울 단가 **$0.0912/GiB-month**. SKU `MTK7D9SGKGYR3JD6`, `APN2-EBS:VolumeUsage.gp3`, USD/GB-Mo. 20 GiB는 한 달 $1.824이다. [공식 지역 가격 CSV](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/20261015191316/ap-northeast-2/index.csv) |
 | 새 프로젝트 KMS CMK 1개 | 공식 **$1/key-month**, 시간 비례. 요청료 별도이며 장기 보유 후 키 회전은 추가 보관료가 생길 수 있다. [KMS 요금](https://aws.amazon.com/kms/pricing/) |
 | Secrets Manager 1개 | 공개 요금 **$0.40/secret-month**, API **$0.05/10,000 calls**. ESO refresh 호출 포함. [Secrets Manager 요금](https://aws.amazon.com/secrets-manager/pricing/) |
 
-2026-10-18에 공식 요금 페이지를 확인했다. EC2/EBS의 소형 지역 JSON 후보 URL은 404였으며 대용량 전체 offer 파일은 내려받지 않았다. 따라서 위 **EC2·gp3 두 값은 계산을 재현하기 위한 가정**이며 실제보다 높다는 보장도 없다. Free Tier·크레딧·약정 할인은 차감하지 않았다. 최종 plan 뒤 [AWS Pricing Calculator](https://calculator.aws/)의 서울 리전 견적으로 바꾼다.
+EC2·gp3는 2026-10-18에 **AWS Price List의 공식 서울 지역 CSV 원문**에서 확인했다. 카탈로그 버전은 `20261015191316`, 게시 시각은 `2026-10-15T19:13:16Z`, 두 가격의 적용일은 `2026-10-01`이다. 지역 `ap-northeast-2`, 위치 `Asia Pacific (Seoul)`, OnDemand, 통화 USD와 각 단위를 확인한 선택 행은 `evidence/pricing/seoul-selected-prices.json`에 보관했다. 지역 인덱스에서 고정 버전 URL을 얻고 스트리밍/HTTP Range로 필요한 행만 읽었으며 전체 CSV는 저장하지 않았다. [AWS 공식 가격 파일 조회 방법](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/using-the-aws-price-list-bulk-api-fetching-price-list-files-manually.html).
+
+gp3는 기본 3,000 IOPS·125 MB/s를 포함하며 이 구성은 추가 성능을 지정하지 않는다. 가격표의 GB는 1024³ bytes이므로 여기서는 GiB로 표기했다. [EBS 요금 및 단위](https://aws.amazon.com/ebs/pricing/). Free Tier·크레딧·약정 할인은 차감하지 않았다. 실제 사용량·청구 기간·가격 변경은 [AWS Pricing Calculator](https://calculator.aws/)와 생성 시점의 최신 요금으로 다시 대조한다.
 
 ## 8시간·24시간 예산 시나리오
 
 월 요금은 비교를 위해 30일=720시간으로 나눈다. 실제 청구 월·초 단위 비례·최소 청구 단위에 따라 차이가 있다. 노드 수 `N`, 유지 시간 `H`일 때 위 항목의 예비 소계는 다음과 같다.
 
 ```text
-USD 소계 = H × [0.10 + N × (0.12 + 0.005 + 20 × 0.12 / 720) + (1.00 + 0.40) / 720]
+USD 소계 = H × [0.10 + N × (0.104 + 0.005 + 20 × 0.0912 / 720) + (1.00 + 0.40) / 720]
 원화 예시 = USD × 1,500원/USD × 1.10
 ```
 
-**1,500원/USD와 추가 10%는 예산 계산용 가정**이며 현재 은행환율이나 확정 세금 고지가 아니다. 아래 변동비 준비금은 8시간 $3, 24시간 $5로 임의 배정한 실습 예비비다. 서비스 요금이나 예상 사용량의 검증 결과가 아니며 초과할 수 있다.
+**환율 1,500원/USD와 VAT 10%는 예산 계산용 가정**이며 현재 은행환율이나 실제 계정의 확정 세금 고지가 아니다. 아래 변동비 준비금은 8시간 $3, 24시간 $5로 임의 배정한 실습 예비비다. 서비스 요금이나 예상 사용량의 검증 결과가 아니며 초과할 수 있다. **기존 계정의 누적 사용료는 조회·차감하지 않았다.**
 
 | 지속 실행 조건 | 위 항목 소계 | 변동비 준비금 포함 | 원화 예시(백 원 올림) |
 | --- | ---: | ---: | ---: |
-| 노드 1대 / 8시간 | $1.84 | $4.84 | 약 8,000원 |
-| 노드 1대 / 24시간 | $5.53 | $10.53 | 약 17,400원 |
-| 노드 2대 / 8시간 | $2.87 | $5.87 | 약 9,700원 |
-| 노드 2대 / 24시간 | $8.61 | $13.61 | 약 22,500원 |
+| 노드 1대 / 8시간 | $1.71 | $4.71 | 약 7,800원 |
+| 노드 1대 / 24시간 | $5.12 | $10.12 | 약 16,800원 |
+| 노드 2대 / 8시간 | $2.60 | $5.60 | 약 9,300원 |
+| 노드 2대 / 24시간 | $7.80 | $12.80 | 약 21,200원 |
 
-이는 **생성부터 삭제까지 시간이 해당 시간일 때의 가정**이다. 8시간 사용 후 클러스터를 보존하면 요금이 계속 발생한다. 생성·설치·대기·실패 조사 시간도 포함해야 하며 이 표가 자동 종료나 예산 상한을 보장하지 않는다. 180,000원 중 예컨대 36,000원을 별도 안전 예비비로 남기고, `실습 가용액 = 180,000원 - 기존 사용액 - 안전 예비비 - 실험 뒤 보존비`로 산정한다. 실제 plan 전에는 여러 날 상시 운영이 예산 안에 든다고 확정하지 않는다.
+달러는 소수 둘째 자리로 표시했으며 원화는 달러 반올림 전 계산값에 환율·VAT 가정을 적용한 뒤 백 원 단위로 올렸다. 고정 항목의 시간당 소계는 1대 약 $0.213478, 2대 약 $0.325011이다.
+
+**노드 1대를 30일 상시 운영하면 변동비 없이도 예산을 넘는다.** 같은 입력의 720시간 소계는 EKS $72 + EC2 $74.88 + IPv4 $3.60 + EBS $1.824 + KMS/Secret $1.40 = **$153.704**다. 환율·VAT 가정 적용 시 약 **253,612원**으로 총예산 180,000원을 초과한다. 로그·요청·전송·기존 사용료는 여기에 추가된다.
+
+이는 **생성부터 삭제까지 시간이 해당 시간일 때의 가정**이다. 8시간 사용 후 클러스터를 보존하면 요금이 계속 발생한다. 생성·설치·대기·실패 조사 시간도 포함해야 하며 이 표가 자동 종료나 예산 상한을 보장하지 않는다. 180,000원 중 예컨대 36,000원을 별도 안전 예비비로 남기고, `실습 가용액 = 180,000원 - 기존 사용액 - 안전 예비비 - 실험 뒤 보존비`로 산정한다. 실제 plan과 기존 사용액·유지 기간·변동비를 함께 검토하기 전에는 여러 날 상시 운영이 예산 안에 든다고 확정하지 않는다.
 
 ## 변동비에 포함해야 할 항목
 

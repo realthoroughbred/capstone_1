@@ -10,5 +10,7 @@ terraform version -json > evidence/terraform/version.json
 terraform -chdir=infra fmt -check -recursive -no-color > evidence/terraform/fmt.txt
 terraform -chdir=infra init -backend=false -input=false -lockfile=readonly -no-color > evidence/terraform/init.txt
 terraform -chdir=infra validate -json > evidence/terraform/validate.json
-terraform -chdir=infra test -no-color > evidence/terraform/mock-tests.txt
+test_status=0
+bash infra/test-isolated.sh > evidence/terraform/mock-tests.txt 2>&1 || test_status=$?
 cat evidence/terraform/mock-tests.txt
+exit "$test_status"
