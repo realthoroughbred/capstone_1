@@ -1,0 +1,37 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: team4nonroot
+spec:
+  crd:
+    spec:
+      names:
+        kind: Team4NonRoot
+      validation:
+        openAPIV3Schema:
+          type: object
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      code:
+        - engine: Rego
+          source:
+            version: "v1"
+            rego: |
+              package team4nonroot
+
+              violation contains {"msg": msg} if {
+                spec := input.review.object.spec
+                field := ["containers", "initContainers", "ephemeralContainers"][_]
+                container := object.get(spec, field, [])[_]
+
+                pod_context := object.get(spec, "securityContext", {})
+                container_context := object.get(container, "securityContext", {})
+                pod_uid := object.get(pod_context, "runAsUser", 0)
+                uid := object.get(container_context, "runAsUser", pod_uid)
+
+                uid < 1
+                msg := sprintf(
+                  "Container %v must set runAsUser >= 1 at Pod or container level",
+                  [container.name]
+                )
+              }
