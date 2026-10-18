@@ -1,8 +1,8 @@
 # GitHub CI와 승인된 AWS 배포 설정
 
-대상 저장소는 `realthoroughbred/capstone_1`입니다. 이 문서는 설정 절차이며, GitHub 환경·runner·AWS 역할이 실제로 연결되었다는 증거는 아닙니다. AWS 리소스 생성과 유료 배포는 별도 승인 범위에서 진행합니다.
+대상 저장소는 `realthoroughbred/capstone_1`입니다. 이 문서는 설정 절차이며, GitHub 환경·runner·AWS 역할이 실제로 연결되었다는 증거는 아닙니다. 이번 생성·검증·SG 시연·검증 후 신규 자원 정리는 이미 받은 승인 범위에서 진행하며 같은 승인을 다시 요청하지 않습니다. main 반영 여부와 실행할 commit은 root 작업에서 결정합니다.
 
-AWS는 WSL의 `aws login --remote --profile team4 --region ap-northeast-2`로 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 처음 거부된 서비스 사전 조회 5개는 2026-10-18 10:01 UTC에 모두 통과했습니다(`evidence/aws/preflight.json`). 읽기 성공은 OIDC 역할/EKS 배포 준비 완료를 뜻하지 않습니다. 총예산 180,000원 안에서 실제 plan·비용을 검토한 명시적 생성 승인 전에는 AWS 배포 workflow를 실행하지 않습니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
+AWS는 WSL의 `aws login --remote --profile team4 --region ap-northeast-2`로 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 서비스 사전 조회 5개는 모두 통과했습니다(`evidence/aws/preflight.json`). 총예산 180,000원 내 기본 1노드·최대 8시간 생성·검증·SG 시험과 검증 후 신규 자원 정리가 승인됐습니다. 현재는 VPC 생성 DryRun 거부와 runtime boundary 부재로 관리자 배포 IAM 준비를 기다리며, OIDC 역할/EKS 배포 준비도 아직 완료되지 않았습니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
 
 현재는 [IAM 권한 문서](TEAM4_IAM_PERMISSIONS.md)에 따라 추가 provisioning 권한과 실제 plan을 준비하는 단계입니다. GitHub 일반 CI 실행과 AWS 배포 활성화를 구분하며, 개인 `team4` 로그인 cache를 GitHub runner로 복사하지 않습니다.
 
@@ -38,31 +38,43 @@ gh repo view realthoroughbred/capstone_1 --json nameWithOwner,viewerPermission
 
 ## 2. `aws-demo` 환경의 승인과 브랜치 제한
 
-실제 GitHub environments 조회 결과는 `total_count=0`이며 **`aws-demo` 환경은 아직 없습니다.** 일반 CI 성공을 배포 보호 설정 완료로 해석하지 않습니다. 아래 항목을 구성하기 전 AWS 배포 job을 시작하지 않습니다.
+마지막 GitHub environments 조회 결과는 `total_count=0`이며 **`aws-demo` 환경 설정은 아직 검증되지 않았습니다.** 일반 CI 성공을 배포 보호 설정 완료로 해석하지 않습니다. 실행 전 실제 환경 설정을 확인합니다.
 
 저장소 관리자/소유자가 **Settings → Environments → New environment**에서 정확히 `aws-demo`를 만듭니다. 워크플로 최초 실행으로 환경을 자동 생성하면 보호 규칙이 없는 환경이 생길 수 있으므로 먼저 설정합니다.
 
-1. **Required reviewers**에 지정된 배포 검토자를 등록합니다. 여러 명을 등록해도 GitHub 기본 동작은 그중 한 명의 승인입니다.
-2. **Prevent self-review**를 켭니다.
-3. **Allow administrators to bypass configured protection rules**를 끄고 저장합니다.
-4. **Deployment branches and tags → Selected branches and tags**에서 **Branch / `main`** 규칙 하나만 추가합니다. 태그 규칙, `*`, `feature/**` 규칙은 추가하지 않습니다.
-5. 필요한 검토자 기능이 현재 저장소 공개 범위/요금제에서 제공되지 않으면 배포 워크플로를 활성화하지 않고 그 제약을 먼저 해결합니다. 환경이 존재한다는 사실만으로 승인 기능이 켜진 것은 아닙니다.
+이번 1인 실습에서는 대화에 남은 명시적 승인, 검토한 commit, 수동 dispatch 실행자를 증거로 기록합니다. **Required reviewers를 이번 실습의 필수 조건으로 두지 않습니다.** 독립된 검토자가 없는 상태에서 유일한 실행자를 reviewer로 지정하고 **Prevent self-review**까지 켜면 누구도 job을 승인할 수 없습니다. GitHub의 별도 reviewer 승인 없이 진행했다면 결과에도 그대로 기록합니다.
 
-GitHub의 환경 보호 기능과 요금제별 제공 범위는 [공식 환경 설정 문서](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)를 확인합니다.
+1. **Deployment branches and tags → Selected branches and tags**에서 **Branch / `main`** 규칙 하나만 추가합니다. 태그 규칙, `*`, `feature/**` 규칙은 추가하지 않습니다.
+2. 아래의 환경 변수 세 개를 등록하고, 저장된 main 전용 규칙을 다시 조회합니다.
+3. 검토된 코드가 main에 반영되고 CI가 통과한 뒤 **Run workflow → main**으로 한 번 실행합니다. 승인 기록과 예산·시간 범위는 기존 결정을 따릅니다.
 
-`main`에도 ruleset 또는 branch protection을 설정해 PR 승인, `validate`·`image` CI 성공, force push 제한을 적용합니다. `.github/workflows/`, 배포 스크립트, admission 정책과 Terraform 변경을 검토 대상에 포함합니다. 현재 배포 워크플로는 `workflow_dispatch`와 `github.ref == 'refs/heads/main'` 조건을 사용합니다. 이 조건과 환경의 `main` 전용 정책을 함께 유지합니다.
+여러 사람이 운영하는 환경에서는 독립된 **Required reviewers**, **Prevent self-review**, 관리자 보호 규칙 우회 금지를 권장합니다. 이것은 이번 승인된 1인 실습에 추가 승인을 요구하는 조건이 아닙니다. 이미 적용된 조직 규칙은 그대로 준수합니다.
 
-## 3. 배포 runner 격리
+private 저장소의 환경·브랜치 제한과 required reviewers는 요금제별 제공 범위가 다릅니다. reviewer 기능 부재만으로 이번 실습을 중단할 필요는 없지만, **환경의 main 제한 자체를 적용할 수 없다면 현재 environment 기반 IAM 신뢰 조건으로 배포하지 않습니다.** 이 경우 미지원 상태를 기록하고 실행 경로를 검토하며, wildcard나 무보호 환경으로 우회하지 않습니다. [공식 환경 설정 문서](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)
+
+`main` 반영 전에는 PR의 `validate`·`image` CI와 `.github/workflows/`, 배포 스크립트, admission 정책, Terraform 변경을 검토합니다. 팀 운영에서는 ruleset/branch protection의 독립 PR 승인과 force push 제한을 추가합니다. 이번 개인 실습의 main 반영은 root가 검토 상태에 따라 결정합니다. 현재 배포 워크플로의 `workflow_dispatch`, `github.ref == 'refs/heads/main'`, 환경의 main 전용 규칙과 main 서명 identity는 모두 유지합니다. 로컬 브라우저 로그인이나 `COSIGN_IDENTITY` 환경변수 변경으로 GitHub main workflow 인증서를 대신 만들 수 없습니다.
+
+## 3. 일회성 WSL 배포 runner
 
 `.github/workflows/checkov.yml`의 PR/일반 CI는 GitHub 호스팅 `ubuntu-24.04`에서 실행합니다. `.github/workflows/deploy.yml`만 `self-hosted`, `linux`, `x64`, `team4-deploy` 라벨을 사용합니다.
 
-- 배포 runner는 별도의 Linux x86_64 머신/일회용 실행 환경으로 준비하고 PR 작업, 포크 코드, `pull_request_target`의 외부 코드 checkout을 실행하지 않습니다. 배포 runner 라벨만으로 접근 통제가 완성되지는 않습니다.
-- 조직 runner group을 사용할 수 있으면 해당 저장소만 허용하고, 지원되는 정책에서 `.github/workflows/deploy.yml@refs/heads/main`만 실행하도록 제한합니다. 개인 공개 저장소에서 동등한 runner 격리를 보장할 수 없다면 외부 PR을 받는 저장소에 AWS 접근 가능한 상시 runner를 연결하지 말고, 보호된 전용 배포 저장소/조직 runner로 옮겨 신뢰 조건을 다시 맞춥니다.
-- runner에 개인 AWS profile, 관리자 access key, 다른 프로젝트 kubeconfig를 남기지 않습니다. AWS 권한은 승인 후 OIDC 역할로 받습니다. 작업 종료 후 Docker registry 로그인, 임시 kubeconfig와 작업 파일을 정리하거나 runner 자체를 폐기합니다.
-- Docker, AWS CLI v2, Python 3, Bash, curl, kubectl, 필요한 패키지 설치 권한을 준비합니다. 도구 버전은 `config/versions.env`와 `config/security-tools.env`를 따릅니다.
-- runner가 EKS API에 접근할 수 있어야 합니다. 승인된 고정 공인 IP `/32` 또는 승인된 사설 연결을 사용합니다. 동적 GitHub 호스팅 runner 때문에 EKS API를 `0.0.0.0/0`에 열지 않습니다.
+이번 경로는 현재 PC의 WSL Linux x86_64에서 **배포 job 한 개만 실행**합니다. 신규 EC2 runner를 만들지 않으므로 그에 따른 EC2 비용은 없고, PC의 CPU·메모리·디스크를 사용합니다. EKS·ECR 등 AWS 자원과 GitHub 요금제/사용량은 기존 예산·실행 범위에서 별도로 계산합니다. 상시 서비스 설치나 자동 시작은 하지 않습니다.
 
-GitHub는 공개 저장소에서 자체 runner가 외부 PR 코드에 노출되는 위험을 설명합니다. [runner group 접근 제한](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/manage-access), [워크플로 보안](https://docs.github.com/en/actions/reference/security/secure-use)
+전용 Linux 사용자로 로그인해 새 HOME·작업 디렉터리를 사용하고 `actions/checkout`으로 코드만 받습니다. 개인 `.aws`/login cache, `.kube`, GCM·SSH 설정, Terraform state·tfvars를 복사하거나 읽을 수 있게 두지 않습니다. 개인 AWS/GitHub credential 환경변수·SSH agent를 상속하지 않고, `AWS_CONFIG_FILE`·`AWS_SHARED_CREDENTIALS_FILE`은 빈 전용 파일, `KUBECONFIG`는 새 전용 경로, `DOCKER_CONFIG`는 빈 전용 디렉터리로 지정합니다. `AWS_EC2_METADATA_DISABLED=true`로 metadata 자격 증명 탐색도 막고, AWS 권한은 job의 OIDC 역할에서만 받습니다.
+
+**전용 사용자·HOME 변경·컨테이너만으로 완전한 격리가 되지는 않습니다.** Windows 자동 마운트나 공유 Docker daemon 소켓으로 개인 파일에 접근할 수 있으면 별도 일회성 WSL 배포판을 사용합니다. 그 배포판에서는 Windows 자동 마운트·실행 파일 연동을 끄고 개인 디렉터리나 기존 Docker 소켓을 연결하지 않습니다. Docker는 전용 rootless daemon 또는 개인 파일이 없는 별도 WSL 내부 daemon을 사용합니다. 기존 작업용 Ubuntu 설정은 변경하지 않습니다. [WSL 설정](https://learn.microsoft.com/en-us/windows/wsl/wsl-config), [Docker daemon 권한](https://docs.docker.com/engine/security/)
+
+Docker, AWS CLI v2, Python 3, Bash, curl, kubectl과 runner 라이브러리를 미리 준비하며 runner 자체는 root로 실행하지 않습니다. 도구 버전은 `config/versions.env`와 `config/security-tools.env`를 따릅니다. GitHub·ECR·Sigstore HTTPS와 승인된 EKS API `/32` 접근이 필요하며 endpoint를 `0.0.0.0/0`으로 넓히지 않습니다. 저장소 **Settings → Actions → Runners → New self-hosted runner → Linux / x64**의 현재 패키지·체크섬으로 준비한 뒤 등록 형태는 다음과 같습니다. 토큰은 등록 프롬프트에만 입력합니다.
+
+```sh
+./config.sh --url https://github.com/realthoroughbred/capstone_1 \
+  --name team4-deploy-once --labels team4-deploy --work _work --ephemeral
+./run.sh
+```
+
+기본 `self-hosted`, `linux`, `x64` 라벨에 `team4-deploy`를 추가합니다. 검토한 main 배포 한 건에만 연결하고 PR/포크 코드나 다른 queued 작업을 실행하지 않습니다. 라벨 자체는 접근 통제가 아니며, 조직 runner group이 있으면 저장소·workflow도 제한합니다. [runner 접근 제한](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/manage-access)
+
+`--ephemeral`은 job 한 개 뒤 등록을 해제하지만 **로컬 파일은 삭제하지 않습니다.** 성공·실패 모두 artifact/진단 기록을 보존하고 종료·등록 해제를 확인한 뒤, 이번 실행의 ECR 로그인·kubeconfig·작업 디렉터리·전용 Docker 데이터 또는 일회성 WSL만 정리합니다. 원래 profile·kubeconfig·state·로컬 클러스터는 보존합니다. [GitHub 일회성 runner 동작](https://docs.github.com/en/actions/reference/runners/self-hosted-runners)
 
 ## 4. AWS OIDC와 Kubernetes 권한
 
@@ -85,7 +97,7 @@ EKS access entry는 이 역할을 `team4:deploy` 그룹에 연결합니다. 운�
 
 | GitHub 변수 | 값의 출처 | 주의점 |
 | --- | --- | --- |
-| `AWS_ACCOUNT_ID` | 현재 확인한 `852093844554`; 승인한 `infra/terraform.tfvars`와 WSL `aws sts get-caller-identity --profile team4 --query Account --output text`로 대조 | 정확한 12자리 대상 계정 |
+| `AWS_ACCOUNT_ID` | 현재 확인한 `852093844554`; 운영자 작업 사본의 승인된 tfvars와 WSL `aws sts get-caller-identity --profile team4 --query Account --output text`로 대조 | 정확한 12자리 대상 계정 |
 | `AWS_DEPLOY_ROLE_ARN` | `terraform -chdir=infra output -raw github_deploy_role_arn` | 자동복구/관리자 역할이 아닌 GitHub 배포 역할 |
 | `ECR_REPOSITORY` | `terraform -chdir=infra output -raw repository_url` | `ACCOUNT.dkr.ecr.ap-northeast-2.amazonaws.com/team4-test` 형태의 **전체 URL** |
 
@@ -114,8 +126,8 @@ gh variable list --repo realthoroughbred/capstone_1 --env aws-demo
 
 후속 [run 39116901979](https://github.com/realthoroughbred/capstone_1/actions/runs/39116901979)도 통과했고 Terraform mock은 8개입니다. 변경은 [draft PR #1](https://github.com/realthoroughbred/capstone_1/pull/1)에서 검토합니다. 마지막 문서 변경 뒤의 commit·PR CI 상태는 별도로 확인합니다.
 
-검토한 브랜치를 PR로 반영한 뒤 CI의 정적 검사·이미지 검사를 확인합니다. 배포는 **Actions → Approved EKS deployment → Run workflow → main**에서 요청하고 지정 검토자가 `aws-demo` job을 승인합니다. runner가 연결되지 않으면 job은 queued 상태이므로 배포 완료로 기록하지 않습니다.
+검토한 브랜치를 PR로 main에 반영한 뒤 해당 commit의 정적 검사·이미지 검사를 확인합니다. `workflow_dispatch` 파일은 default branch에 있어야 합니다. 배포는 **Actions → Approved EKS deployment → Run workflow → main**에서 실행합니다. 이번 실습은 기존 대화 승인 기록과 수동 dispatch를 사용하고, 별도 reviewer를 구성한 운영 환경에서만 그 reviewer 단계도 수행합니다. runner가 연결되지 않으면 job은 queued 상태이므로 배포 완료로 기록하지 않습니다. [수동 workflow 실행](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)
 
 성공 판정에는 OIDC 대상 계정 확인, 실제 ECR digest, signature·SBOM attestation 검증, 세 Deployment rollout, `deployment-runtime.json`의 실제 Pod digest/readiness 검증, HTTP 응답 증거가 모두 필요합니다. `evidence/deployed-image.txt`는 publish 단계에서 작성되므로 그 파일만으로 EKS 배포 성공을 판단하지 않습니다. 워크플로 실패 시 자동 `rollout undo`는 하지 않으며 실패 원인과 검증된 대체 이미지를 먼저 확인합니다.
 
-실행한 GitHub run URL, commit SHA, 승인자, 배포 digest와 artifact를 최종 증거에 기록합니다. GitHub 설정 완료, 로컬 단위 테스트 통과, 실제 AWS 배포 성공은 각각 별도 상태로 관리합니다.
+실행한 GitHub run URL, commit SHA, 기존 승인 기록, dispatch 실행자, 배포 digest와 artifact를 최종 증거에 기록합니다. 별도 reviewer 승인이 있었다면 그 기록도 추가합니다. GitHub 설정 완료, 로컬 단위 테스트 통과, 실제 AWS 배포 성공은 각각 별도 상태로 관리합니다. 이 문서 수정만으로 환경 생성·runner 등록·main 병합·AWS 배포를 실행한 것은 아닙니다.

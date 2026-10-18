@@ -2,7 +2,7 @@
 
 복구 코드와 로컬 테스트는 구현했으며, **AWS에서 실제 탐지·복구·EKS 교체를 검증한 결과는 아직 없다.** WSL에서 IAM 브라우저 로그인(`aws login --remote --profile team4 --region ap-northeast-2`) 후 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`의 STS 인증은 확인했다. SSO 로그인은 사용하지 않았다. 처음 거부된 EKS/EC2/Config/ECR/IAM 사전 조회 5개는 2026-10-18 10:01 UTC 재검증에서 모두 통과했으며 증적은 `evidence/aws/preflight.json`이다. 사용자 제공 관리 PC IPv4의 `/32`를 반영한 실제 plan도 **67 add / 0 change / 0 destroy**로 통과했다([계획 검토](docs/AWS_PLAN_REVIEW.md)). apply·취약 규칙 주입·실제 Inspector finding 수집은 수행하지 않았으며 클라우드 리소스를 만들지 않았다.
 
-총예산은 180,000원이며, 권한 보완 후 실제 plan·비용을 확인한 별도 생성 승인이 필요하다. `automation/fixtures/*.simulated.json`과 fake AWS client 테스트는 명시적인 모의 자료이며 실제 CVE나 클라우드 증적으로 취급하지 않는다. 인증 성공, 권한 확인, 복구 성공은 서로 다른 검증 단계다.
+총예산은 180,000원이며 신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리가 승인됐다. 현재 실제 VPC 생성 DryRun이 권한 부족으로 거부됐고 runtime boundary가 없어 관리자 IAM 준비를 기다린다. `automation/fixtures/*.simulated.json`과 fake AWS client 테스트는 명시적인 모의 자료이며 실제 CVE나 클라우드 증적으로 취급하지 않는다. 인증 성공, 권한 확인, 복구 성공은 서로 다른 검증 단계다.
 
 ## 현재 검증 범위
 
@@ -100,4 +100,4 @@ worker는 취약 digest가 실제 대상에 실행 중인지 확인하고, 승�
 
 예상 범위를 벗어난 이벤트는 안전하게 거부하고 상태를 기록한다. 재시도 가능한 Lambda 오류는 제한된 재시도 후 SQS 실패 큐/비동기 실패 destination으로 전달된다. CodeBuild 실패 상태도 큐에 보낸다. 큐는 보존 14일이며 CloudWatch queue-depth alarm이 있다. **기본 `notification_topic_arn=""`에서는 사람에게 보내는 alarm action이 없다.** 선택적으로 같은 계정·리전의 승인된 기존 standard SNS topic ARN을 연결할 수 있지만 topic/subscription은 생성하지 않는다. topic/KMS 정책과 확정된 수신자를 준비하고 실제 전달을 검증해야 알림 완료라고 기록할 수 있다. 현재 AWS 알림은 실행 검증하지 않았다. 운영자는 기본 상태에서 큐/로그를 확인해야 하며 모든 거부 이벤트가 DLQ에 들어가는 것은 아니다.
 
-로그·증적은 필요한 ID/상태/시각만 기록하며 raw event, secret 값, 인증 token, 외부 명령의 민감 출력은 남기지 않는다. S3 증적·CodeBuild artifact·배포 runtime JSON을 함께 보존한다. 남은 실환경 검증은 IAM 권한 보완 → 리소스 inventory 및 실제 plan → 180,000원 예산 내 비용·생성 승인 → apply → controller/배포 검증 → 별도 SG 실험 승인 → Config 복구 측정 → 실제 Inspector 및 승인 replacement로 worker 검증 순서이다. 리소스 삭제는 [COST_AND_CLEANUP](COST_AND_CLEANUP.md)의 새로운 명시적 승인 절차를 따른다.
+로그·증적은 필요한 ID/상태/시각만 기록하며 raw event, secret 값, 인증 token, 외부 명령의 민감 출력은 남기지 않는다. S3 증적·배포 runtime JSON을 함께 보존한다. 현재 승인 범위의 남은 순서는 IAM 권한 보완 → inventory와 실제 plan 재확인 → apply → controller/ECR/EKS 검증 → Config·EventBridge·Lambda SG 복구 측정 → 증적 보존 → 이번 신규 자원 정리다. 생성·SG 시험·검증 후 신규 자원 정리에 같은 승인을 다시 요구하지 않는다. 실제 Inspector/외부 CodeBuild 확장은 별도 범위이며 아직 실행하지 않는다. 정리는 [COST_AND_CLEANUP](COST_AND_CLEANUP.md)의 소유권·계획 대조 절차를 따른다.

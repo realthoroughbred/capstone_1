@@ -144,11 +144,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "자동복구 단위·통합 테스트",
   "scope": "simulated",
   "result": "PASS",
-  "details": "70개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.",
+  "details": "89개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.",
   "evidence": [
     {
       "path": "evidence/local/unit-tests.txt",
-      "sha256": "7d3f82b3bca408ae975db798d7ba95cf1e06ed52fd09856819333faf8fdd6578"
+      "sha256": "63d20b0f4251148504687ca2ca89781376b5ed2be96225539f846dd66bb12439"
     }
   ],
   "policy_name": "공개 SSH 접근 금지",
@@ -630,11 +630,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "GitHub Actions CI",
   "scope": "github",
   "result": "PASS",
-  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `17d88b79186bd9667063c27233aabfb3d1312053` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39117480292).",
+  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `956fd527ef16003e81781ebb322e80e7c281862e` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39118168887).",
   "evidence": [
     {
-      "path": "evidence/github/runs-17d88b79186bd9667063c27233aabfb3d1312053.json",
-      "sha256": "80ea6e74e1f2a60f7e20a0d93eb45c992f34e27d45b5f7480564ddf9431d1890"
+      "path": "evidence/github/runs-956fd527ef16003e81781ebb322e80e7c281862e.json",
+      "sha256": "29bba86d650d66d5860219be31c05ab1cff1a5cf750283fe157e069ecc63036c"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -675,7 +675,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "evidence": [
     {
       "path": "evidence/aws/preflight.json",
-      "sha256": "7b09236359fd62fe23a6e6ee5fe24a1b393834b4ddee1a881a10ca8d0de7caef"
+      "sha256": "03eed9e13be78f4d2c75542c1292c2b79ac44c42c528b1e1ea643a527dbd3be8"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -757,11 +757,19 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "AWS plan/ECR/EKS/Config/Inspector",
   "scope": "aws",
   "result": "BLOCKED",
-  "details": "실제 plan 완료. 정확한 범위의 배포 IAM 준비 및 유료 생성 승인 대기.",
+  "details": "신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리 승인 완료. 실제 VPC 생성 DryRun 거부와 runtime boundary 부재로 관리자 배포 IAM 준비 대기.",
   "evidence": [
     {
       "path": "evidence/aws/preflight.json",
-      "sha256": "7b09236359fd62fe23a6e6ee5fe24a1b393834b4ddee1a881a10ca8d0de7caef"
+      "sha256": "03eed9e13be78f4d2c75542c1292c2b79ac44c42c528b1e1ea643a527dbd3be8"
+    },
+    {
+      "path": "evidence/aws/deployment-permissions.json",
+      "sha256": "34c75b2c8fbac95feb237150f57f2a895bde9783557a4e74756c394b47e94e7f"
+    },
+    {
+      "path": "evidence/aws/authorization.json",
+      "sha256": "625ca095407c5a9afec84a2f00f64dd50f06265e64a38a4771f06cfb44fc3fd7"
     }
   ],
   "policy_name": "공개 SSH 접근 금지",

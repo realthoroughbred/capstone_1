@@ -1,6 +1,6 @@
 # AWS EKS DevSecOps + ISMS-P Self-Healing
 
-BusyBox HTTP 테스트 프로그램을 사용해 이미지 검사·서명, Kubernetes 접근통제, AWS 설정 자동복구와 기술 통제 증적을 연결합니다. 실제 검증 범위는 [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)에 구분했습니다. AWS 자원 생성은 별도 승인 전입니다.
+BusyBox HTTP 테스트 프로그램을 사용해 이미지 검사·서명, Kubernetes 접근통제, AWS 설정 자동복구와 기술 통제 증적을 연결합니다. 실제 검증 범위는 [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)에 구분했습니다. AWS 실행 상태와 남은 조건은 [남은 작업](REMAINING_TASKS.md)을 따릅니다.
 
 ```mermaid
 flowchart LR

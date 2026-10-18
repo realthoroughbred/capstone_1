@@ -1,6 +1,6 @@
 # 실제 AWS 생성 계획 검토
 
-**승인 전이며 apply는 실행하지 않았습니다.** 계정 `852093844554`, 리전 `ap-northeast-2`, 프로필 `team4`의 실제 AWS API를 사용한 Terraform 계획입니다. 총예산 180,000원은 생성 허가와 별개입니다.
+**신규 생성·최대 8시간 실검증·SG 시험 및 검증 후 신규 자원 정리가 승인됐으며, apply는 아직 실행하지 않았습니다.** 계정 `852093844554`, 리전 `ap-northeast-2`, 프로필 `team4`의 실제 AWS API를 사용한 Terraform 계획입니다. 사용자 승인 기록은 `evidence/aws/authorization.json`에 보관했습니다. 총예산은 180,000원이며 기존 리소스 변경이나 Inspector/CodeBuild 확장은 승인 범위에 없습니다.
 
 Terraform 결과는 **67 add / 0 change / 0 destroy**입니다. IAM 정책 연결 등도 별도 항목이므로 유료 서비스 67개라는 뜻은 아닙니다. 로컬 state가 없음을 확인했고 이름 조회에서 기존 EKS·ECR·Config recorder·OIDC provider·프로젝트 역할·시크릿·KMS alias가 없었습니다. 기존 기본 VPC는 대상에 포함하지 않습니다.
 
@@ -14,21 +14,23 @@ Terraform 결과는 **67 add / 0 change / 0 destroy**입니다. IAM 정책 연�
 | 증적·오류 | S3 증적 버킷 1개, CloudWatch log group 3개, 실패 SQS queue 1개와 alarm 1개 |
 | 인증 | IAM 역할 9개, 역할 정책·연결, EKS/GitHub OIDC provider 2개, EKS access entry 2개 |
 
-EKS public API는 사용자가 제공한 관리 PC IPv4 **한 주소의 /32**로 제한합니다. 실제 주소는 Git에서 제외한 tfvars/plan에만 보관합니다. EKS 1.35의 STANDARD_SUPPORT와 2027-03-27 표준 지원 종료를 실제 AWS API로 확인했습니다. NAT Gateway, ALB, Inspector/CodeBuild 대응, SNS topic/subscription은 이번 계획에 없습니다. 승인 전에는 배포 workflow·리소스 생성·SG 위반 주입을 실행하지 않습니다.
+EKS public API는 사용자가 제공한 관리 PC IPv4 **한 주소의 /32**로 제한합니다. 실제 주소는 Git에서 제외한 tfvars/plan에만 보관합니다. EKS 1.35의 STANDARD_SUPPORT와 2027-03-27 표준 지원 종료를 실제 AWS API로 확인했습니다. NAT Gateway, ALB, Inspector/CodeBuild 대응, SNS topic/subscription은 이번 계획에 없습니다. ENI 미연결 DemoOnly SG의 TCP22 임시 공개 및 자동복구 시험은 이번 승인에 포함됐습니다.
 
 ## 예상 비용과 유지 조건
 
 [비용 산식과 출처](../COST_AND_CLEANUP.md)를 기준으로, **1노드 8시간 약 7,800원**, **2노드 8시간 약 9,300원**입니다. 24시간은 각각 약 16,800원/21,200원입니다. 공식 서울 가격표에서 확인한 EC2 $0.104/시간과 gp3 $0.0912/GB-month를 사용했습니다. 로그·Config·API 등의 임의 준비금(8시간 $3, 24시간 $5), 1 USD=1,500원 및 추가 10% 가정을 포함하며 확정 견적 또는 상한 보장이 아닙니다. 기존 계정 청구액과 장기 증적 보관료는 별도입니다. 1노드를 30일 유지하면 변동비를 제외한 소계만 약 254,000원이므로 180,000원 예산으로 상시 운영할 수 없습니다.
 
-우선 기본 1노드의 최대 8시간 실습을 검토합니다. 추가 노드로 확대하거나 장시간 유지하려면 범위·비용을 다시 확인합니다. 승인 없이 자동 삭제하지 않으므로 8시간이 지나도 유지하면 요금이 계속됩니다. 총 180,000원을 넘는 사용은 허가받은 것으로 간주하지 않습니다.
+기본 1노드의 최대 8시간 실습 후 이번에 생성한 자원을 정리하는 데 승인받았습니다. 추가 노드로 확대하거나 장시간 유지하려면 범위·비용을 다시 확인합니다. 정리에 실패해 자원이 남으면 요금이 계속되므로 실제 잔존 자원을 확인합니다. 총 180,000원을 넘는 사용은 허가받은 것으로 간주하지 않습니다.
 
 ## 실행 전 남은 조건
 
-- 사용자의 유료 리소스 생성 승인 및 유지·정리 방식 확정.
+- 사용자 승인 완료: 신규 생성·ECR/EKS 검증·DemoOnly SG 시험·검증 후 신규 자원 정리. 같은 범위에 대한 재승인을 요구하지 않습니다.
 - [관리자 IAM bootstrap](TEAM4_IAM_PERMISSIONS.md): runtime boundary, provisioning 권한, 새 리소스에만 한정한 default SG/OIDC/network 권한과 검토된 KMS 생성·import. 현재 runtime boundary와 역할들은 존재하지 않습니다. 준비된 기본 정책만으로 한 번에 전체 apply가 가능하다고 보장하지 않습니다.
 - bootstrap/import 뒤 state에 맞춰 계획을 다시 생성하고 승인된 자원·비용 범위를 대조합니다. 이 문서의 저장 plan을 그대로 강행하지 않습니다.
 - GitHub `aws-demo` 보호 환경·전용 runner·OIDC 연결. ECR/EKS 및 Config 실검증은 이 준비 이후에 수행합니다.
-- 실제 SG 복구 시연은 해당 새 DemoOnly SG가 ENI 미연결임을 재확인하고, 공개 TCP22 규칙을 일시 추가하는 실험 범위를 명시적으로 승인받은 뒤 수행합니다.
+- 실제 SG 복구 시연은 이미 승인된 범위에서 해당 새 DemoOnly SG가 ENI 미연결임을 재확인하고, 공개 TCP22 규칙을 일시 추가한 뒤 Config 탐지·Lambda 복구·재평가 증적을 확인합니다.
+
+현재 실제 쓰기 권한 검사: `ec2:CreateVpc`의 `--dry-run`이 `UnauthorizedOperation`으로 거부됐으며 관리자에게 안내한 IAM 정책 6개는 모두 `NoSuchEntity`였습니다. 조회용 정책은 정상입니다. 증적은 `evidence/aws/deployment-permissions.json`이며, 이 실패로 실제 자원이 생성되지는 않았습니다. [관리자 초기 작업 안내](TEAM4_ADMIN_QUICKSTART.md)의 IAM 준비가 현재 실행 차단 원인입니다.
 
 ## 원본 증적
 

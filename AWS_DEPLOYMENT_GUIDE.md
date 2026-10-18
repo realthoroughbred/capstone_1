@@ -2,7 +2,7 @@
 
 AWS 인증은 WSL의 IAM 콘솔 브라우저 로그인으로 확인했다. STS 결과는 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`이며 profile은 `team4`이다. 초기 AccessDenied였던 EKS/EC2/Config/ECR/IAM 사전 조회 5개는 2026-10-18 10:01 UTC 재검증에서 모두 통과했다. 증적은 `evidence/aws/preflight.json`이다. 사용자 제공 public IPv4 `/32`를 반영한 실제 Terraform plan은 **67 add / 0 change / 0 destroy**이다. [생성 계획 검토](docs/AWS_PLAN_REVIEW.md)와 `evidence/aws/demo-plan.*`에 기록했다. AWS apply, EKS 배포, Config/Inspector 복구 실험은 실행하지 않았고 클라우드 리소스를 만들지 않았다.
 
-사용자가 정한 **총예산은 180,000원**이다. 예산 제시는 생성 승인이 아니다. 남은 입력을 확정한 실제 plan·세금/환율을 포함한 비용·유지 기간을 제시하고, 과금 리소스 생성에 대한 명시적 승인을 받아야 한다.
+사용자가 정한 **총예산은 180,000원**이다. 실제 67개 생성 plan의 기본 1노드·최대 8시간 실검증, ECR/EKS 배포, ENI 미연결 DemoOnly SG의 TCP22 임시 공개·자동복구 시험 및 검증 후 신규 자원 정리는 **이미 승인됐다**. 승인 기록은 `evidence/aws/authorization.json`에 보관했다. 현재 차단 원인은 관리자 IAM 준비다. 실제 `ec2:CreateVpc --dry-run`이 `UnauthorizedOperation`으로 거부됐고 runtime boundary와 배포 정책이 없는 것을 확인했다. 기존 자원 변경이나 Inspector/CodeBuild 확장은 이 승인에 포함하지 않는다.
 
 기본 설계는 서울 리전 `ap-northeast-2`, EKS `team4-eks` 1.35, `t3.large` 노드 1대(min=1, desired=1, max=2), 암호화된 gp3 20 GiB이다. 두 public subnet과 Internet Gateway를 사용하며 NAT Gateway와 ALB는 만들지 않는다. 노드는 public IPv4를 사용하고 SSH를 열지 않는다. EKS public API는 승인된 운영자·배포 runner의 `/32`만 허용하고 private API도 켠다. 실제 용량·가용 버전·비용은 계정 조회와 최종 plan으로 확인한다. 상세 설계는 [infra-notes](docs/infra-notes.md), 예산과 보존 조건은 [COST_AND_CLEANUP](COST_AND_CLEANUP.md)을 따른다.
 
@@ -38,7 +38,7 @@ export AWS_PROFILE=team4 AWS_REGION=ap-northeast-2 AWS_PAGER=""
 
 CLI가 표시한 URL을 브라우저에서 열고 `team4-operator` 세션을 선택한 뒤, 표시된 인증 코드를 **그 CLI 입력창에만** 넣는다. STS의 Account가 `852093844554`와 다르면 진행하지 않는다. 인증 코드·임시 토큰·`.aws/login/cache`를 채팅·저장소·증적에 복사하지 않는다. 로그인 성공은 서비스 권한이나 생성 승인을 뜻하지 않는다. [AWS login 명령](https://docs.aws.amazon.com/cli/latest/reference/login/).
 
-Terraform AWS provider와 Terraform 자체의 S3 backend는 인증 구현이 다르다. 이 작업의 AWS 실제 plan 및 backend 인증은 아직 검증하지 않았다. 도구가 `login_session`을 읽지 못할 때만 WSL의 `~/.aws/config`에 다음 **별도** profile을 추가하고 `AWS_PROFILE=team4-tools`로 도구를 실행한다. 기존 `team4` profile을 덮어쓰지 않는다. credential process가 출력하는 비밀은 SDK만 소비하도록 하며 export 명령을 터미널이나 파일에 직접 출력하지 않는다. [AWS 공식 호환 방법](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sign-in.html).
+Terraform AWS provider와 Terraform 자체의 S3 backend는 인증 구현이 다르다. 현재 `team4` 프로필로 AWS provider의 실제 plan은 검증했으며 원격 S3 backend 인증은 검증하지 않았다. 도구가 `login_session`을 읽지 못할 때만 WSL의 `~/.aws/config`에 다음 **별도** profile을 추가하고 `AWS_PROFILE=team4-tools`로 도구를 실행한다. 기존 `team4` profile을 덮어쓰지 않는다. credential process가 출력하는 비밀은 SDK만 소비하도록 하며 export 명령을 터미널이나 파일에 직접 출력하지 않는다. [AWS 공식 호환 방법](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sign-in.html).
 
 ```ini
 [profile team4-tools]
@@ -84,7 +84,7 @@ terraform -chdir=infra show -no-color reviewed.tfplan
 
 제공된 provisioning 정책을 사용하려면 관리자가 먼저 `team4-runtime-boundary`를 만들고 `iam_permissions_boundary_arn="arn:aws:iam::852093844554:policy/team4-runtime-boundary"`를 지정해야 한다. 해당 정책은 이 경계가 있는 프로젝트 role 생성만 허용한다. 기본 SG 채택에 필요한 넓은 bootstrap 예외 등 남은 IAM 검토 사항은 [권한 문서](docs/TEAM4_IAM_PERMISSIONS.md)를 확인한다. AWS의 실제 정책 평가·apply는 아직 검증하지 않았다.
 
-최초 plan은 `enable_self_healing=false`, `enable_inspector_response=false`, `enable_github_deploy=false`를 유지한다. 옵션을 켜는 plan은 비용·권한·공유 설정 변경을 추가로 검토한다. plan/state에는 민감한 값이 포함될 수 있으므로 Git에 넣지 않는다. 협업 시 잠금과 암호화가 있는 승인된 state 저장소를 먼저 준비한다.
+모듈의 기본값은 자동화 옵션이 꺼져 있다. 이번에 실제 검토·승인된 plan은 `enable_self_healing=true`, `healing_dry_run=true`, `create_config_recorder=true`, `enable_github_deploy=true`, `enable_inspector_response=false`다. SG 시험 단계에서 승인 범위에 따라 dry run을 해제한다. plan/state에는 민감한 값이 포함될 수 있으므로 Git에 넣지 않는다. 협업 시 잠금과 암호화가 있는 승인된 state 저장소를 먼저 준비한다.
 
 **계정·리전·생성/교체/삭제 목록·총예산 180,000원 내 비용 및 유지 기간을 확인한 명시적 생성 승인 뒤에만** 다음 명령을 실행한다. 오래된 plan이나 변경된 입력은 다시 검토한다.
 

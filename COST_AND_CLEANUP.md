@@ -1,8 +1,8 @@
 # 비용, 보존 및 정리 결정
 
-현재 AWS apply 및 삭제를 실행하지 않았고 클라우드 리소스를 만들지 않았다. WSL `team4` profile의 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator`를 확인했고, 사전 조회 5개는 최신 2026-10-18 10:01 UTC 재검증에서 모두 통과했다(`evidence/aws/preflight.json`). 사용자 제공 public IPv4 `/32`를 반영한 실제 plan은 **67 add / 0 change / 0 destroy**이며 [검토 문서](docs/AWS_PLAN_REVIEW.md)에 정리했다. 누적 청구액은 아직 확인하지 않았다. 생성 후에도 **사용자의 명시적 삭제 승인 전까지 리소스를 유지**한다. 자동 종료나 일괄 destroy를 예약하지 않았다.
+현재 AWS apply 및 삭제를 실행하지 않았고 클라우드 리소스를 만들지 않았다. WSL `team4` profile의 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator`를 확인했고, 사전 조회 5개는 2026-10-18 10:01 UTC(19:01 KST) 재검증에서 모두 통과했다(`evidence/aws/preflight.json`). 사용자 제공 public IPv4 `/32`를 반영한 원본 plan은 **67 add / 0 change / 0 destroy**이며 [검토 문서](docs/AWS_PLAN_REVIEW.md)에 정리했다. 누적 청구액은 아직 확인하지 않았다.
 
-사용자가 지정한 **총예산은 180,000원**이다. 이는 자동 사용 허가가 아니다. 실제 plan·예상 비용·유지 기간을 제시한 다음 과금 리소스 생성 승인을 별도로 받아야 한다. 승인 대상 자원과 실행 조건은 [생성 계획 검토](docs/AWS_PLAN_REVIEW.md)에 명시했다.
+사용자는 **총예산 180,000원 내에서 위 계획의 신규 생성, 최대 8시간 실검증, ENI 미연결 DemoOnly SG의 TCP22 일시 공개·자동 복구, 검증 후 이번에 만든 자원 정리까지 승인**했다. 같은 범위의 생성·정리 승인을 다시 요구하지 않는다. 기존·공유 자원은 보존하며 범위 확대나 장기 운영은 승인에 포함되지 않는다. 현재 남은 실행 조건은 [관리자 IAM bootstrap](docs/TEAM4_ADMIN_BOOTSTRAP.md)이다. 첫 유료 자원 생성 시각부터 시간을 기록하고 삭제 대기 시간을 확보해 정리를 시작한다. 자동 종료나 일괄 destroy를 예약한 상태는 아니다.
 
 ## 단가와 실제 구성
 
@@ -23,7 +23,7 @@ gp3는 기본 3,000 IOPS·125 MB/s를 포함하며 이 구성은 추가 성능�
 
 ## 8시간·24시간 예산 시나리오
 
-월 요금은 비교를 위해 30일=720시간으로 나눈다. 실제 청구 월·초 단위 비례·최소 청구 단위에 따라 차이가 있다. 노드 수 `N`, 유지 시간 `H`일 때 위 항목의 예비 소계는 다음과 같다.
+월 요금은 비교를 위해 30일=720시간으로 나눈다. 실제 청구 월·초 단위 비례·최소 청구 단위에 따라 차이가 있다. **현재 승인 기간은 최대 8시간이며 24시간·30일 수치는 비용 비교용이다.** 노드 수 `N`, 유지 시간 `H`일 때 위 항목의 예비 소계는 다음과 같다.
 
 ```text
 USD 소계 = H × [0.10 + N × (0.104 + 0.005 + 20 × 0.0912 / 720) + (1.00 + 0.40) / 720]
@@ -50,15 +50,15 @@ USD 소계 = H × [0.10 + N × (0.104 + 0.005 + 20 × 0.0912 / 720) + (1.00 + 0.
 | 항목 | 실제 사용량을 확인할 방법 / 계산에서 빠뜨리지 않을 조건 |
 | --- | --- |
 | CloudWatch | EKS api/audit/authenticator/controllerManager/scheduler와 VPC flow logs의 수집 GB, 압축 보관 GB-month, query scan GB, alarm 수를 기록한다. 365일 보존은 실험 후 비용도 남긴다. [CloudWatch 요금](https://aws.amazon.com/cloudwatch/pricing/) |
-| Config / SG 복구 | 옵션이 켜졌을 때 configuration item 수와 rule evaluation 수를 센다. recorder는 SecurityGroup 종류를 기록하므로 기존 SG의 초기/변경 기록도 발생할 수 있다. [Config 요금](https://aws.amazon.com/config/pricing/) |
+| Config / SG 복구 | 이번 승인 계획에 포함된다. configuration item 수와 rule evaluation 수를 센다. recorder는 SecurityGroup 종류를 기록하므로 기존 SG의 초기/변경 기록도 발생할 수 있다. [Config 요금](https://aws.amazon.com/config/pricing/) |
 | S3 / ECR / KMS / Secrets API | 증적 버전까지 포함한 저장 GB-month, PUT/GET, 이미지·서명·SBOM 크기, 암복호화 및 ESO 요청 수를 계산한다. 저장 공간과 요청료는 별개다. [S3 요금](https://aws.amazon.com/s3/pricing/), [ECR 요금](https://aws.amazon.com/ecr/pricing/) |
-| Lambda / EventBridge / SQS / DynamoDB | SG·Inspector 옵션의 호출·실행 시간, 재시도, 실패 큐 요청, dedup 읽기/쓰기·보관·PITR를 포함한다. 현재 기본값은 옵션 비활성이다. |
-| Inspector / 외부 CodeBuild | enhanced 스캔 횟수·재스캔, build 실행 분, artifact/logs 및 외부 runner·인터넷/private 연결을 별도 견적한다. **위 표의 준비금으로 충당된다고 가정하지 않는다.** [Inspector 요금](https://aws.amazon.com/inspector/pricing/), [CodeBuild 요금](https://aws.amazon.com/codebuild/pricing/) |
+| Lambda / EventBridge / SQS | 이번 SG 복구의 호출·실행 시간, 재시도, 실패 큐 요청을 포함한다. Inspector용 DynamoDB dedup/PITR는 이번 계획에 없다. |
+| Inspector / 외부 CodeBuild | 이번 승인 계획에서는 비활성이다. 추후 추가한다면 enhanced 스캔 횟수·재스캔, build 실행 분, artifact/logs 및 외부 runner·인터넷/private 연결을 별도 견적한다. **위 표의 준비금으로 충당된다고 가정하지 않는다.** [Inspector 요금](https://aws.amazon.com/inspector/pricing/), [CodeBuild 요금](https://aws.amazon.com/codebuild/pricing/) |
 | CPU credit / 데이터 전송 | T3 Unlimited의 추가 CPU credit은 공식 Linux **$0.05/vCPU-hour**다. 장시간 CPU 사용, AZ 간/인터넷 전송은 위 소계에 없다. [EC2 요금](https://aws.amazon.com/ec2/pricing/on-demand/) |
 
 IAM·STS·EKS access entry/OIDC 인증 자체에 별도 유료 인프라를 추가하지 않으며, VPC CNI·CoreDNS·kube-proxy와 ESO/Kyverno/Argo CD는 같은 노드의 자원을 사용한다. controller 때문에 노드를 늘리거나 Marketplace addon, EKS Auto Mode 등을 추가하면 견적을 다시 만든다. 계정 기본 billing·Marketplace 선택 여부도 최종 plan과 대조한다.
 
-EKS는 사용하지 않는 시간에도 클러스터 요금이 발생한다. 노드만 줄여도 control plane, 로그·이미지·secret·키 보관 비용은 남는다. 따라서 승인 시 유지 기간과 다시 검토할 날짜를 정한다. AWS Budgets/비용 알림은 계정 관리자가 실제 수신자를 지정하여 구성하고 동작을 확인한다. 이 저장소가 예산 알림을 이미 구성했다고 주장하지 않는다.
+EKS는 사용하지 않는 시간에도 클러스터 요금이 발생한다. 노드만 줄여도 control plane, 로그·이미지·secret·키 보관 비용은 남는다. 이번에는 최대 8시간 검증 후 승인된 신규 자원을 정리한다. AWS Budgets/비용 알림은 계정 관리자가 실제 수신자를 지정하여 구성하고 동작을 확인한다. 이 저장소가 예산 알림을 이미 구성했다고 주장하지 않는다.
 
 ## 배포 전후 자산 목록
 
@@ -68,22 +68,12 @@ EKS는 사용하지 않는 시간에도 클러스터 요금이 발생한다. 노
 
 ## 보존과 삭제 절차
 
-1. **삭제 제안을 먼저 구체화한다.** 대상 계정·리전·Terraform state·리소스 ID·공유 여부와 삭제 후 남을 비용을 목록으로 만든다. 필요한 증적·이미지·설정을 접근 통제된 위치에 내보내고 복구 가능성을 확인한다. secret 값이나 자격 증명은 증적에 넣지 않는다.
-2. 리소스 생성 승인과 별도로 **새로운 삭제 승인**을 받는다. 이미 배포되었거나 실습이 끝났다는 이유만으로 삭제하지 않는다. 승인 전에는 리소스를 유지하고 누적 비용을 알린다.
-3. 아래 destroy plan을 검토한다. 외부 controller가 만든 LoadBalancer/PVC/ENI가 있다면 소유자와 의존성을 먼저 확인한다. 이 기본 설계에 ALB가 없다는 사실만으로 계정에 ALB가 없다고 판단하지 않는다.
+상세 명령과 부분 실패 처리는 [승인된 신규 자원 정리 절차](docs/cleanup-notes.md)에 정리했다. 이미 승인된 정리를 실행하기 위한 확인 순서는 다음과 같다.
 
-```bash
-# 자격 증명·계정 확인 후, 삭제안 작성용. 아직 실행한 결과가 아니다.
-export AWS_PROFILE=team4 AWS_REGION=ap-northeast-2 AWS_PAGER=""
-aws sts get-caller-identity --profile team4 --region ap-northeast-2
-terraform -chdir=infra state list
-terraform -chdir=infra plan -destroy -out=reviewed-destroy.tfplan
-terraform -chdir=infra show -no-color reviewed-destroy.tfplan
-# 위 계획의 삭제 대상에 대한 새로운 명시적 승인 후에만:
-terraform -chdir=infra apply reviewed-destroy.tfplan
-```
+1. **신규 소유권을 고정한다.** 원본 승인 plan, 생성 전 조사, 실제 생성 응답과 state로 주소·ID·ARN ledger를 만든다. [로컬 검사 도구](scripts/check-cleanup-plan.py)는 기존 managed state, 미승인 주소, 다른 계정·리전·ID와 교체·수정이 섞인 destroy plan을 거부한다. binary plan을 직접 `terraform show -json`으로 읽어 제공 JSON과 대조하고 해시를 기록한다. 로컬 검사 PASS만으로 실제 소유권을 입증하지는 않는다.
+2. **실험과 쓰기를 끝내고 보존한다.** 이번 EventBridge rule·Config recorder만 중지하고 실제 SG 복구 증거, 로그·실패 큐 조사 결과를 저장한다. S3의 모든 객체 버전과 삭제 마커, ECR의 모든 digest·하위 이미지·서명·SBOM을 내보내고 크기·해시·manifest를 확인한다. secret 값과 인증 token은 일반 증적에서 제외한다.
+3. **백업된 정확한 신규 내용만 정리한다.** 신규 bucket의 Key+VersionId, 신규 repository의 digest를 명시해 삭제하고 다시 비었는지 조회한다. S3 `force_destroy=false`, ECR `force_delete=false`를 유지하며 보호 설정을 우회하지 않는다. controller가 만든 자원은 실제 소유권·종속성을 확인한다.
+4. **검사한 저장 destroy plan으로 정리한다.** 부분 apply 실패도 현재 생성된 승인 범위만 정리한다. 삭제 실패 시 state·오류를 보존하고 새 plan으로 재검사한다. state에 빠진 자원은 정확한 생성 기록을 찾아 복구한 뒤 처리한다. 임의 `state rm`, lock 삭제, ENI 강제 detach로 문제를 숨기지 않는다.
+5. **잔존 비용을 확인한다.** EC2/EBS/IP/ENI, EKS, S3/ECR/Logs와 자동화 자원을 실제 조회한다. Secrets Manager **7일 복구 기간**, KMS **30일 삭제 대기**는 유지하고 예약 ID·예정일을 별도 보고한다. 백업 검증은 KMS 삭제 예약 전에 끝낸다. 기존 VPC·공유 자원·외부 runner 및 관리자 IAM 정책은 이번 Terraform 정리 대상에서 제외한다. 청구 반영 지연도 후속 확인한다.
 
-4. 보호 설정으로 삭제가 막히면 원인을 검토한다. ECR `force_delete=false`, 증적 S3 `force_destroy=false`이므로 이미지나 버전 객체를 임의로 비우거나 보호를 우회하지 않는다. Secrets Manager는 7일 복구 기간, KMS는 30일 삭제 대기 기간을 설정한다. 로그·증적의 365일 보존 설정은 destroy 시 반드시 유지된다는 뜻이 아니므로 먼저 내보낸다. DynamoDB dedup 기록도 삭제하면 재실행 방지가 사라진다.
-5. apply 종료 뒤 계정 조회를 반복하여 남은 EC2/EBS/IP/ENI/NAT/LoadBalancer, ECR/S3 버전 객체, Logs/secret/키, Config recorder, CodeBuild/runner를 재확인한다. 외부 CodeBuild·공유 recorder·공유 OIDC provider는 이 프로젝트 소유인지 별도 판단하고 승인 범위 밖이면 유지한다. 청구 반영 지연을 고려하여 비용 화면도 후속 확인한다.
-
-SG 데모 CLI의 `--approved-demo`는 **이번 실험에서 만든 고유 TCP22 규칙 1개와 실패 시 그 규칙의 정리**를 승인하는 옵션이다. 전체 AWS 리소스 삭제 승인과는 다르다. 정리 실패가 `MANUAL_REVIEW_REQUIRED`로 기록되면 실제 SG의 태그·ENI·규칙 ID를 확인하고 운영자가 조치해야 한다. 현재 그러한 실험이나 정리도 실행하지 않았다.
+로그·증적의 365일 보존 설정은 destroy 뒤에도 자동으로 유지된다는 뜻이 아니다. 내보내기 실패로 일부 신규 저장 자원을 남겨야 한다면 정확한 ID·이유·예상 보관료를 보고하고 다른 확인된 신규 유료 자원을 우선 정리한다. `--approved-demo`는 SG 실험의 고유 TCP22 규칙 한 개와 실패 시 그 규칙의 복구를 제한하는 실행 옵션이며, 전체 신규 자원 정리의 근거는 사용자의 별도 명시적 승인이다. 수동 제거를 자동 복구 성공으로 보고하지 않는다. 현재 그러한 실험이나 정리도 실행하지 않았다.

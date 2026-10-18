@@ -1,6 +1,8 @@
 # team4 AWS 권한 연결 안내
 
-확인된 계정은 `852093844554`, IAM 사용자는 `team4-operator`, 리전은 `ap-northeast-2`입니다. `aws login --remote --profile team4` 로그인과 STS 신원 확인은 성공했습니다. 처음에는 EKS 목록, VPC 조회, AWS Config recorder 조회, ECR repository 조회가 AccessDenied였으며, 외부에서 읽기 권한을 연결한 후 5개 확인 명령이 모두 성공했습니다. 아래 배포·경계·선택 정책은 검토용이며 에이전트가 AWS에 생성하거나 연결하지 않았습니다. 읽기 권한 연결은 유료 리소스 생성 승인을 의미하지 않습니다.
+확인된 계정은 `852093844554`, IAM 사용자는 `team4-operator`, 리전은 `ap-northeast-2`입니다. `aws login --remote --profile team4` 로그인과 STS 신원 확인은 성공했습니다. 처음에는 EKS 목록, VPC 조회, AWS Config recorder 조회, ECR repository 조회가 AccessDenied였으며, 외부에서 읽기 권한을 연결한 후 5개 확인 명령이 모두 성공했습니다. 실제 plan도 67 add / 0 change / 0 destroy로 성공했습니다. 사용자는 신규 생성·최대 8시간 실검증·연결되지 않은 DemoOnly SG의 TCP 22 시험·검증 후 신규 자원 정리를 명시 승인했습니다. 현재의 실행 장애는 승인 부족이 아니라 배포 IAM 권한과 경계 정책의 부재입니다.
+
+관리자는 [구체적인 bootstrap 실행 안내](TEAM4_ADMIN_BOOTSTRAP.md)를 따릅니다. 저장된 실제 plan으로 만든 검토용 JSON은 `generated/admin-bootstrap/initial/`에 있으며, [오프라인 생성기](admin-bootstrap/render.py)가 초기·네트워크·클러스터 단계별 문서를 생성합니다. 이번 실행은 Inspector가 꺼져 있으므로 전체 optional-automation 대신 **Config-only 정책**을 연결합니다. 에이전트가 이 관리자 정책을 AWS에 생성·연결했다는 뜻은 아닙니다.
 
 ## 지금 필요한 읽기 권한
 
@@ -84,4 +86,4 @@ operator_principal_arns = {
 - 외부 CodeBuild 프로젝트의 VPC ENI 정책과 private GitHub 연결 사용 권한은 실제 승인된 subnet/connection ARN을 알고 있는 관리자가 별도로 제한해서 설정해야 합니다. 네트워크 경계 조각도 승인한 VPC/subnet으로만 제한하며, 기본 경계는 `Project=team4` 태그가 있는 CodeConnections 사용 범위만 제공합니다. 프로젝트 설정·권한·네트워크는 아직 실제 실행 검증되지 않았습니다.
 - JSON 문법과 관리형 정책 크기는 로컬 검사합니다. **AWS IAM Access Analyzer policy validation, IAM 실제 평가 및 Terraform apply는 아직 검증하지 않았습니다.** 관리자는 IAM 정책 생성 화면 또는 `aws accessanalyzer validate-policy --policy-document file://... --policy-type IDENTITY_POLICY`로 AWS 검증을 수행할 수 있습니다. 실제 plan/API가 추가 action을 요구하면 거부된 action과 ARN에 맞춰 수정하며 관리자 전체 권한으로 대체하지 않습니다.
 
-정책에 삭제 API가 있어도 리소스 삭제 승인을 뜻하지 않습니다. 실제 생성은 사용자가 승인한 비용/plan 범위에서만 진행하고, 삭제는 별도 명시적 승인 후 수행합니다. 현재 예산 한도는 **180,000원**이며 정책 연결만으로 유료 리소스는 생성되지 않습니다.
+현재 예산 한도는 **180,000원**이며, 이번에 신규 생성하는 실험 자원의 생성·8시간 검증·정리는 이미 승인되었습니다. 기존 자원의 수정·삭제는 이 범위에 포함되지 않습니다. 정책 연결만으로 유료 리소스가 생성되지는 않으며, 관리자 권한 연결 후 승인된 plan 범위에서 실행을 이어갑니다.
