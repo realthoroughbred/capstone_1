@@ -2,9 +2,9 @@
 
 대상 저장소는 `realthoroughbred/capstone_1`입니다. 이 문서는 설정 절차이며, GitHub 환경·runner·AWS 역할이 실제로 연결되었다는 증거는 아닙니다. AWS 리소스 생성과 유료 배포는 별도 승인 범위에서 진행합니다.
 
-AWS는 WSL의 `aws login --remote --profile team4 --region ap-northeast-2`로 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 서비스 사전 조회 5개는 모두 AccessDenied였으므로 OIDC provider/역할/EKS가 준비됐다고 볼 수 없습니다(`evidence/aws/preflight.json`). 총예산 180,000원 안에서 실제 plan·비용을 검토한 명시적 생성 승인 전에는 AWS 배포 workflow를 실행하지 않습니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
+AWS는 WSL의 `aws login --remote --profile team4 --region ap-northeast-2`로 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 처음 거부된 서비스 사전 조회 5개는 2026-10-18 09:45 UTC에 모두 통과했습니다(`evidence/aws/preflight.json`). 읽기 성공은 OIDC 역할/EKS 배포 준비 완료를 뜻하지 않습니다. 총예산 180,000원 안에서 실제 plan·비용을 검토한 명시적 생성 승인 전에는 AWS 배포 workflow를 실행하지 않습니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
 
-현재는 관리자에게 [사전 조회 IAM 정책](TEAM4_IAM_PERMISSIONS.md) 연결을 요청한 단계입니다. GitHub 일반 CI 실행과 AWS 배포 활성화를 구분하며, 개인 `team4` 로그인 cache를 GitHub runner로 복사하지 않습니다.
+현재는 [IAM 권한 문서](TEAM4_IAM_PERMISSIONS.md)에 따라 추가 provisioning 권한과 실제 plan을 준비하는 단계입니다. GitHub 일반 CI 실행과 AWS 배포 활성화를 구분하며, 개인 `team4` 로그인 cache를 GitHub runner로 복사하지 않습니다.
 
 ## 1. 로컬 GitHub 인증과 작업 사본
 
@@ -111,6 +111,8 @@ gh variable list --repo realthoroughbred/capstone_1 --env aws-demo
 ## 6. 첫 실행과 성공 판정
 
 일반 CI는 [run 39116090770](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770), commit `dd13627053f4b76af4ec151894946f5b6509f37f`에서 실제 통과했습니다. artifact의 Python 70개, Terraform mock 6개, Checkov 111 passed/0 failed/23 skipped를 확인했습니다. 이 결과는 AWS 배포 job 실행이나 `aws-demo` 설정 완료 증거가 아닙니다. 후속 변경은 해당 commit의 CI로 새로 검증합니다.
+
+후속 [run 39116901979](https://github.com/realthoroughbred/capstone_1/actions/runs/39116901979)도 통과했고 Terraform mock은 8개입니다. 변경은 [draft PR #1](https://github.com/realthoroughbred/capstone_1/pull/1)에서 검토합니다. 마지막 문서 변경 뒤의 commit·PR CI 상태는 별도로 확인합니다.
 
 검토한 브랜치를 PR로 반영한 뒤 CI의 정적 검사·이미지 검사를 확인합니다. 배포는 **Actions → Approved EKS deployment → Run workflow → main**에서 요청하고 지정 검토자가 `aws-demo` job을 승인합니다. runner가 연결되지 않으면 job은 queued 상태이므로 배포 완료로 기록하지 않습니다.
 

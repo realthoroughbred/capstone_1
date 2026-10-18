@@ -1,25 +1,56 @@
 # 비용, 보존 및 정리 결정
 
-현재 AWS plan/apply 및 삭제를 실행하지 않았고 클라우드 리소스를 만들지 않았다. WSL `team4` profile로 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator`의 STS 인증은 확인했지만 사전 조회 5개가 모두 AccessDenied였다(`evidence/aws/preflight.json`). 실제 기존 리소스 수·누적 청구액·잔여 리소스는 확인하지 못했다. 생성 후에도 **사용자의 새로운 명시적 삭제 승인 전까지 리소스를 유지**한다. 자동 종료나 일괄 destroy를 예약하지 않았다.
+현재 AWS apply 및 삭제를 실행하지 않았고 클라우드 리소스를 만들지 않았다. WSL `team4` profile의 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator`를 확인했고, 처음 AccessDenied였던 사전 조회 5개는 2026-10-18 09:45 UTC 재검증에서 모두 통과했다(`evidence/aws/preflight.json`). 사용자 제공 public IPv4 `/32`를 반영한 실제 plan은 **67 add / 0 change / 0 destroy**이며 [검토 문서](docs/AWS_PLAN_REVIEW.md)에 정리했다. 누적 청구액은 아직 확인하지 않았다. 생성 후에도 **사용자의 명시적 삭제 승인 전까지 리소스를 유지**한다. 자동 종료나 일괄 destroy를 예약하지 않았다.
 
-사용자가 지정한 **총예산은 180,000원**이다. 이는 자동 사용 허가가 아니다. 조회 권한을 해결하고 실제 plan·예상 비용·유지 기간을 제시한 다음 과금 리소스 생성 승인을 별도로 받아야 한다.
+사용자가 지정한 **총예산은 180,000원**이다. 이는 자동 사용 허가가 아니다. 실제 plan·예상 비용·유지 기간을 제시한 다음 과금 리소스 생성 승인을 별도로 받아야 한다. 승인 대상 자원과 실행 조건은 [생성 계획 검토](docs/AWS_PLAN_REVIEW.md)에 명시했다.
 
-## 예상 비용
+## 단가와 실제 구성
 
-기본 설계는 서울 리전 EKS 1개, `t3.large` On-Demand 노드 1대, gp3 20 GiB, 노드 public IPv4, KMS, Secrets Manager, CloudWatch이다. NAT Gateway와 ALB는 만들지 않는다. `node_max_size=2`는 상한이며 기본 desired는 1이다. 추가 노드가 실행되면 비용도 늘어난다. EKS 버전은 standard support를 사용하도록 설정되어 있지만 실행 시점의 제공·지원 기간은 확인해야 한다.
+서울 리전 EKS 1.35 standard support 1개, Linux `t3.large` On-Demand 노드 기본 1대, **노드당 gp3 20 GiB**가 실제 코드 값이다(`infra/main.tf`의 `volume_size=20`, 30 GiB가 아님). public IPv4는 노드당 1개로 계산한다. 프로젝트 CMK 1개와 Secret 1개가 있으며 EKS 로그 5종·VPC flow log를 365일 보관한다. NAT Gateway·ALB·EKS Auto Mode는 만들지 않는다. desired=1/max=2이고 autoscaler는 없으므로 아래 2대 표는 두 대가 계속 실행되는 경우의 비교다. node group 교체/업데이트 중 일시적인 추가 인스턴스 비용은 별도다.
 
-| 항목 | 공식 단가 또는 산정 방법 |
+| 항목 | 산정 입력과 확인 수준 |
 | --- | --- |
-| EKS standard support control plane | **$0.10/cluster-hour**, 24시간 기준 $2.40/일, 30일 기준 $72. 노드 비용 별도. [EKS 요금](https://aws.amazon.com/eks/pricing/) |
-| AWS public IPv4 | **$0.005/IP-hour**, IP 1개를 24시간 쓰면 $0.12/일, 30일 $3.60. 실제 사용/유휴 IP 수를 계정에서 조사한다. [VPC 요금](https://aws.amazon.com/vpc/pricing/) |
-| Secrets Manager | 기본 공개 요금 **$0.40/secret-month**, API **$0.05/10,000 calls**. 실제 리전·저장 기간·호출량을 확인한다. ESO refresh도 호출을 발생시킨다. [Secrets Manager 요금](https://aws.amazon.com/secrets-manager/pricing/) |
-| EC2·EBS | 서울 `t3.large` Linux On-Demand 1대와 gp3 20 GiB의 최신 단가로 산정한다. 이 문서는 EC2의 정확한 시간당 단가를 검증했다고 주장하지 않는다. CPU credit 추가 과금 조건도 확인한다. [EC2 On-Demand 요금](https://aws.amazon.com/ec2/pricing/on-demand/), [EBS 요금](https://aws.amazon.com/ebs/pricing/) |
-| KMS·ECR·Logs·전송 | CMK, API 요청, 이미지 저장/전송, VPC flow log와 EKS control-plane log의 수집·365일 보관량에 따라 변동한다. |
-| 옵션: Config·Inspector·Lambda·S3·SQS·DynamoDB·CodeBuild | 기록/평가·스캔·실행·저장량에 따라 추가된다. CodeBuild와 그 인터넷/private 연결 비용은 외부 인프라까지 따로 산정한다. |
+| EKS control plane | 공식 **$0.10/cluster-hour**. standard support 조건이며 노드 비용 별도. [EKS 요금](https://aws.amazon.com/eks/pricing/) |
+| Public IPv4 | 공식 **$0.005/IP-hour**. [VPC 요금](https://aws.amazon.com/vpc/pricing/) |
+| `t3.large` Linux / shared / On-Demand | **임시 예산 입력 $0.12/node-hour**. 서울의 정확한 현재 단가를 공식 지역 데이터로 확보하지 못했으므로 AWS 확정 단가가 아니다. 최종 계산기 견적으로 교체한다. [EC2 요금](https://aws.amazon.com/ec2/pricing/on-demand/) |
+| gp3 기본 성능, 노드당 20 GiB | **임시 예산 입력 $0.12/GiB-month**. 서울 단가 미확정. 기본 3,000 IOPS·125 MB/s는 포함되며 추가 성능을 지정하지 않았다. [EBS 요금](https://aws.amazon.com/ebs/pricing/) |
+| 새 프로젝트 KMS CMK 1개 | 공식 **$1/key-month**, 시간 비례. 요청료 별도이며 장기 보유 후 키 회전은 추가 보관료가 생길 수 있다. [KMS 요금](https://aws.amazon.com/kms/pricing/) |
+| Secrets Manager 1개 | 공개 요금 **$0.40/secret-month**, API **$0.05/10,000 calls**. ESO refresh 호출 포함. [Secrets Manager 요금](https://aws.amazon.com/secrets-manager/pricing/) |
 
-노드 1대와 소규모 실습 사용량을 가정한 **전체 데모 예산의 1차 범위는 약 $6–9/일(30일 $180–270)**이다. 이는 확정 견적이나 상한이 아니며 세금·환율, 사용량 증가, 대량 로그·스캔·전송, 외부 runner/CodeBuild 네트워크 비용은 제외한다. 최종 plan과 최신 서울 리전 단가로 [AWS Pricing Calculator](https://calculator.aws/) 견적을 만들어 생성 승인에 첨부한다. Free Tier나 크레딧으로 무료가 된다고 가정하지 않는다.
+2026-10-18에 공식 요금 페이지를 확인했다. EC2/EBS의 소형 지역 JSON 후보 URL은 404였으며 대용량 전체 offer 파일은 내려받지 않았다. 따라서 위 **EC2·gp3 두 값은 계산을 재현하기 위한 가정**이며 실제보다 높다는 보장도 없다. Free Tier·크레딧·약정 할인은 차감하지 않았다. 최종 plan 뒤 [AWS Pricing Calculator](https://calculator.aws/)의 서울 리전 견적으로 바꾼다.
 
-위 달러 예시는 180,000원 예산에 대한 승인된 원화 견적이 아니다. 실제 결제 환율·세금·이미 발생한 비용·증적 보존 비용과 예비비를 반영해 `가용액 = 180,000원 - 기존 사용액 - 예비비`, `검토 가능한 유지 기간 = 가용액 / 보수적으로 잡은 원화 일비용`으로 산정한다. 한 달 상시 운영이나 정해진 며칠이 예산 안에 든다고 아직 판단할 수 없다. 사용량·외부 연결비가 확정되기 전에는 선택 기능을 켜지 않는다.
+## 8시간·24시간 예산 시나리오
+
+월 요금은 비교를 위해 30일=720시간으로 나눈다. 실제 청구 월·초 단위 비례·최소 청구 단위에 따라 차이가 있다. 노드 수 `N`, 유지 시간 `H`일 때 위 항목의 예비 소계는 다음과 같다.
+
+```text
+USD 소계 = H × [0.10 + N × (0.12 + 0.005 + 20 × 0.12 / 720) + (1.00 + 0.40) / 720]
+원화 예시 = USD × 1,500원/USD × 1.10
+```
+
+**1,500원/USD와 추가 10%는 예산 계산용 가정**이며 현재 은행환율이나 확정 세금 고지가 아니다. 아래 변동비 준비금은 8시간 $3, 24시간 $5로 임의 배정한 실습 예비비다. 서비스 요금이나 예상 사용량의 검증 결과가 아니며 초과할 수 있다.
+
+| 지속 실행 조건 | 위 항목 소계 | 변동비 준비금 포함 | 원화 예시(백 원 올림) |
+| --- | ---: | ---: | ---: |
+| 노드 1대 / 8시간 | $1.84 | $4.84 | 약 8,000원 |
+| 노드 1대 / 24시간 | $5.53 | $10.53 | 약 17,400원 |
+| 노드 2대 / 8시간 | $2.87 | $5.87 | 약 9,700원 |
+| 노드 2대 / 24시간 | $8.61 | $13.61 | 약 22,500원 |
+
+이는 **생성부터 삭제까지 시간이 해당 시간일 때의 가정**이다. 8시간 사용 후 클러스터를 보존하면 요금이 계속 발생한다. 생성·설치·대기·실패 조사 시간도 포함해야 하며 이 표가 자동 종료나 예산 상한을 보장하지 않는다. 180,000원 중 예컨대 36,000원을 별도 안전 예비비로 남기고, `실습 가용액 = 180,000원 - 기존 사용액 - 안전 예비비 - 실험 뒤 보존비`로 산정한다. 실제 plan 전에는 여러 날 상시 운영이 예산 안에 든다고 확정하지 않는다.
+
+## 변동비에 포함해야 할 항목
+
+| 항목 | 실제 사용량을 확인할 방법 / 계산에서 빠뜨리지 않을 조건 |
+| --- | --- |
+| CloudWatch | EKS api/audit/authenticator/controllerManager/scheduler와 VPC flow logs의 수집 GB, 압축 보관 GB-month, query scan GB, alarm 수를 기록한다. 365일 보존은 실험 후 비용도 남긴다. [CloudWatch 요금](https://aws.amazon.com/cloudwatch/pricing/) |
+| Config / SG 복구 | 옵션이 켜졌을 때 configuration item 수와 rule evaluation 수를 센다. recorder는 SecurityGroup 종류를 기록하므로 기존 SG의 초기/변경 기록도 발생할 수 있다. [Config 요금](https://aws.amazon.com/config/pricing/) |
+| S3 / ECR / KMS / Secrets API | 증적 버전까지 포함한 저장 GB-month, PUT/GET, 이미지·서명·SBOM 크기, 암복호화 및 ESO 요청 수를 계산한다. 저장 공간과 요청료는 별개다. [S3 요금](https://aws.amazon.com/s3/pricing/), [ECR 요금](https://aws.amazon.com/ecr/pricing/) |
+| Lambda / EventBridge / SQS / DynamoDB | SG·Inspector 옵션의 호출·실행 시간, 재시도, 실패 큐 요청, dedup 읽기/쓰기·보관·PITR를 포함한다. 현재 기본값은 옵션 비활성이다. |
+| Inspector / 외부 CodeBuild | enhanced 스캔 횟수·재스캔, build 실행 분, artifact/logs 및 외부 runner·인터넷/private 연결을 별도 견적한다. **위 표의 준비금으로 충당된다고 가정하지 않는다.** [Inspector 요금](https://aws.amazon.com/inspector/pricing/), [CodeBuild 요금](https://aws.amazon.com/codebuild/pricing/) |
+| CPU credit / 데이터 전송 | T3 Unlimited의 추가 CPU credit은 공식 Linux **$0.05/vCPU-hour**다. 장시간 CPU 사용, AZ 간/인터넷 전송은 위 소계에 없다. [EC2 요금](https://aws.amazon.com/ec2/pricing/on-demand/) |
+
+IAM·STS·EKS access entry/OIDC 인증 자체에 별도 유료 인프라를 추가하지 않으며, VPC CNI·CoreDNS·kube-proxy와 ESO/Kyverno/Argo CD는 같은 노드의 자원을 사용한다. controller 때문에 노드를 늘리거나 Marketplace addon, EKS Auto Mode 등을 추가하면 견적을 다시 만든다. 계정 기본 billing·Marketplace 선택 여부도 최종 plan과 대조한다.
 
 EKS는 사용하지 않는 시간에도 클러스터 요금이 발생한다. 노드만 줄여도 control plane, 로그·이미지·secret·키 보관 비용은 남는다. 따라서 승인 시 유지 기간과 다시 검토할 날짜를 정한다. AWS Budgets/비용 알림은 계정 관리자가 실제 수신자를 지정하여 구성하고 동작을 확인한다. 이 저장소가 예산 알림을 이미 구성했다고 주장하지 않는다.
 

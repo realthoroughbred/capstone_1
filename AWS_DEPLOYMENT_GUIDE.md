@@ -1,8 +1,8 @@
 # AWS 배포 및 실환경 검증 절차
 
-AWS 인증은 WSL의 IAM 콘솔 브라우저 로그인으로 확인했다. STS 결과는 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`이며 profile은 `team4`이다. 다만 EKS/EC2/Config/ECR/IAM의 사전 조회 5개가 모두 AccessDenied로 차단되었다. 증적은 `evidence/aws/preflight.json`이며, 리소스가 없다는 의미가 아니다. AWS 대상 Terraform plan/apply, EKS 배포, Config/Inspector 복구 실험은 실행하지 않았고 클라우드 리소스를 만들지 않았다.
+AWS 인증은 WSL의 IAM 콘솔 브라우저 로그인으로 확인했다. STS 결과는 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`이며 profile은 `team4`이다. 초기 AccessDenied였던 EKS/EC2/Config/ECR/IAM 사전 조회 5개는 2026-10-18 09:45 UTC 재검증에서 모두 통과했다. 증적은 `evidence/aws/preflight.json`이다. 사용자 제공 public IPv4 `/32`를 반영한 실제 Terraform plan은 **67 add / 0 change / 0 destroy**이다. [생성 계획 검토](docs/AWS_PLAN_REVIEW.md)와 `evidence/aws/demo-plan.*`에 기록했다. AWS apply, EKS 배포, Config/Inspector 복구 실험은 실행하지 않았고 클라우드 리소스를 만들지 않았다.
 
-사용자가 정한 **총예산은 180,000원**이다. 예산 제시는 생성 승인이 아니다. 조회 권한 해결 후 실제 plan·세금/환율을 포함한 비용·유지 기간을 제시하고, 과금 리소스 생성에 대한 명시적 승인을 받아야 한다.
+사용자가 정한 **총예산은 180,000원**이다. 예산 제시는 생성 승인이 아니다. 남은 입력을 확정한 실제 plan·세금/환율을 포함한 비용·유지 기간을 제시하고, 과금 리소스 생성에 대한 명시적 승인을 받아야 한다.
 
 기본 설계는 서울 리전 `ap-northeast-2`, EKS `team4-eks` 1.35, `t3.large` 노드 1대(min=1, desired=1, max=2), 암호화된 gp3 20 GiB이다. 두 public subnet과 Internet Gateway를 사용하며 NAT Gateway와 ALB는 만들지 않는다. 노드는 public IPv4를 사용하고 SSH를 열지 않는다. EKS public API는 승인된 운영자·배포 runner의 `/32`만 허용하고 private API도 켠다. 실제 용량·가용 버전·비용은 계정 조회와 최종 plan으로 확인한다. 상세 설계는 [infra-notes](docs/infra-notes.md), 예산과 보존 조건은 [COST_AND_CLEANUP](COST_AND_CLEANUP.md)을 따른다.
 
@@ -10,9 +10,9 @@ AWS 인증은 WSL의 IAM 콘솔 브라우저 로그인으로 확인했다. STS �
 
 현재 사용한 방식은 `aws login --remote`로 IAM 사용자 콘솔 세션을 임시 CLI 자격 증명으로 연결하는 방식이다. **IAM Identity Center SSO가 아니므로 `aws configure sso`나 `aws sso login`으로 바꾸지 않는다.** 장기 access key를 만들거나 root 계정으로 로그인할 필요도 없다. [AWS 콘솔 기반 CLI 로그인](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sign-in.html).
 
-계정 관리자는 IAM → **Users → team4-operator → Permissions**에서 현재 정책, 그룹, permissions boundary를 확인하고 우선 필요한 사전 조회 정책을 검토·연결한다. SCP 등 상위 명시적 거부가 있으면 identity policy만 추가해서 해결되지 않는다. 실패가 확인된 API는 `eks:ListClusters`, `ec2:DescribeVpcs`, `config:DescribeConfigurationRecorders`, `ecr:DescribeRepositories`, `iam:ListOpenIDConnectProviders`다. 이 5개를 허용하는 것만으로 전체 Terraform plan/apply 권한이 완성되지는 않는다.
+계정 관리자는 IAM → **Users → team4-operator → Permissions**에서 현재 정책, 그룹, permissions boundary를 확인한다. SCP 등 상위 명시적 거부가 있으면 identity policy만 추가해서 해결되지 않는다. 초기에 실패했지만 지금 통과한 API는 `eks:ListClusters`, `ec2:DescribeVpcs`, `config:DescribeConfigurationRecorders`, `ecr:DescribeRepositories`, `iam:ListOpenIDConnectProviders`다. 이 5개를 허용하는 것만으로 전체 Terraform plan/apply 권한이 완성되지는 않는다.
 
-관리자에게 연결을 요청한 읽기 정책과 콘솔 순서는 [TEAM4_IAM_PERMISSIONS](docs/TEAM4_IAM_PERMISSIONS.md)에 있다. 현재는 `team4-operator-preflight` 연결 후 조회를 재검증하는 단계다. provisioning 정책·런타임 boundary·선택 자동화 정책은 따로 검토하며, 정책 파일이 준비된 사실을 실제 연결 완료로 기록하지 않는다.
+관리자에게 요청한 읽기 정책과 콘솔 순서는 [TEAM4_IAM_PERMISSIONS](docs/TEAM4_IAM_PERMISSIONS.md)에 있다. 현재 기본 조회 재검증은 통과했다. provisioning 정책·런타임 boundary·선택 자동화 정책은 따로 검토하며, 읽기 성공이나 정책 파일 준비를 실제 쓰기 권한·생성 승인으로 기록하지 않는다.
 
 사전 조회, 인프라 provisioner, 런타임 권한을 분리한다. 정책 초안은 계정 관리자가 기존 공유 리소스·SCP·permissions boundary와 함께 검토하며 `PowerUserAccess`만으로 IAM 역할 생성·PassRole이 충족된다고 가정하지 않는다. 런타임 역할에 관리자 권한을 부여하지 않는다. 조직이 나중에 SSO로 전환하기로 정한 경우에만 별도 permission set 생성 → 사용자/그룹의 AWS 계정 할당 → SSO profile 설정을 따른다. [AWS permission set](https://docs.aws.amazon.com/singlesignon/latest/userguide/howtocreatepermissionset.html), [계정 할당](https://docs.aws.amazon.com/singlesignon/latest/userguide/assignusers.html).
 
@@ -46,7 +46,7 @@ credential_process = aws configure export-credentials --profile team4 --format p
 region = ap-northeast-2
 ```
 
-**조회 권한이 보완된 뒤 기존 리소스와 공유 설정을 다시 조사**한다. 아래 명령 중 현재 확인된 5개는 거부되었고, 나머지 조회 성공도 아직 입증되지 않았다. 결과는 접근 통제된 `evidence/aws/` 등에 보관한다. AccessDenied를 빈 목록으로 간주하거나 태그 검색만으로 모든 기존 리소스를 찾았다고 판단하지 않는다.
+**기본 조회 성공 후 기존 리소스와 공유 설정을 조사**한다. 아래 사전 검사 5개는 통과했으며 추가 inventory와 실제 plan에 필요한 조회는 계속 확인한다. 결과는 접근 통제된 `evidence/aws/` 등에 보관한다. 다른 API의 AccessDenied를 빈 목록으로 간주하거나 태그 검색만으로 모든 기존 리소스를 찾았다고 판단하지 않는다.
 
 ```bash
 python3 scripts/aws-preflight.py --profile team4 --account 852093844554 --region ap-northeast-2

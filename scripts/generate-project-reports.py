@@ -102,7 +102,13 @@ inventory_ready = bool(preflight.get('checks')) and all(c.get('result') == 'PASS
 record('AWS 신원·기존 자원 조회', 'OPS-001', 'aws', inventory_ready,
        ['evidence/aws/preflight.json'], 'team4 프로필, 계정 852093844554. STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회.',
        blocked=not inventory_ready)
-reason = ('사전 조회 완료. 실제 plan·정확한 범위의 배포 IAM 준비 및 유료 생성 승인이 필요함.' if inventory_ready else
+aws_plan = data('evidence/aws/plan-summary.json')
+plan_ready = aws_plan.get('result') == 'PASS' and aws_plan.get('read_only') is True
+record('AWS Terraform plan', 'IAC-001', 'aws', plan_ready,
+       ['evidence/aws/plan-summary.json', 'evidence/aws/demo-plan.txt'],
+       f"실제 AWS provider 계획: {aws_plan.get('actions', {})}. apply 미실행. docs/AWS_PLAN_REVIEW.md 참고.")
+reason = ('실제 plan 완료. 정확한 범위의 배포 IAM 준비 및 유료 생성 승인 대기.' if plan_ready else
+          '사전 조회 완료. 실제 plan·정확한 범위의 배포 IAM 준비 및 유료 생성 승인이 필요함.' if inventory_ready else
           'team4 프로필 인증됨. 자원 조회 IAM 권한 부족 및 유료 생성 승인 전.' if preflight else 'AWS 계정 사전 점검 필요.')
 record('AWS plan/ECR/EKS/Config/Inspector', 'NET-001', 'aws', False,
        ['evidence/aws/preflight.json'], reason, blocked=True)
@@ -193,7 +199,7 @@ bare BusyBox 원본은 APK/DPKG 목록이 없어 취약점 검사 범위가 비�
 
 ## AWS 배포
 
-[배포 가이드](AWS_DEPLOYMENT_GUIDE.md), [IAM 권한](docs/TEAM4_IAM_PERMISSIONS.md), [GitHub 설정](docs/GITHUB_SETUP.md), [비용·정리](COST_AND_CLEANUP.md)를 확인합니다. `team4` 프로필/계정 `852093844554`/서울 리전, 총예산 상한 180,000원입니다. 실제 plan을 검토하고 유료 생성 승인을 받은 뒤 배포합니다. 자동복구는 기본 DRY_RUN이며 운영 자원은 대상으로 삼지 않습니다.
+[실제 AWS 계획](docs/AWS_PLAN_REVIEW.md), [배포 가이드](AWS_DEPLOYMENT_GUIDE.md), [IAM 권한](docs/TEAM4_IAM_PERMISSIONS.md), [GitHub 설정](docs/GITHUB_SETUP.md), [비용·정리](COST_AND_CLEANUP.md)를 확인합니다. `team4` 프로필/계정 `852093844554`/서울 리전, 총예산 상한 180,000원입니다. 실제 plan을 검토하고 유료 생성 승인을 받은 뒤 배포합니다. 자동복구는 기본 DRY_RUN이며 운영 자원은 대상으로 삼지 않습니다.
 
 CI는 PR에서 실행되고 AWS 배포는 보호된 `aws-demo` 환경의 main 전용 수동 workflow와 EKS에 접근 가능한 전용 runner에서 실행됩니다. NAT·ALB는 기본 구성에 없습니다. Inspector CodeBuild는 네트워크 경로가 준비된 별도 전용 프로젝트를 요구합니다.
 

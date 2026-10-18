@@ -630,11 +630,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "GitHub Actions CI",
   "scope": "github",
   "result": "PASS",
-  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `dd13627053f4b76af4ec151894946f5b6509f37f` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770).",
+  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `bade7718ba239a8a71f2872068474765c85a3fe9` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39116980831).",
   "evidence": [
     {
-      "path": "evidence/github/runs-dd13627053f4b76af4ec151894946f5b6509f37f.json",
-      "sha256": "8dfd66f014633068cbc78c7fea20f0751c3932bfbb3b421e572d619f44f89086"
+      "path": "evidence/github/runs-bade7718ba239a8a71f2872068474765c85a3fe9.json",
+      "sha256": "77bc1e209a9a2d257a46cdddb291b6605e558bb39b35710aba421fd5b6df6378"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -699,6 +699,51 @@ Technical evidence mapping only; not an ISMS-P certification determination.
 }
 ```
 
+## IAC-001 — 인프라 보안 형상 검사
+
+결과: **PASS** · 검증 범위: **aws**
+
+통제: 2.10.2 클라우드 보안, 2.11.2 취약점 점검 및 조치
+
+```json
+{
+  "policy_id": "IAC-001",
+  "target": "AWS Terraform plan",
+  "tool": "AWS Terraform plan",
+  "scope": "aws",
+  "result": "PASS",
+  "details": "실제 AWS provider 계획: {'add': 67, 'change': 0, 'destroy': 0}. apply 미실행. docs/AWS_PLAN_REVIEW.md 참고.",
+  "evidence": [
+    {
+      "path": "evidence/aws/plan-summary.json",
+      "sha256": "0c9397a32ed46f981e94dc5de48f6ac6512088cfe0c8d3ff1ad0533352b85a6d"
+    },
+    {
+      "path": "evidence/aws/demo-plan.txt",
+      "sha256": "40dcadb1dbeb2e4f23f0a1239d2e436a339d980ab6b429ecb4264ac275dfe071"
+    }
+  ],
+  "policy_name": "인프라 보안 형상 검사",
+  "isms_p": [
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    },
+    {
+      "id": "2.11.2",
+      "name": "취약점 점검 및 조치"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
 ## NET-001 — 공개 SSH 접근 금지
 
 결과: **BLOCKED** · 검증 범위: **aws**
@@ -712,7 +757,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "AWS plan/ECR/EKS/Config/Inspector",
   "scope": "aws",
   "result": "BLOCKED",
-  "details": "사전 조회 완료. 실제 plan·정확한 범위의 배포 IAM 준비 및 유료 생성 승인이 필요함.",
+  "details": "실제 plan 완료. 정확한 범위의 배포 IAM 준비 및 유료 생성 승인 대기.",
   "evidence": [
     {
       "path": "evidence/aws/preflight.json",

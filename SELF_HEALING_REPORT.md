@@ -1,6 +1,6 @@
 # Self-Healing 구현 및 검증 보고서
 
-복구 코드와 로컬 테스트는 구현했으며, **AWS에서 실제 탐지·복구·EKS 교체를 검증한 결과는 아직 없다.** WSL에서 IAM 브라우저 로그인(`aws login --remote --profile team4 --region ap-northeast-2`) 후 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`의 STS 인증은 확인했다. SSO 로그인은 사용하지 않았다. EKS/EC2/Config/ECR/IAM 사전 조회 5개가 모두 AccessDenied였으며 증적은 `evidence/aws/preflight.json`이다. AWS plan/apply, 취약 규칙 주입, 실제 Inspector finding 수집은 수행하지 않았고 클라우드 리소스를 만들지 않았다.
+복구 코드와 로컬 테스트는 구현했으며, **AWS에서 실제 탐지·복구·EKS 교체를 검증한 결과는 아직 없다.** WSL에서 IAM 브라우저 로그인(`aws login --remote --profile team4 --region ap-northeast-2`) 후 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`의 STS 인증은 확인했다. SSO 로그인은 사용하지 않았다. 처음 거부된 EKS/EC2/Config/ECR/IAM 사전 조회 5개는 2026-10-18 09:45 UTC 재검증에서 모두 통과했으며 증적은 `evidence/aws/preflight.json`이다. 실제 plan은 운영자 public IPv4 입력 등 준비가 남았고, apply·취약 규칙 주입·실제 Inspector finding 수집은 수행하지 않았다. 클라우드 리소스를 만들지 않았다.
 
 총예산은 180,000원이며, 권한 보완 후 실제 plan·비용을 확인한 별도 생성 승인이 필요하다. `automation/fixtures/*.simulated.json`과 fake AWS client 테스트는 명시적인 모의 자료이며 실제 CVE나 클라우드 증적으로 취급하지 않는다. 인증 성공, 권한 확인, 복구 성공은 서로 다른 검증 단계다.
 
@@ -14,6 +14,8 @@
 | 일반 배포 검증 | template뿐 아니라 소유 ReplicaSet/ready Pod runtime digest 검증 로직 | AWS 배포 artifact와 애플리케이션 응답 |
 
 저장소 전체 Python 단위 테스트의 최근 로컬 결과는 **70개 통과**이며 원본은 `evidence/local/unit-tests.txt`에 있다. [GitHub CI run 39116090770](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770)도 commit `dd13627053f4b76af4ec151894946f5b6509f37f`에서 모든 job이 통과했고, artifact에서 Python 70개·Terraform mock 6개·Checkov 111 passed/0 failed/23 skipped를 확인했다. 증적 디렉터리는 Git에서 제외한다. 자동 복구 관련 테스트는 `tests/test_healing*.py`, `tests/test_inspector*.py`에서 확인할 수 있다. 아래 명령은 AWS 호출 없이 실행된다.
+
+후속 SNS 옵션 검증을 포함한 [CI run 39116901979](https://github.com/realthoroughbred/capstone_1/actions/runs/39116901979)도 통과했고 Terraform mock은 **8개**로 늘었다. 위 6개 수치는 앞선 commit artifact의 기록이다.
 
 ```bash
 python -m unittest discover -s tests -v
@@ -37,7 +39,7 @@ Lambda는 account/region/Config rule/SG allowlist, `Project=team4`, `DemoOnly=tr
 
 ### 승인된 실제 데모 절차
 
-[AWS 배포 안내](AWS_DEPLOYMENT_GUIDE.md)에 따라 서비스 조회 권한을 먼저 보완하고, 별도 승인을 받아 실제 Config 기록·Lambda를 준비한다. 현재 계정의 기본 조회부터 차단되어 있어 아래 SG preflight도 아직 실행 가능한 상태로 검증되지 않았다. Bash에서 `AWS_PROFILE=team4`를 설정한다. `--approved-demo`가 없으면 규칙을 만들지 않는다.
+[AWS 배포 안내](AWS_DEPLOYMENT_GUIDE.md)에 따라 실제 plan·비용을 검토하고, 별도 승인을 받아 Config 기록·Lambda를 준비한다. 기본 계정 조회는 통과했지만 아직 복구 리소스를 배포하지 않아 아래 SG preflight의 실환경 성공은 검증하지 않았다. Bash에서 `AWS_PROFILE=team4`를 설정한다. `--approved-demo`가 없으면 규칙을 만들지 않는다.
 
 ```bash
 export AWS_PROFILE=team4 AWS_REGION=ap-northeast-2 AWS_PAGER=""
