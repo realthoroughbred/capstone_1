@@ -1,0 +1,181 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CallerIdentity",
+      "Effect": "Allow",
+      "Action": [
+        "sts:GetCallerIdentity"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "RegionalInventoryMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeVpcs",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSecurityGroupRules",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeRouteTables",
+        "ec2:DescribeInternetGateways",
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceTypes",
+        "ec2:DescribeLaunchTemplates",
+        "ec2:DescribeLaunchTemplateVersions",
+        "ec2:DescribeFlowLogs",
+        "ec2:DescribeTags",
+        "eks:ListClusters",
+        "eks:DescribeClusterVersions",
+        "eks:DescribeAddonVersions",
+        "eks:DescribeAddonConfiguration",
+        "ecr:DescribeRepositories",
+        "ecr:GetRegistryScanningConfiguration",
+        "config:DescribeConfigurationRecorders",
+        "config:DescribeConfigurationRecorderStatus",
+        "config:DescribeDeliveryChannels",
+        "config:DescribeDeliveryChannelStatus",
+        "config:DescribeConfigRules",
+        "logs:DescribeLogGroups",
+        "cloudwatch:DescribeAlarms",
+        "events:ListRules",
+        "sqs:ListQueues",
+        "dynamodb:ListTables",
+        "kms:ListAliases",
+        "kms:ListKeys"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-northeast-2"
+        }
+      }
+    },
+    {
+      "Sid": "ProjectEKSMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "eks:DescribeCluster",
+        "eks:ListNodegroups",
+        "eks:DescribeNodegroup",
+        "eks:ListAddons",
+        "eks:DescribeAddon",
+        "eks:ListAccessEntries",
+        "eks:DescribeAccessEntry",
+        "eks:ListAssociatedAccessPolicies",
+        "eks:ListTagsForResource",
+        "eks:ListUpdates",
+        "eks:DescribeUpdate"
+      ],
+      "Resource": [
+        "arn:aws:eks:ap-northeast-2:852093844554:cluster/team4-eks",
+        "arn:aws:eks:ap-northeast-2:852093844554:nodegroup/team4-eks/*",
+        "arn:aws:eks:ap-northeast-2:852093844554:addon/team4-eks/*",
+        "arn:aws:eks:ap-northeast-2:852093844554:access-entry/team4-eks/*"
+      ]
+    },
+    {
+      "Sid": "IAMProviderInventory",
+      "Effect": "Allow",
+      "Action": [
+        "iam:ListOpenIDConnectProviders",
+        "iam:GetAccountSummary"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ProjectIAMMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:ListRolePolicies",
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRoleTags",
+        "iam:ListInstanceProfilesForRole"
+      ],
+      "Resource": "arn:aws:iam::852093844554:role/team4-*"
+    },
+    {
+      "Sid": "OIDCMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetOpenIDConnectProvider",
+        "iam:ListOpenIDConnectProviderTags"
+      ],
+      "Resource": [
+        "arn:aws:iam::852093844554:oidc-provider/token.actions.githubusercontent.com",
+        "arn:aws:iam::852093844554:oidc-provider/oidc.eks.ap-northeast-2.amazonaws.com/id/*"
+      ]
+    },
+    {
+      "Sid": "PolicyMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:ListPolicyVersions"
+      ],
+      "Resource": [
+        "arn:aws:iam::852093844554:policy/team4-*",
+        "arn:aws:iam::aws:policy/AmazonEKS*",
+        "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly"
+      ]
+    },
+    {
+      "Sid": "ProjectRepositoryMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetLifecyclePolicy",
+        "ecr:GetRepositoryPolicy",
+        "ecr:ListTagsForResource"
+      ],
+      "Resource": "arn:aws:ecr:ap-northeast-2:852093844554:repository/team4-test"
+    },
+    {
+      "Sid": "ProjectSecretMetadataOnly",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetResourcePolicy"
+      ],
+      "Resource": "arn:aws:secretsmanager:ap-northeast-2:852093844554:secret:team4/demo/token-*"
+    },
+    {
+      "Sid": "ProjectKMSMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "kms:DescribeKey",
+        "kms:GetKeyPolicy",
+        "kms:GetKeyRotationStatus",
+        "kms:ListResourceTags",
+        "kms:ListGrants"
+      ],
+      "Resource": "arn:aws:kms:ap-northeast-2:852093844554:key/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/Project": "team4"
+        }
+      }
+    },
+    {
+      "Sid": "EvidenceBucketMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation",
+        "s3:GetBucketAcl",
+        "s3:GetBucketPolicy",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetEncryptionConfiguration",
+        "s3:GetBucketVersioning",
+        "s3:GetLifecycleConfiguration",
+        "s3:GetBucketOwnershipControls",
+        "s3:GetBucketTagging"
+      ],
+      "Resource": "arn:aws:s3:::team4-852093844554-ap-northeast-2-evidence"
+    }
+  ]
+}

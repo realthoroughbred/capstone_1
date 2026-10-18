@@ -1,0 +1,63 @@
+name: Approved EKS deployment
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: team4-eks-deployment
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    environment: aws-demo
+    # Runner must reach the restricted EKS API; hosted-runner IP ranges are not allowlisted.
+    runs-on: [self-hosted, linux, team4-deploy]
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ap-northeast-2
+      EXPECTED_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      EKS_CLUSTER: team4-eks
+      COSIGN_IDENTITY: https://github.com/realthoroughbred/capstone_1/.github/workflows/deploy.yml@refs/heads/main
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: '1.12.2'
+          terraform_wrapper: false
+      - run: python -m pip install -r requirements-dev.txt
+      - run: bash scripts/ci-check.sh
+      - run: bash scripts/install-security-tools.sh
+      - run: bash scripts/image-security.sh
+      - uses: aws-actions/configure-aws-credentials@4a1596c86fd706dc0521e32f0121ad1a6d1adb74 # v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-2
+          allowed-account-ids: ${{ vars.AWS_ACCOUNT_ID }}
+      - run: bash scripts/publish-signed-image.sh "${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+      - run: bash scripts/deploy-verified-image.sh
+      - name: Diagnostics
+        if: failure()
+        run: |
+          kubectl --context team4-eks -n demo get pods,deployments,events > evidence/deployment-failure.txt 2>&1 || true
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: deployment-evidence
+          path: |
+            evidence/image/*.json
+            evidence/image/*.txt
+            evidence/deployment*.txt
+            evidence/deployment-runtime.json
+            evidence/deployed-image.txt
+            evidence/cosign-verify.json
+            evidence/registry-binding.json
+          retention-days: 30

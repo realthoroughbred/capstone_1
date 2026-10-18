@@ -1,0 +1,16 @@
+version: 0.2
+env:
+  shell: bash
+phases:
+  install:
+    commands:
+      - bash scripts/install-security-tools.sh
+      - bash automation/install-kubectl.sh
+  build:
+    commands:
+      - export PATH="$CODEBUILD_SRC_DIR/.tools/bin:$PATH"
+      - python3 automation/inspector_worker.py
+artifacts:
+  files:
+    - evidence/inspector-remediation.json
+  discard-paths: yes

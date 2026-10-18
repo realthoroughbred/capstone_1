@@ -1,0 +1,35 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: team4-restricted
+spec:
+  background: true
+  rules:
+    - name: restricted-security-context
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [demo]
+      validate:
+        failureAction: Enforce
+        message: Demo workloads must comply with the restricted Pod Security Standard.
+        podSecurity:
+          level: restricted
+          # Kyverno 1.19.1 CRD supports explicit PSS versions through v1.32.
+          # The PSS ruleset version is independent of the EKS API version.
+          version: v1.32
+    - name: read-only-root-filesystem
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [demo]
+      validate:
+        failureAction: Enforce
+        message: All regular, init, and ephemeral containers require a read-only root filesystem.
+        foreach:
+          - list: request.object.spec.[containers, initContainers, ephemeralContainers][]
+            pattern:
+              securityContext:
+                readOnlyRootFilesystem: true

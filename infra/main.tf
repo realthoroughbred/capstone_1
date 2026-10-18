@@ -1,5 +1,9 @@
 data "aws_availability_zones" "available" {
   state = "available"
+  filter {
+    name   = "zone-name"
+    values = var.availability_zones
+  }
 }
 
 resource "aws_vpc" "demo" {
@@ -12,6 +16,7 @@ resource "aws_internet_gateway" "demo" {
   vpc_id = aws_vpc.demo.id
 }
 resource "aws_subnet" "public" {
+  #checkov:skip=CKV_AWS_130:Approved demo design uses public node IPv4 without NAT; no inbound node ports are exposed.
   count                   = 2
   vpc_id                  = aws_vpc.demo.id
   cidr_block              = cidrsubnet(aws_vpc.demo.cidr_block, 8, count.index + 1)
@@ -33,6 +38,7 @@ resource "aws_route_table_association" "public" {
 }
 
 resource "aws_iam_role" "cluster" {
+  permissions_boundary = var.iam_permissions_boundary_arn
   name = "${var.project}-eks-cluster"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
@@ -45,12 +51,18 @@ resource "aws_iam_role_policy_attachment" "cluster" {
 }
 resource "aws_cloudwatch_log_group" "cluster" {
   name              = "/aws/eks/${var.cluster_name}/cluster"
-  retention_in_days = 7
+  retention_in_days = 365
+  kms_key_id        = aws_kms_key.project.arn
 }
 resource "aws_eks_cluster" "demo" {
+  #checkov:skip=CKV_AWS_38:Static scan cannot resolve the required operator CIDR input; validation requires every entry to be IPv4 /32 and mock tests reject 0.0.0.0/0.
+  #checkov:skip=CKV_AWS_39:Public endpoint is restricted to validated operator IPv4 /32s; private access remains enabled for nodes.
   name     = var.cluster_name
   role_arn = aws_iam_role.cluster.arn
   version  = var.kubernetes_version
+  upgrade_policy {
+    support_type = "STANDARD"
+  }
   access_config {
     authentication_mode                         = "API"
     bootstrap_cluster_creator_admin_permissions = false
@@ -61,7 +73,13 @@ resource "aws_eks_cluster" "demo" {
     endpoint_public_access  = true
     public_access_cidrs     = var.admin_public_cidrs
   }
-  enabled_cluster_log_types = ["api", "audit", "authenticator"]
+  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+  encryption_config {
+    provider {
+      key_arn = aws_kms_key.project.arn
+    }
+    resources = ["secrets"]
+  }
   depends_on = [
     aws_iam_role_policy_attachment.cluster,
     aws_cloudwatch_log_group.cluster,
@@ -85,6 +103,7 @@ resource "aws_eks_access_policy_association" "operators" {
 }
 
 resource "aws_iam_role" "node" {
+  permissions_boundary = var.iam_permissions_boundary_arn
   name = "${var.project}-eks-node"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
@@ -94,8 +113,7 @@ resource "aws_iam_role" "node" {
 resource "aws_iam_role_policy_attachment" "node" {
   for_each = toset([
     "AmazonEKSWorkerNodePolicy",
-    "AmazonEC2ContainerRegistryPullOnly",
-    "AmazonEKS_CNI_Policy"
+    "AmazonEC2ContainerRegistryPullOnly"
   ])
   role       = aws_iam_role.node.name
   policy_arn = "arn:aws:iam::aws:policy/${each.value}"
@@ -133,31 +151,32 @@ resource "aws_eks_node_group" "demo" {
   subnet_ids      = aws_subnet.public[*].id
   version         = var.kubernetes_version
   ami_type        = "AL2023_x86_64_STANDARD"
-  instance_types  = ["t3.medium"]
+  instance_types  = [var.node_instance_type]
   capacity_type   = "ON_DEMAND"
   launch_template {
     id      = aws_launch_template.node.id
     version = tostring(aws_launch_template.node.latest_version)
   }
   scaling_config {
-    min_size     = 1
-    desired_size = 1
-    max_size     = 2
+    min_size     = var.node_min_size
+    desired_size = var.node_desired_size
+    max_size     = var.node_max_size
   }
   update_config {
     max_unavailable = 1
   }
-  depends_on = [aws_iam_role_policy_attachment.node, aws_route_table_association.public]
+  depends_on = [aws_iam_role_policy_attachment.node, aws_route_table_association.public, aws_eks_addon.network]
 }
 resource "aws_eks_addon" "network" {
   for_each                    = toset(["vpc-cni", "kube-proxy"])
   cluster_name                = aws_eks_cluster.demo.name
   addon_name                  = each.value
   addon_version               = var.addon_versions[each.value]
+  service_account_role_arn    = each.value == "vpc-cni" ? aws_iam_role.cni.arn : null
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "PRESERVE"
   configuration_values        = each.value == "vpc-cni" ? jsonencode({ enableNetworkPolicy = "true" }) : null
-  depends_on                  = [aws_eks_node_group.demo]
+  depends_on                  = [aws_iam_role_policy_attachment.cni]
 }
 resource "aws_eks_addon" "dns" {
   cluster_name                = aws_eks_cluster.demo.name
@@ -165,28 +184,40 @@ resource "aws_eks_addon" "dns" {
   addon_version               = var.addon_versions.coredns
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "PRESERVE"
-  depends_on                  = [aws_eks_addon.network]
+  depends_on                  = [aws_eks_node_group.demo]
 }
 
 resource "aws_ecr_repository" "test" {
+  #checkov:skip=CKV_AWS_51:Only Cosign sha256-*.sig/.att artifact tags are mutable; application tags remain immutable and deployments use signed digests. Checkov 3.3.29 only accepts literal IMMUTABLE.
   name                 = "${var.project}-test"
-  image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "IMMUTABLE_WITH_EXCLUSION"
   force_delete         = false
+  image_tag_mutability_exclusion_filter {
+    filter      = "sha256-*.sig"
+    filter_type = "WILDCARD"
+  }
+  image_tag_mutability_exclusion_filter {
+    filter      = "sha256-*.att"
+    filter_type = "WILDCARD"
+  }
   image_scanning_configuration {
     scan_on_push = true
   }
   encryption_configuration {
-    encryption_type = "AES256"
+    encryption_type = "KMS"
+    kms_key         = aws_kms_key.project.arn
   }
 }
 resource "aws_security_group" "healing_demo" {
+  #checkov:skip=CKV2_AWS_5:This security group must remain unattached for the explicitly bounded remediation experiment.
   name        = "${var.project}-healing-demo"
-  description = "Unattached security group for later configuration remediation tests"
+  description = "Unattached approved security group for restricted-SSH remediation tests"
   vpc_id      = aws_vpc.demo.id
   ingress     = []
   egress      = []
   tags = {
     Name     = "${var.project}-healing-demo"
     DemoOnly = "true"
+    Project  = var.project
   }
 }

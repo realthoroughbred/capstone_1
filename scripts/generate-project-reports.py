@@ -1,0 +1,184 @@
+"""Derive project status from retained command results; missing proof never becomes PASS."""
+import importlib.util
+import json
+import re
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def read(path):
+    target = ROOT / path
+    return target.read_text(encoding='utf-8', errors='replace') if target.is_file() else ''
+
+
+def data(path):
+    try:
+        return json.loads(read(path))
+    except (ValueError, TypeError):
+        return {}
+
+
+rows = []
+observations = []
+
+
+def record(name, policy, scope, passed, paths, detail, blocked=False):
+    status = 'PASS' if passed else ('BLOCKED' if blocked else 'NOT_TESTED')
+    existing = [p for p in paths if (ROOT / p).is_file()]
+    rows.append({'feature': name, 'scope': scope, 'result': status, 'detail': detail, 'evidence': existing})
+    observations.append({'policy_id': policy, 'target': name, 'tool': name, 'scope': scope,
+                         'result': status, 'details': detail, 'evidence': existing})
+
+
+validation = data('evidence/terraform/validate.json')
+record('Terraform validate', 'IAC-001', 'static', validation.get('valid') is True,
+       ['evidence/terraform/validate.json', 'evidence/terraform/fmt.txt'], 'Provider 스키마 검증. 실제 AWS plan/apply와 구분.')
+mock = read('evidence/terraform/mock-tests.txt')
+record('Terraform 안전 조건', 'IAC-001', 'simulated', bool(re.search(r'Success! \d+ passed, 0 failed', mock)),
+       ['evidence/terraform/mock-tests.txt'], 'mock provider: 기본 dry run, 공개 CIDR 금지, OIDC subject, 서명 전용 태그 예외.')
+scan = data('evidence/terraform/checkov.json').get('summary', {})
+record('Checkov', 'IAC-001', 'static', bool(scan) and scan.get('failed') == 0 and scan.get('parsing_errors') == 0,
+       ['evidence/terraform/checkov.json'], f"passed={scan.get('passed')}, failed={scan.get('failed')}, skipped={scan.get('skipped')}; 예외는 docs/infra-notes.md.")
+unit = read('evidence/local/unit-tests.txt')
+count = re.search(r'Ran (\d+) tests?', unit)
+record('자동복구 단위·통합 테스트', 'NET-001', 'simulated', '\nOK' in unit and 'FAILED' not in unit,
+       ['evidence/local/unit-tests.txt'], f"{count.group(1) if count else '?'}개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.")
+record('Docker HTTP', 'OPS-001', 'local', read('evidence/image/http-response.txt').strip() == 'team4 server ok',
+       ['evidence/image/http-response.txt', 'evidence/image/image-inspect.json'], '비 root·읽기전용 rootfs·cap drop 환경에서 TCP8080 응답.')
+trivy = data('evidence/image/trivy.json')
+packages = sum(len(r.get('Packages', [])) for r in trivy.get('Results', []))
+bad = [v for r in trivy.get('Results', []) for v in r.get('Vulnerabilities', []) if v.get('Severity') in {'HIGH', 'CRITICAL'}]
+record('Trivy 정상 이미지', 'IMG-001', 'local', packages > 0 and not bad and 'PASS: build' in read('evidence/local/image-security.txt'),
+       ['evidence/image/trivy.json', 'evidence/image/trivy-gate.txt'], f'실제 탐지 패키지 {packages}개, HIGH/CRITICAL {len(bad)}개. 미탐지 목록은 통과시키지 않음.')
+positive = data('evidence/vulnerable-control/gate.json')
+record('Trivy 취약 이미지 거부', 'IMG-001', 'local', positive.get('result') == 'PASS',
+       ['evidence/vulnerable-control/gate.json', 'evidence/vulnerable-control/trivy.json'],
+       f"검사 전용 alpine:3.12.0, HIGH/CRITICAL {positive.get('high_critical_count', '?')}건, 실제 프로세스 종료코드1. 실행·배포하지 않음.")
+sbom = data('evidence/image/sbom-link.json')
+record('CycloneDX SBOM', 'IMG-001', 'local', bool(sbom.get('component_count')),
+       ['evidence/image/sbom.cdx.json', 'evidence/image/sbom-link.json'],
+       f"CycloneDX {sbom.get('schema_version')}, 구성요소 {sbom.get('component_count')}개. 공식 스키마 검사 및 실제 config digest 연결.")
+signature = data('evidence/local-signature/verify.json')
+wrong = read('evidence/local-signature/wrong-key.txt')
+record('cosign 로컬 서명', 'IMG-002', 'local', isinstance(signature, list) and bool(signature) and 'no matching signatures' in wrong,
+       ['evidence/local-signature/verify.json', 'evidence/local-signature/wrong-key.txt', 'evidence/local-signature/signed-image.txt'],
+       '실제 OCI 레지스트리 서명·정상키 검증·다른키 거부. 테스트 키/tlog 비활성. AWS OIDC/keyless 검증 아님.')
+record('NetworkPolicy', 'NET-002', 'local', 'PASS: NetworkPolicy enforcement' in read('evidence/network-kind-team4.log'),
+       ['evidence/network-kind-team4.log', 'evidence/network-kind-team4.json'], '실제 DNS, client→server, 독립 ingress/egress 차단 및 양방향 허용 대조군.')
+record('ESO Fake/rotation', 'SEC-001', 'local', 'PASS: Rotation reached' in read('evidence/eso-kind-team4.log'),
+       ['evidence/eso-kind-team4.log'], 'Kubernetes Secret와 실행중 Pod 볼륨의 값 변화 확인. 원문 출력 없음. AWS SM 검증 아님.')
+record('Kyverno admission', 'IMG-002', 'local', 'PASS' in read('evidence/admission-kind-team4.json') and 'FAIL' not in read('evidence/admission-kind-team4.json'),
+       ['evidence/admission-kind-team4.json', 'evidence/admission-kind-team4.log'], '정상 Pod 허용 및 잘못된 보안 컨텍스트의 실제 webhook 거부. ECR 서명 정책은 별도 검증 필요.')
+record('Argo CD GitOps 복구', 'NET-002', 'local', 'PASS' in read('evidence/gitops-kind-team4.json'),
+       ['evidence/gitops-kind-team4.json', 'evidence/gitops-kind-team4.log'], 'Git commit 기준 drift 감지→컨트롤러 복구→통신 재검증. admission과 구분.')
+runs = data('evidence/github/runs.json')
+ci_pass = isinstance(runs, list) and bool(runs) and all(r.get('conclusion') == 'success' for r in runs)
+record('GitHub Actions CI', 'OPS-001', 'github', ci_pass,
+       ['evidence/github/runs.json'], '실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음.')
+preflight = data('evidence/aws/preflight.json')
+reason = 'team4 프로필 인증됨. 자원 조회 IAM 권한 부족 및 유료 생성 승인 전.' if preflight else 'AWS 계정 사전 점검 필요.'
+record('AWS plan/ECR/EKS/Config/Inspector', 'NET-001', 'aws', False,
+       ['evidence/aws/preflight.json'], reason, blocked=True)
+
+mapping = data('policies/isms-p.json')
+spec = importlib.util.spec_from_file_location('report', ROOT / 'scripts/evidence_report.py')
+reporter = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(reporter)
+report = reporter.generate(mapping, observations, ROOT)
+(ROOT / 'evidence/reports').mkdir(parents=True, exist_ok=True)
+(ROOT / 'evidence/reports/isms-p.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+(ROOT / 'evidence/observations.json').write_text(json.dumps(observations, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+(ROOT / 'ISMSP_MAPPING_REPORT.md').write_text(reporter.markdown(report), encoding='utf-8')
+
+table = '| 기능 | 결과 | 검증 범위 | 증거/제한 |\n|---|---|---|---|\n'
+for row in rows:
+    table += f"| {row['feature']} | {row['result']} | {row['scope']} | {row['detail']} |\n"
+intro = '기준일 2026-10-18 (Asia/Seoul). `scripts/generate-project-reports.py`가 실제 증적에서 생성합니다.\n\n'
+status_table = '| 기능 | 구현 상태 | 검증 결과/범위 |\n|---|---|---|\n'
+for row in rows:
+    state = 'VERIFIED' if row['result'] == 'PASS' else ('BLOCKED' if row['result'] == 'BLOCKED' else 'IMPLEMENTED')
+    status_table += f"| {row['feature']} | {state} | {row['result']} / {row['scope']} |\n"
+(ROOT / 'IMPLEMENTATION_STATUS.md').write_text('# 구현 및 실검증 현황\n\n' + intro + status_table + '\nVERIFIED는 표의 범위만 의미합니다. 모의 API 테스트를 AWS 검증으로 계산하지 않습니다.\n\n' +
+    '원본 GitHub main `98850606f7294d4885d97e2891e5535461dbb548`, Checkov feature `9950466a91f773fea1dba8c58b2c5b65b0fe8481`을 비교했습니다. 원래 압축 해제 폴더에 원본 이력을 연결하고 `codex/devsecops-self-healing`에서 작업합니다. Terraform state·인증정보는 업로드하지 않습니다.\n', encoding='utf-8')
+(ROOT / 'SECURITY_TEST_REPORT.md').write_text('# 보안 시험 결과\n\n' + intro + table + '\n## 수정한 실제 실패\n\n' +
+    '- 원본 bare BusyBox 이미지에 Trivy 패키지 인벤토리가 없어 탐지 누락이 발생했습니다. BusyBox httpd는 유지하고 Alpine APK 메타데이터를 추가했습니다. 원본 결과는 `evidence/busybox-baseline/`에 남겼습니다.\n' +
+    '- Docker Desktop containerd의 image-store ID가 config digest와 달라, archive의 실제 config 바이트를 해시하도록 수정했습니다. ECR manifest.config.digest도 업로드 후 대조합니다.\n' +
+    '- WSL/Desktop loopback 차이를 해결하기 위해 로컬 서명 시험은 같은 격리 네트워크 네임스페이스의 registry를 사용합니다. AWS 배포는 TLS와 OIDC/tlog 검증을 유지합니다.\n' +
+    '- CycloneDX 사이트의 HTTP403을 피해 공식 GitHub 스키마를 검증된 commit으로 고정했습니다.\n' +
+    '- Kyverno CRD가 지원하는 PodSecurity 버전과 Kubernetes 버전을 구분합니다.\n\n실제 명령과 증적 파일은 `docs/kubernetes-notes.md`, `docs/infra-notes.md`, `evidence/`에서 확인합니다.\n', encoding='utf-8')
+remaining = '# 남은 작업\n\n' + intro
+for row in rows:
+    if row['result'] != 'PASS':
+        remaining += f"- **{row['feature']} — {row['result']}**: {row['detail']}\n"
+remaining += ('\nAWS 실행 순서: IAM 사전조회 권한 → 기존 state/자원 확인 → 실제 Terraform plan → 자원·예상 비용·유지시간 승인 → apply → ECR 서명·EKS 배포 → SM rotation/서명 정책 → Config 실복구. Inspector는 별도 승인된 안전 digest와 연결 가능한 CodeBuild가 준비되어야 합니다.\n\n'
+    '총예산 상한은 사용자 지정 **180,000원**입니다. 예산은 자원 생성 승인과 별개이며 자동 종료를 보장하지 않습니다. 자세한 절차는 `AWS_DEPLOYMENT_GUIDE.md`, `COST_AND_CLEANUP.md`, `docs/TEAM4_IAM_PERMISSIONS.md`를 참고합니다.\n')
+(ROOT / 'REMAINING_TASKS.md').write_text(remaining, encoding='utf-8')
+readme = '''# AWS EKS DevSecOps + ISMS-P Self-Healing
+
+BusyBox HTTP 테스트 프로그램을 사용해 이미지 검사·서명, Kubernetes 접근통제, AWS 설정 자동복구와 기술 통제 증적을 연결합니다. 실제 검증 범위는 [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)에 구분했습니다. AWS 자원 생성은 별도 승인 전입니다.
+
+```mermaid
+flowchart LR
+  Git --> CI[Terraform / Checkov / Trivy / Syft]
+  CI --> Sign[cosign + SBOM attestation]
+  Sign --> ECR --> EKS[Kyverno / NetworkPolicy / ESO]
+  Config[AWS Config] --> EB[EventBridge] --> SG[Guarded Lambda SG recovery]
+  Inspector --> EB2[EventBridge] --> Lambda[Approved digest check]
+  Lambda --> Build[Trusted CodeBuild] --> EKS
+  Git --> Argo[Argo CD NetworkPolicy recovery] --> EKS
+  CI --> Evidence[JSON + Markdown ISMS-P evidence]
+  SG --> Evidence
+  EKS --> Evidence
+```
+
+## 실행 환경과 설치
+
+Windows PowerShell에서 Ubuntu WSL 및 Docker Desktop을 사용합니다. 아래 명령은 Ubuntu의 프로젝트 루트에서 실행합니다. 기존 `kind-team4`는 재사용하며 삭제하지 않습니다.
+
+```bash
+bash scripts/01-install-tools.sh  # 기존 기본 도구가 없는 Linux x86_64 환경에서만
+bash scripts/bootstrap-python.sh
+source .venv-ci/bin/activate
+export PATH="$PWD/.tools/bin:$PATH"
+bash scripts/install-security-tools.sh
+```
+
+## 로컬 실행과 검증
+
+```bash
+bash scripts/02-local-cluster.sh  # 기존 team4가 있으면 재생성하지 않음
+bash scripts/image-security.sh
+bash scripts/03-local-workloads.sh
+bash scripts/08-network-policy-test.sh kind-team4
+bash scripts/09-eso-test.sh kind-team4 fake
+bash scripts/07-install-security-addons.sh kind-team4 kyverno
+bash scripts/10-admission-test.sh kind-team4
+bash scripts/local-signature-test.sh
+bash scripts/test-vulnerability-gate.sh
+bash infra/validate-local.sh
+bash infra/scan-security.sh
+python scripts/generate-project-reports.py
+```
+
+GitOps 설정과 실제 drift 시험은 [Kubernetes 실행 안내](docs/kubernetes-notes.md)를 따릅니다. 이 저장소는 deploy key를 금지하므로 직접 연결에는 승인된 읽기 전용 GitHub 인증이 필요합니다. 로컬 시험은 게시된 40자리 commit의 읽기 전용 내부 mirror를 사용할 수 있습니다. 로컬 cosign 키 검증과 AWS keyless admission 검증은 별개입니다.
+
+bare BusyBox 원본은 APK/DPKG 목록이 없어 취약점 검사 범위가 비어 있었습니다. 현재 Dockerfile은 Alpine에서 제공하는 BusyBox httpd를 사용하며, 패키지 목록이 없는 스캔과 빈 SBOM을 실패시킵니다. 이미지 config digest, registry manifest digest, Docker image-store ID를 구분합니다.
+
+## AWS 배포
+
+[배포 가이드](AWS_DEPLOYMENT_GUIDE.md), [IAM 권한](docs/TEAM4_IAM_PERMISSIONS.md), [GitHub 설정](docs/GITHUB_SETUP.md), [비용·정리](COST_AND_CLEANUP.md)를 확인합니다. `team4` 프로필/계정 `852093844554`/서울 리전, 총예산 상한 180,000원입니다. 실제 plan을 검토하고 유료 생성 승인을 받은 뒤 배포합니다. 자동복구는 기본 DRY_RUN이며 운영 자원은 대상으로 삼지 않습니다.
+
+CI는 PR에서 실행되고 AWS 배포는 보호된 `aws-demo` 환경의 main 전용 수동 workflow와 EKS에 접근 가능한 전용 runner에서 실행됩니다. NAT·ALB는 기본 구성에 없습니다. Inspector CodeBuild는 네트워크 경로가 준비된 별도 전용 프로젝트를 요구합니다.
+
+## 문서·증적
+
+- [보안 시험](SECURITY_TEST_REPORT.md), [자동복구](SELF_HEALING_REPORT.md), [ISMS-P 매핑](ISMSP_MAPPING_REPORT.md), [남은 작업](REMAINING_TASKS.md)
+- [Terraform 설계와 Checkov 예외](docs/infra-notes.md), [자동복구 내부 계약](automation/README.md)
+- 실제 JSON/명령 결과: `evidence/` (Git 제외). JSON 보고서: `evidence/reports/isms-p.json`.
+- 기존 시작 안내서는 [docs/BOOTSTRAP_ORIGINAL.md](docs/BOOTSTRAP_ORIGINAL.md)에 보존했습니다. 현재 실행 절차는 이 README와 위 문서를 사용합니다.
+
+기술 점검만으로 ISMS-P 전체 인증 충족 여부를 판단하지 않습니다. 로그·state·비밀키·AWS 자격증명을 Git에 올리지 않습니다.
+'''
+(ROOT / 'README.md').write_text(readme, encoding='utf-8')
+print(table)

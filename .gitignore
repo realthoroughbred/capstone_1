@@ -16,3 +16,10 @@ downloads/
 generated/
 evidence/
 __pycache__/
+.venv/
+.venv-ci/
+.tools/
+upstream-reference/
+.pytest_cache/
+*.zip
+cosign.pub

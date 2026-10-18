@@ -1,7 +1,13 @@
 aws_account_id = "123456789012"
+# For the approved team4 operator policy, use the same-account admin-created boundary:
+# iam_permissions_boundary_arn = "arn:aws:iam::852093844554:policy/team4-runtime-boundary"
 region = "ap-northeast-2"
 cluster_name = "team4-eks"
 kubernetes_version = "1.35"
+node_instance_type = "t3.large"
+node_min_size = 1
+node_desired_size = 1
+node_max_size = 2
 
 # Replace with each teammate's current public IPv4 /32.
 admin_public_cidrs = ["203.0.113.10/32"]
@@ -13,3 +19,25 @@ operator_principal_arns = {
 }
 
 # addon_versions is generated separately by scripts/05-addon-versions.sh.
+
+# Enable only in a reviewed paid deployment plan after AWS cost approval.
+enable_self_healing = false
+healing_dry_run = true
+# Inspect aws configservice describe-configuration-recorders first.
+# Never overwrite an existing recorder or organizational configuration.
+create_config_recorder = false
+existing_config_recorder_name = ""
+
+enable_github_deploy = false
+github_repository = "realthoroughbred/capstone_1"
+github_subject_prefix = "repo:realthoroughbred@272421931/capstone_1@1378935906"
+github_environment = "aws-demo"
+existing_github_oidc_provider_arn = ""
+
+# Enhanced scanning changes the regional ECR registry configuration.
+enable_inspector_response = false
+inspector_dry_run = true
+remediation_source_revision = ""
+remediation_codebuild_project_name = ""
+approved_image_parameter_name = "/team4/security/approved-image"
+signing_workflow = "deploy.yml"

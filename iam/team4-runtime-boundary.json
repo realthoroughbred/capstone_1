@@ -1,0 +1,182 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AWSMetadataAndSDKIdentity",
+      "Effect": "Allow",
+      "Action": [
+        "sts:GetCallerIdentity",
+        "ec2:Describe*",
+        "ecr:GetAuthorizationToken",
+        "inspector2:ListFindings",
+        "xray:PutTraceSegments",
+        "xray:PutTelemetryRecords"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ClusterNetworkingRuntime",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateNetworkInterface",
+        "ec2:DeleteNetworkInterface",
+        "ec2:AttachNetworkInterface",
+        "ec2:DetachNetworkInterface",
+        "ec2:ModifyNetworkInterfaceAttribute",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses",
+        "ec2:CreateNetworkInterfacePermission",
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-northeast-2"
+        }
+      }
+    },
+    {
+      "Sid": "UnattachedDemoRemediationOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RevokeSecurityGroupIngress"
+      ],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:security-group/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Project": "team4",
+          "ec2:ResourceTag/DemoOnly": "true"
+        }
+      }
+    },
+    {
+      "Sid": "ClusterDescription",
+      "Effect": "Allow",
+      "Action": [
+        "eks:DescribeCluster"
+      ],
+      "Resource": "arn:aws:eks:ap-northeast-2:852093844554:cluster/team4-eks"
+    },
+    {
+      "Sid": "Repository",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:DescribeImages",
+        "ecr:DescribeImageScanFindings",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:PutImage"
+      ],
+      "Resource": "arn:aws:ecr:ap-northeast-2:852093844554:repository/team4-test"
+    },
+    {
+      "Sid": "SyntheticSecretReader",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": "arn:aws:secretsmanager:ap-northeast-2:852093844554:secret:team4/demo/token-*"
+    },
+    {
+      "Sid": "EncryptionForOwnedKeys",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:DescribeKey"
+      ],
+      "Resource": "arn:aws:kms:ap-northeast-2:852093844554:key/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/Project": "team4"
+        }
+      }
+    },
+    {
+      "Sid": "OperationalLogWrites",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogStreams"
+      ],
+      "Resource": [
+        "arn:aws:logs:ap-northeast-2:852093844554:log-group:/aws/*/team4*:*",
+        "arn:aws:logs:ap-northeast-2:852093844554:log-group:/aws/vpc/team4/*:*"
+      ]
+    },
+    {
+      "Sid": "EvidenceDelivery",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::team4-852093844554-ap-northeast-2-evidence/*"
+    },
+    {
+      "Sid": "EvidenceBucketCheck",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketAcl",
+        "s3:GetBucketLocation",
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::team4-852093844554-ap-northeast-2-evidence"
+    },
+    {
+      "Sid": "ProtectedApprovalReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter"
+      ],
+      "Resource": "arn:aws:ssm:ap-northeast-2:852093844554:parameter/team4/security/approved-image"
+    },
+    {
+      "Sid": "RemediationLedger",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem"
+      ],
+      "Resource": "arn:aws:dynamodb:ap-northeast-2:852093844554:table/team4-image-remediation"
+    },
+    {
+      "Sid": "ReviewedBuildTrigger",
+      "Effect": "Allow",
+      "Action": [
+        "codebuild:StartBuild",
+        "codebuild:BatchGetProjects"
+      ],
+      "Resource": "arn:aws:codebuild:ap-northeast-2:852093844554:project/team4-*"
+    },
+    {
+      "Sid": "FailureDelivery",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:SendMessage"
+      ],
+      "Resource": "arn:aws:sqs:ap-northeast-2:852093844554:team4-automation-failures"
+    },
+    {
+      "Sid": "ApprovedPrivateSourceConnection",
+      "Effect": "Allow",
+      "Action": [
+        "codeconnections:UseConnection"
+      ],
+      "Resource": "arn:aws:codeconnections:ap-northeast-2:852093844554:connection/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/Project": "team4"
+        }
+      }
+    }
+  ]
+}

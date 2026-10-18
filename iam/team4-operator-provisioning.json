@@ -1,0 +1,310 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "NetworkCreate",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateVpc",
+        "ec2:CreateSubnet",
+        "ec2:CreateInternetGateway",
+        "ec2:CreateRouteTable",
+        "ec2:CreateSecurityGroup",
+        "ec2:CreateLaunchTemplate",
+        "ec2:CreateFlowLogs"
+      ],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Project": "team4"
+        }
+      }
+    },
+    {
+      "Sid": "CreateTags",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Project": "team4",
+          "ec2:CreateAction": [
+            "CreateVpc",
+            "CreateSubnet",
+            "CreateInternetGateway",
+            "CreateRouteTable",
+            "CreateSecurityGroup",
+            "CreateLaunchTemplate",
+            "CreateFlowLogs"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "TaggedNetwork",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteVpc",
+        "ec2:ModifyVpcAttribute",
+        "ec2:DeleteSubnet",
+        "ec2:ModifySubnetAttribute",
+        "ec2:AttachInternetGateway",
+        "ec2:DetachInternetGateway",
+        "ec2:DeleteInternetGateway",
+        "ec2:CreateRoute",
+        "ec2:DeleteRoute",
+        "ec2:DeleteRouteTable",
+        "ec2:AssociateRouteTable",
+        "ec2:DisassociateRouteTable",
+        "ec2:ReplaceRouteTableAssociation",
+        "ec2:DeleteSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:CreateLaunchTemplateVersion",
+        "ec2:DeleteLaunchTemplateVersions",
+        "ec2:ModifyLaunchTemplate",
+        "ec2:DeleteLaunchTemplate",
+        "ec2:DeleteFlowLogs",
+        "ec2:CreateTags",
+        "ec2:DeleteTags"
+      ],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Project": "team4"
+        }
+      }
+    },
+    {
+      "Sid": "DefaultSGAdoption",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:CreateTags"
+      ],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:security-group/*",
+      "Condition": {
+        "StringEqualsIfExists": {
+          "aws:RequestTag/Project": "team4"
+        }
+      }
+    },
+    {
+      "Sid": "DedicatedEKS",
+      "Effect": "Allow",
+      "Action": [
+        "eks:*"
+      ],
+      "Resource": [
+        "arn:aws:eks:ap-northeast-2:852093844554:cluster/team4-eks",
+        "arn:aws:eks:ap-northeast-2:852093844554:nodegroup/team4-eks/*",
+        "arn:aws:eks:ap-northeast-2:852093844554:addon/team4-eks/*",
+        "arn:aws:eks:ap-northeast-2:852093844554:access-entry/team4-eks/*"
+      ]
+    },
+    {
+      "Sid": "BoundedRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:PutRolePermissionsBoundary"
+      ],
+      "Resource": "arn:aws:iam::852093844554:role/team4-*",
+      "Condition": {
+        "ArnEquals": {
+          "iam:PermissionsBoundary": "arn:aws:iam::852093844554:policy/team4-runtime-boundary"
+        }
+      }
+    },
+    {
+      "Sid": "ProjectRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:DeleteRole",
+        "iam:UpdateRole",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole"
+      ],
+      "Resource": "arn:aws:iam::852093844554:role/team4-*"
+    },
+    {
+      "Sid": "ManagedAttachments",
+      "Effect": "Allow",
+      "Action": [
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::852093844554:role/team4-*",
+      "Condition": {
+        "ArnEquals": {
+          "iam:PolicyARN": [
+            "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
+            "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+            "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+            "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "PassRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:PassRole"
+      ],
+      "Resource": "arn:aws:iam::852093844554:role/team4-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": [
+            "eks.amazonaws.com",
+            "ec2.amazonaws.com",
+            "lambda.amazonaws.com",
+            "config.amazonaws.com",
+            "vpc-flow-logs.amazonaws.com",
+            "codebuild.amazonaws.com"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "EKSServiceRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateServiceLinkedRole"
+      ],
+      "Resource": "arn:aws:iam::852093844554:role/aws-service-role/*",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": [
+            "eks.amazonaws.com",
+            "eks-nodegroup.amazonaws.com"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "ProjectOIDC",
+      "Effect": "Allow",
+      "Action": [
+        "iam:*OpenIDConnectProvider*"
+      ],
+      "Resource": [
+        "arn:aws:iam::852093844554:oidc-provider/token.actions.githubusercontent.com",
+        "arn:aws:iam::852093844554:oidc-provider/oidc.eks.ap-northeast-2.amazonaws.com/id/*"
+      ]
+    },
+    {
+      "Sid": "KeepBoundary",
+      "Effect": "Deny",
+      "Action": [
+        "iam:DeleteRolePermissionsBoundary"
+      ],
+      "Resource": "arn:aws:iam::852093844554:role/team4-*"
+    },
+    {
+      "Sid": "CreateKey",
+      "Effect": "Allow",
+      "Action": [
+        "kms:CreateKey"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-northeast-2",
+          "aws:RequestTag/Project": "team4"
+        }
+      }
+    },
+    {
+      "Sid": "TaggedKeys",
+      "Effect": "Allow",
+      "Action": [
+        "kms:DescribeKey",
+        "kms:PutKeyPolicy",
+        "kms:EnableKeyRotation",
+        "kms:DisableKeyRotation",
+        "kms:GetKeyPolicy",
+        "kms:GetKeyRotationStatus",
+        "kms:TagResource",
+        "kms:UntagResource",
+        "kms:ScheduleKeyDeletion",
+        "kms:CancelKeyDeletion",
+        "kms:UpdateKeyDescription",
+        "kms:CreateGrant",
+        "kms:ListGrants",
+        "kms:RevokeGrant",
+        "kms:CreateAlias",
+        "kms:UpdateAlias",
+        "kms:DeleteAlias",
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:GenerateDataKey"
+      ],
+      "Resource": "arn:aws:kms:ap-northeast-2:852093844554:key/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/Project": "team4"
+        }
+      }
+    },
+    {
+      "Sid": "Alias",
+      "Effect": "Allow",
+      "Action": [
+        "kms:CreateAlias",
+        "kms:UpdateAlias",
+        "kms:DeleteAlias"
+      ],
+      "Resource": "arn:aws:kms:ap-northeast-2:852093844554:alias/team4-*"
+    },
+    {
+      "Sid": "Services",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:*",
+        "lambda:*",
+        "events:*",
+        "sqs:*",
+        "dynamodb:*",
+        "secretsmanager:CreateSecret",
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:UpdateSecret",
+        "secretsmanager:DeleteSecret",
+        "secretsmanager:RestoreSecret",
+        "secretsmanager:TagResource",
+        "secretsmanager:UntagResource",
+        "secretsmanager:GetResourcePolicy",
+        "logs:*",
+        "cloudwatch:*"
+      ],
+      "Resource": [
+        "arn:aws:ecr:ap-northeast-2:852093844554:repository/team4-test",
+        "arn:aws:lambda:ap-northeast-2:852093844554:function:team4-*",
+        "arn:aws:events:ap-northeast-2:852093844554:rule/team4-*",
+        "arn:aws:sqs:ap-northeast-2:852093844554:team4-*",
+        "arn:aws:dynamodb:ap-northeast-2:852093844554:table/team4-image-remediation",
+        "arn:aws:secretsmanager:ap-northeast-2:852093844554:secret:team4/demo/token-*",
+        "arn:aws:logs:ap-northeast-2:852093844554:log-group:/aws/*/team4*",
+        "arn:aws:cloudwatch:ap-northeast-2:852093844554:alarm:team4-*"
+      ]
+    },
+    {
+      "Sid": "EvidenceBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*Bucket*",
+        "s3:*EncryptionConfiguration",
+        "s3:*LifecycleConfiguration"
+      ],
+      "Resource": "arn:aws:s3:::team4-852093844554-ap-northeast-2-evidence"
+    }
+  ]
+}

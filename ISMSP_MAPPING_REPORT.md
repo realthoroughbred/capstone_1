@@ -1,0 +1,650 @@
+# ISMS-P 기술 통제 증적
+
+Technical evidence mapping only; not an ISMS-P certification determination.
+
+공식 기준: https://isms.kisa.or.kr/board/file/bbs_0000000000000005/316/FILE_000000000000559/2020052814323363328.pdf
+
+## IAC-001 — 인프라 보안 형상 검사
+
+결과: **PASS** · 검증 범위: **static**
+
+통제: 2.10.2 클라우드 보안, 2.11.2 취약점 점검 및 조치
+
+```json
+{
+  "policy_id": "IAC-001",
+  "target": "Terraform validate",
+  "tool": "Terraform validate",
+  "scope": "static",
+  "result": "PASS",
+  "details": "Provider 스키마 검증. 실제 AWS plan/apply와 구분.",
+  "evidence": [
+    {
+      "path": "evidence/terraform/validate.json",
+      "sha256": "4cd9eddc4d07c5aff74dadb6b3544f98186f6705ac60e0d94d545fc42b45b9b6"
+    },
+    {
+      "path": "evidence/terraform/fmt.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "policy_name": "인프라 보안 형상 검사",
+  "isms_p": [
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    },
+    {
+      "id": "2.11.2",
+      "name": "취약점 점검 및 조치"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## IAC-001 — 인프라 보안 형상 검사
+
+결과: **PASS** · 검증 범위: **simulated**
+
+통제: 2.10.2 클라우드 보안, 2.11.2 취약점 점검 및 조치
+
+```json
+{
+  "policy_id": "IAC-001",
+  "target": "Terraform 안전 조건",
+  "tool": "Terraform 안전 조건",
+  "scope": "simulated",
+  "result": "PASS",
+  "details": "mock provider: 기본 dry run, 공개 CIDR 금지, OIDC subject, 서명 전용 태그 예외.",
+  "evidence": [
+    {
+      "path": "evidence/terraform/mock-tests.txt",
+      "sha256": "2307e9e23571f290f991da89c9162dace8f0fccb1820851820c66f1597cd5a88"
+    }
+  ],
+  "policy_name": "인프라 보안 형상 검사",
+  "isms_p": [
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    },
+    {
+      "id": "2.11.2",
+      "name": "취약점 점검 및 조치"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## IAC-001 — 인프라 보안 형상 검사
+
+결과: **PASS** · 검증 범위: **static**
+
+통제: 2.10.2 클라우드 보안, 2.11.2 취약점 점검 및 조치
+
+```json
+{
+  "policy_id": "IAC-001",
+  "target": "Checkov",
+  "tool": "Checkov",
+  "scope": "static",
+  "result": "PASS",
+  "details": "passed=111, failed=0, skipped=23; 예외는 docs/infra-notes.md.",
+  "evidence": [
+    {
+      "path": "evidence/terraform/checkov.json",
+      "sha256": "c0c3bc8cfd8a3936000de4aa59f9c711976384118334ee084bc8bd8766d5aa0b"
+    }
+  ],
+  "policy_name": "인프라 보안 형상 검사",
+  "isms_p": [
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    },
+    {
+      "id": "2.11.2",
+      "name": "취약점 점검 및 조치"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## NET-001 — 공개 SSH 접근 금지
+
+결과: **PASS** · 검증 범위: **simulated**
+
+통제: 2.6.1 네트워크 접근, 2.10.2 클라우드 보안, 2.9.4 로그 및 접속기록 관리
+
+```json
+{
+  "policy_id": "NET-001",
+  "target": "자동복구 단위·통합 테스트",
+  "tool": "자동복구 단위·통합 테스트",
+  "scope": "simulated",
+  "result": "PASS",
+  "details": "65개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.",
+  "evidence": [
+    {
+      "path": "evidence/local/unit-tests.txt",
+      "sha256": "f8e43dc39d1963b668c812cf5b6bc0bf6e6944eff2d5d68c6f89ae5edfd7e0c4"
+    }
+  ],
+  "policy_name": "공개 SSH 접근 금지",
+  "isms_p": [
+    {
+      "id": "2.6.1",
+      "name": "네트워크 접근"
+    },
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    },
+    {
+      "id": "2.9.4",
+      "name": "로그 및 접속기록 관리"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## OPS-001 — 로그 및 변경 증적 보존
+
+결과: **PASS** · 검증 범위: **local**
+
+통제: 2.9.1 변경관리, 2.9.4 로그 및 접속기록 관리
+
+```json
+{
+  "policy_id": "OPS-001",
+  "target": "Docker HTTP",
+  "tool": "Docker HTTP",
+  "scope": "local",
+  "result": "PASS",
+  "details": "비 root·읽기전용 rootfs·cap drop 환경에서 TCP8080 응답.",
+  "evidence": [
+    {
+      "path": "evidence/image/http-response.txt",
+      "sha256": "ae6ff88df0ac0c21253ed58e43b68e4e3b6ae03c89a640f7c61a317d8452a530"
+    },
+    {
+      "path": "evidence/image/image-inspect.json",
+      "sha256": "19d859b64f161c46be6be47031704374de0b52215b189a2bb98254f5c4a25ad5"
+    }
+  ],
+  "policy_name": "로그 및 변경 증적 보존",
+  "isms_p": [
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    },
+    {
+      "id": "2.9.4",
+      "name": "로그 및 접속기록 관리"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## IMG-001 — HIGH/CRITICAL 이미지 취약점 관리
+
+결과: **PASS** · 검증 범위: **local**
+
+통제: 2.10.8 패치관리, 2.11.2 취약점 점검 및 조치
+
+```json
+{
+  "policy_id": "IMG-001",
+  "target": "Trivy 정상 이미지",
+  "tool": "Trivy 정상 이미지",
+  "scope": "local",
+  "result": "PASS",
+  "details": "실제 탐지 패키지 17개, HIGH/CRITICAL 0개. 미탐지 목록은 통과시키지 않음.",
+  "evidence": [
+    {
+      "path": "evidence/image/trivy.json",
+      "sha256": "3055f7808775b8179ec9348e5939e208b7ea929053eaa3487dcfef87d9a15854"
+    },
+    {
+      "path": "evidence/image/trivy-gate.txt",
+      "sha256": "6f0caae9184f961d08ced658641501401d6af09597d90a3880ab9670acc34145"
+    }
+  ],
+  "policy_name": "HIGH/CRITICAL 이미지 취약점 관리",
+  "isms_p": [
+    {
+      "id": "2.10.8",
+      "name": "패치관리"
+    },
+    {
+      "id": "2.11.2",
+      "name": "취약점 점검 및 조치"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## IMG-001 — HIGH/CRITICAL 이미지 취약점 관리
+
+결과: **PASS** · 검증 범위: **local**
+
+통제: 2.10.8 패치관리, 2.11.2 취약점 점검 및 조치
+
+```json
+{
+  "policy_id": "IMG-001",
+  "target": "Trivy 취약 이미지 거부",
+  "tool": "Trivy 취약 이미지 거부",
+  "scope": "local",
+  "result": "PASS",
+  "details": "검사 전용 alpine:3.12.0, HIGH/CRITICAL 36건, 실제 프로세스 종료코드1. 실행·배포하지 않음.",
+  "evidence": [
+    {
+      "path": "evidence/vulnerable-control/gate.json",
+      "sha256": "dbe3075741ef9034f0c913cbac09df473e62d0845ab858762371b39090ccd522"
+    },
+    {
+      "path": "evidence/vulnerable-control/trivy.json",
+      "sha256": "9a1aff40c2420551d31ca7886fe887ee51629e09372bd46c6da36bc9309a486f"
+    }
+  ],
+  "policy_name": "HIGH/CRITICAL 이미지 취약점 관리",
+  "isms_p": [
+    {
+      "id": "2.10.8",
+      "name": "패치관리"
+    },
+    {
+      "id": "2.11.2",
+      "name": "취약점 점검 및 조치"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## IMG-001 — HIGH/CRITICAL 이미지 취약점 관리
+
+결과: **PASS** · 검증 범위: **local**
+
+통제: 2.10.8 패치관리, 2.11.2 취약점 점검 및 조치
+
+```json
+{
+  "policy_id": "IMG-001",
+  "target": "CycloneDX SBOM",
+  "tool": "CycloneDX SBOM",
+  "scope": "local",
+  "result": "PASS",
+  "details": "CycloneDX 1.7, 구성요소 100개. 공식 스키마 검사 및 실제 config digest 연결.",
+  "evidence": [
+    {
+      "path": "evidence/image/sbom.cdx.json",
+      "sha256": "6fb9bfee2aeca5d2a2b6f3a7b73fcba0a6efc353dcbd9f9f3a65f5ac3802aca7"
+    },
+    {
+      "path": "evidence/image/sbom-link.json",
+      "sha256": "40ab5e35f0eb04c913323a5007d47b9e1718f5f3ce5a54c5de9ac4bdb564bed1"
+    }
+  ],
+  "policy_name": "HIGH/CRITICAL 이미지 취약점 관리",
+  "isms_p": [
+    {
+      "id": "2.10.8",
+      "name": "패치관리"
+    },
+    {
+      "id": "2.11.2",
+      "name": "취약점 점검 및 조치"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## IMG-002 — 미서명 이미지 배포 제한
+
+결과: **PASS** · 검증 범위: **local**
+
+통제: 2.9.1 변경관리, 2.10.2 클라우드 보안
+
+```json
+{
+  "policy_id": "IMG-002",
+  "target": "cosign 로컬 서명",
+  "tool": "cosign 로컬 서명",
+  "scope": "local",
+  "result": "PASS",
+  "details": "실제 OCI 레지스트리 서명·정상키 검증·다른키 거부. 테스트 키/tlog 비활성. AWS OIDC/keyless 검증 아님.",
+  "evidence": [
+    {
+      "path": "evidence/local-signature/verify.json",
+      "sha256": "02e8a4359af0ffa50d6ea2887622cf5c3b72063a3379619393701dd2a6e77fc1"
+    },
+    {
+      "path": "evidence/local-signature/wrong-key.txt",
+      "sha256": "e5bd96e55b6367e0b27a3a95a3e6e051edae831d37f565874657fb5ace8e4575"
+    },
+    {
+      "path": "evidence/local-signature/signed-image.txt",
+      "sha256": "281ebe2bcf1d92b55a5a2ff3ec73ccf4ddbbaf68d2b9a7f743fcbdf08e274f17"
+    }
+  ],
+  "policy_name": "미서명 이미지 배포 제한",
+  "isms_p": [
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    },
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## NET-002 — 비인가 Pod 접근 차단
+
+결과: **NOT_TESTED** · 검증 범위: **local**
+
+통제: 2.6.1 네트워크 접근, 2.9.1 변경관리
+
+```json
+{
+  "policy_id": "NET-002",
+  "target": "NetworkPolicy",
+  "tool": "NetworkPolicy",
+  "scope": "local",
+  "result": "NOT_TESTED",
+  "details": "실제 DNS, client→server, 독립 ingress/egress 차단 및 양방향 허용 대조군.",
+  "evidence": [
+    {
+      "path": "evidence/network-kind-team4.log",
+      "sha256": "c0357611151cddaed1fec70b96b3a9e4107ac0901754b9cbf6513e36a4d3fab3"
+    },
+    {
+      "path": "evidence/network-kind-team4.json",
+      "sha256": "6984e8b3c8d5b8325a1f4eebd5dc704c7f7415a957ae5e248a141d9e4a179b12"
+    }
+  ],
+  "policy_name": "비인가 Pod 접근 차단",
+  "isms_p": [
+    {
+      "id": "2.6.1",
+      "name": "네트워크 접근"
+    },
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## SEC-001 — 비밀정보 및 접근권한 관리
+
+결과: **PASS** · 검증 범위: **local**
+
+통제: 2.10.2 클라우드 보안
+
+```json
+{
+  "policy_id": "SEC-001",
+  "target": "ESO Fake/rotation",
+  "tool": "ESO Fake/rotation",
+  "scope": "local",
+  "result": "PASS",
+  "details": "Kubernetes Secret와 실행중 Pod 볼륨의 값 변화 확인. 원문 출력 없음. AWS SM 검증 아님.",
+  "evidence": [
+    {
+      "path": "evidence/eso-kind-team4.log",
+      "sha256": "9cb97ea1872faa9b05e35fd9fd07235290876fbc2610c38b9e2597cb582e51ef"
+    }
+  ],
+  "policy_name": "비밀정보 및 접근권한 관리",
+  "isms_p": [
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## IMG-002 — 미서명 이미지 배포 제한
+
+결과: **PASS** · 검증 범위: **local**
+
+통제: 2.9.1 변경관리, 2.10.2 클라우드 보안
+
+```json
+{
+  "policy_id": "IMG-002",
+  "target": "Kyverno admission",
+  "tool": "Kyverno admission",
+  "scope": "local",
+  "result": "PASS",
+  "details": "정상 Pod 허용 및 잘못된 보안 컨텍스트의 실제 webhook 거부. ECR 서명 정책은 별도 검증 필요.",
+  "evidence": [
+    {
+      "path": "evidence/admission-kind-team4.json",
+      "sha256": "59a14963bb6e4e942cbea769d6017d7e689861fb97e7b05df73d54223b6ed6fb"
+    },
+    {
+      "path": "evidence/admission-kind-team4.log",
+      "sha256": "504718720761c962eebfa610623a87148ae885a4273f31f8e6cbd216cfa2ce2a"
+    }
+  ],
+  "policy_name": "미서명 이미지 배포 제한",
+  "isms_p": [
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    },
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## NET-002 — 비인가 Pod 접근 차단
+
+결과: **NOT_TESTED** · 검증 범위: **local**
+
+통제: 2.6.1 네트워크 접근, 2.9.1 변경관리
+
+```json
+{
+  "policy_id": "NET-002",
+  "target": "Argo CD GitOps 복구",
+  "tool": "Argo CD GitOps 복구",
+  "scope": "local",
+  "result": "NOT_TESTED",
+  "details": "Git commit 기준 drift 감지→컨트롤러 복구→통신 재검증. admission과 구분.",
+  "evidence": [],
+  "policy_name": "비인가 Pod 접근 차단",
+  "isms_p": [
+    {
+      "id": "2.6.1",
+      "name": "네트워크 접근"
+    },
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## OPS-001 — 로그 및 변경 증적 보존
+
+결과: **NOT_TESTED** · 검증 범위: **github**
+
+통제: 2.9.1 변경관리, 2.9.4 로그 및 접속기록 관리
+
+```json
+{
+  "policy_id": "OPS-001",
+  "target": "GitHub Actions CI",
+  "tool": "GitHub Actions CI",
+  "scope": "github",
+  "result": "NOT_TESTED",
+  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음.",
+  "evidence": [],
+  "policy_name": "로그 및 변경 증적 보존",
+  "isms_p": [
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    },
+    {
+      "id": "2.9.4",
+      "name": "로그 및 접속기록 관리"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## NET-001 — 공개 SSH 접근 금지
+
+결과: **BLOCKED** · 검증 범위: **aws**
+
+통제: 2.6.1 네트워크 접근, 2.10.2 클라우드 보안, 2.9.4 로그 및 접속기록 관리
+
+```json
+{
+  "policy_id": "NET-001",
+  "target": "AWS plan/ECR/EKS/Config/Inspector",
+  "tool": "AWS plan/ECR/EKS/Config/Inspector",
+  "scope": "aws",
+  "result": "BLOCKED",
+  "details": "team4 프로필 인증됨. 자원 조회 IAM 권한 부족 및 유료 생성 승인 전.",
+  "evidence": [
+    {
+      "path": "evidence/aws/preflight.json",
+      "sha256": "71f904dc7c9bd500f61c0acafd528e89f4a68e25562049a503ce91a9b7d309d4"
+    }
+  ],
+  "policy_name": "공개 SSH 접근 금지",
+  "isms_p": [
+    {
+      "id": "2.6.1",
+      "name": "네트워크 접근"
+    },
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    },
+    {
+      "id": "2.9.4",
+      "name": "로그 및 접속기록 관리"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
