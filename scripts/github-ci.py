@@ -6,10 +6,19 @@ import re
 import subprocess
 import urllib.error
 import urllib.request
+import urllib.parse
 from pathlib import Path
 
 
-def api(repo, path, method='GET', body=None):
+class SafeRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, *args, **kwargs):
+        redirected = super().redirect_request(request, *args, **kwargs)
+        if redirected and urllib.parse.urlsplit(request.full_url).netloc != urllib.parse.urlsplit(redirected.full_url).netloc:
+            redirected.remove_header('Authorization')
+        return redirected
+
+
+def api(repo, path, method='GET', body=None, raw=False):
     env = dict(os.environ, GIT_TERMINAL_PROMPT='0', GCM_INTERACTIVE='never')
     result = subprocess.run(['git', '-c', 'credential.interactive=never', 'credential', 'fill'],
                             input=f'protocol=https\nhost=github.com\npath={repo}.git\n\n',
@@ -28,8 +37,10 @@ def api(repo, path, method='GET', body=None):
                                      method=method,
                                      data=None if body is None else json.dumps(body).encode())
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.build_opener(SafeRedirect()).open(request, timeout=30) as response:
             data = response.read()
+            if raw:
+                return data
             return json.loads(data) if data else None
     except urllib.error.HTTPError as error:
         # Expose validation details, never headers, submitted values, or tokens.

@@ -144,11 +144,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "자동복구 단위·통합 테스트",
   "scope": "simulated",
   "result": "PASS",
-  "details": "65개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.",
+  "details": "70개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.",
   "evidence": [
     {
       "path": "evidence/local/unit-tests.txt",
-      "sha256": "f8e43dc39d1963b668c812cf5b6bc0bf6e6944eff2d5d68c6f89ae5edfd7e0c4"
+      "sha256": "7d3f82b3bca408ae975db798d7ba95cf1e06ed52fd09856819333faf8fdd6578"
     }
   ],
   "policy_name": "공개 SSH 접근 금지",
@@ -407,7 +407,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
 
 ## NET-002 — 비인가 Pod 접근 차단
 
-결과: **NOT_TESTED** · 검증 범위: **local**
+결과: **PASS** · 검증 범위: **local**
 
 통제: 2.6.1 네트워크 접근, 2.9.1 변경관리
 
@@ -417,16 +417,16 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "target": "NetworkPolicy",
   "tool": "NetworkPolicy",
   "scope": "local",
-  "result": "NOT_TESTED",
+  "result": "PASS",
   "details": "실제 DNS, client→server, 독립 ingress/egress 차단 및 양방향 허용 대조군.",
   "evidence": [
     {
       "path": "evidence/network-kind-team4.log",
-      "sha256": "c0357611151cddaed1fec70b96b3a9e4107ac0901754b9cbf6513e36a4d3fab3"
+      "sha256": "3675cb25302cec2a313f05de6be5c657e12f1bb3c5d590937c2530ea4cf3eae2"
     },
     {
       "path": "evidence/network-kind-team4.json",
-      "sha256": "6984e8b3c8d5b8325a1f4eebd5dc704c7f7415a957ae5e248a141d9e4a179b12"
+      "sha256": "5662a840ac2dc3d08581b5d8f416d5eaaa14aa6e704c466ea94297342c084948"
     }
   ],
   "policy_name": "비인가 Pod 접근 차단",
@@ -534,7 +534,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
 
 ## NET-002 — 비인가 Pod 접근 차단
 
-결과: **NOT_TESTED** · 검증 범위: **local**
+결과: **PASS** · 검증 범위: **local**
 
 통제: 2.6.1 네트워크 접근, 2.9.1 변경관리
 
@@ -544,9 +544,18 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "target": "Argo CD GitOps 복구",
   "tool": "Argo CD GitOps 복구",
   "scope": "local",
-  "result": "NOT_TESTED",
+  "result": "PASS",
   "details": "Git commit 기준 drift 감지→컨트롤러 복구→통신 재검증. admission과 구분.",
-  "evidence": [],
+  "evidence": [
+    {
+      "path": "evidence/gitops-kind-team4.json",
+      "sha256": "fffae0339a399af6686e9f425a9685903297a943dd5c86a8a1d636d042811704"
+    },
+    {
+      "path": "evidence/gitops-kind-team4.log",
+      "sha256": "85f09e8cdb6ccddf3d8216c55533f052f50cb3fdf1900580ccd9dd7a34c5e167"
+    }
+  ],
   "policy_name": "비인가 Pod 접근 차단",
   "isms_p": [
     {
@@ -570,7 +579,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
 
 ## OPS-001 — 로그 및 변경 증적 보존
 
-결과: **NOT_TESTED** · 검증 범위: **github**
+결과: **FAIL** · 검증 범위: **github**
 
 통제: 2.9.1 변경관리, 2.9.4 로그 및 접속기록 관리
 
@@ -580,9 +589,14 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "target": "GitHub Actions CI",
   "tool": "GitHub Actions CI",
   "scope": "github",
-  "result": "NOT_TESTED",
+  "result": "FAIL",
   "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음.",
-  "evidence": [],
+  "evidence": [
+    {
+      "path": "evidence/github/runs.json",
+      "sha256": "48d83dd21f416cae46a86f9f022c783fb77dfb61fd61c11183646fde292a018f"
+    }
+  ],
   "policy_name": "로그 및 변경 증적 보존",
   "isms_p": [
     {

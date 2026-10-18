@@ -12,6 +12,8 @@ AWS 인증은 WSL의 IAM 콘솔 브라우저 로그인으로 확인했다. STS �
 
 계정 관리자는 IAM → **Users → team4-operator → Permissions**에서 현재 정책, 그룹, permissions boundary를 확인하고 우선 필요한 사전 조회 정책을 검토·연결한다. SCP 등 상위 명시적 거부가 있으면 identity policy만 추가해서 해결되지 않는다. 실패가 확인된 API는 `eks:ListClusters`, `ec2:DescribeVpcs`, `config:DescribeConfigurationRecorders`, `ecr:DescribeRepositories`, `iam:ListOpenIDConnectProviders`다. 이 5개를 허용하는 것만으로 전체 Terraform plan/apply 권한이 완성되지는 않는다.
 
+관리자에게 연결을 요청한 읽기 정책과 콘솔 순서는 [TEAM4_IAM_PERMISSIONS](docs/TEAM4_IAM_PERMISSIONS.md)에 있다. 현재는 `team4-operator-preflight` 연결 후 조회를 재검증하는 단계다. provisioning 정책·런타임 boundary·선택 자동화 정책은 따로 검토하며, 정책 파일이 준비된 사실을 실제 연결 완료로 기록하지 않는다.
+
 사전 조회, 인프라 provisioner, 런타임 권한을 분리한다. 정책 초안은 계정 관리자가 기존 공유 리소스·SCP·permissions boundary와 함께 검토하며 `PowerUserAccess`만으로 IAM 역할 생성·PassRole이 충족된다고 가정하지 않는다. 런타임 역할에 관리자 권한을 부여하지 않는다. 조직이 나중에 SSO로 전환하기로 정한 경우에만 별도 permission set 생성 → 사용자/그룹의 AWS 계정 할당 → SSO profile 설정을 따른다. [AWS permission set](https://docs.aws.amazon.com/singlesignon/latest/userguide/howtocreatepermissionset.html), [계정 할당](https://docs.aws.amazon.com/singlesignon/latest/userguide/assignusers.html).
 
 | 실행 주체 | 필요한 범위 / 구현 경계 |
@@ -80,6 +82,8 @@ terraform -chdir=infra show -no-color reviewed.tfplan
 
 `05-addon-versions.sh`는 실제 EKS API에서 호환 addon 버전을 조회하여 `infra/addons.auto.tfvars.json`을 만든다. 조회 실패 시 테스트용 버전을 대신 쓰지 않는다. 현재 사용자를 bootstrap 운영자로 승인한다면 `operator_principal_arns`에는 `arn:aws:iam::852093844554:user/team4-operator`를 넣는다. cluster creator의 자동 admin 부여는 꺼져 있으므로 이 목록에서 운영자를 빠뜨리면 안 된다. 별도 역할로 전환한다면 실제 영구 IAM role ARN과 권한을 다시 검토한다.
 
+제공된 provisioning 정책을 사용하려면 관리자가 먼저 `team4-runtime-boundary`를 만들고 `iam_permissions_boundary_arn="arn:aws:iam::852093844554:policy/team4-runtime-boundary"`를 지정해야 한다. 해당 정책은 이 경계가 있는 프로젝트 role 생성만 허용한다. 기본 SG 채택에 필요한 넓은 bootstrap 예외 등 남은 IAM 검토 사항은 [권한 문서](docs/TEAM4_IAM_PERMISSIONS.md)를 확인한다. AWS의 실제 정책 평가·apply는 아직 검증하지 않았다.
+
 최초 plan은 `enable_self_healing=false`, `enable_inspector_response=false`, `enable_github_deploy=false`를 유지한다. 옵션을 켜는 plan은 비용·권한·공유 설정 변경을 추가로 검토한다. plan/state에는 민감한 값이 포함될 수 있으므로 Git에 넣지 않는다. 협업 시 잠금과 암호화가 있는 승인된 state 저장소를 먼저 준비한다.
 
 **계정·리전·생성/교체/삭제 목록·총예산 180,000원 내 비용 및 유지 기간을 확인한 명시적 생성 승인 뒤에만** 다음 명령을 실행한다. 오래된 plan이나 변경된 입력은 다시 검토한다.
@@ -101,7 +105,7 @@ bash scripts/07-install-security-addons.sh team4-eks all
 bash scripts/12-configure-eks-security.sh
 ```
 
-Secrets Manager 콘솔에서 `terraform -chdir=infra output -raw demo_secret_arn`이 가리키는 **전용 demo secret**에 `{"token":"새로 생성한 실습 전용 값"}` 형태의 값을 넣는다. 실제 운영 비밀을 사용하지 않는다. Terraform은 secret 컨테이너만 만들며 값은 state에 넣지 않는다. 이 값 입력 역시 승인된 배포 범위에서 수행하고 화면·로그에 값을 남기지 않는다.
+Secrets Manager 관리자가 콘솔에서 `terraform -chdir=infra output -raw demo_secret_arn`이 가리키는 **전용 demo secret**에 `{"token":"새로 생성한 실습 전용 값"}` 형태의 값을 넣는다. 실제 운영 비밀을 사용하지 않는다. Terraform은 secret 컨테이너만 만들며 값은 state에 넣지 않는다. 이 값 입력 역시 승인된 배포 범위에서 수행하고 화면·로그에 값을 남기지 않는다. 제공된 provisioner 정책에 secret 값 접근이 자동 포함된다고 가정하지 않는다.
 
 GitHub의 `aws-demo` environment 승인자·main 전용 정책·격리 runner·변수는 [GITHUB_SETUP](docs/GITHUB_SETUP.md)을 적용한다. Terraform의 `github_deploy_role_arn`, `repository_url`과 승인 계정 ID를 사용한다. 배포 workflow는 digest·cosign·스캔을 검증하고 실제 ready Pod의 runtime digest까지 확인한다. `deployed-image.txt`나 빌드 시작만으로 배포 성공을 기록하지 않는다.
 

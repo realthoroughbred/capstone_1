@@ -62,8 +62,8 @@ resource "aws_s3_bucket_policy" "evidence" {
 
 resource "aws_iam_role" "config" {
   permissions_boundary = var.iam_permissions_boundary_arn
-  count = var.enable_self_healing && var.create_config_recorder ? 1 : 0
-  name  = "${var.project}-config-recorder"
+  count                = var.enable_self_healing && var.create_config_recorder ? 1 : 0
+  name                 = "${var.project}-config-recorder"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Action = "sts:AssumeRole", Principal = { Service = "config.amazonaws.com" }, Condition = { StringEquals = { "AWS:SourceAccount" = var.aws_account_id } } }]
@@ -171,8 +171,8 @@ resource "aws_cloudwatch_log_group" "healing" {
 }
 resource "aws_iam_role" "healing" {
   permissions_boundary = var.iam_permissions_boundary_arn
-  count = var.enable_self_healing ? 1 : 0
-  name  = "${var.project}-sg-healing"
+  count                = var.enable_self_healing ? 1 : 0
+  name                 = "${var.project}-sg-healing"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Action = "sts:AssumeRole", Principal = { Service = "lambda.amazonaws.com" } }]

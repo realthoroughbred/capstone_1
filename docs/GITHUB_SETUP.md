@@ -4,6 +4,8 @@
 
 AWS는 WSL의 `aws login --remote --profile team4 --region ap-northeast-2`로 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 서비스 사전 조회 5개는 모두 AccessDenied였으므로 OIDC provider/역할/EKS가 준비됐다고 볼 수 없습니다(`evidence/aws/preflight.json`). 총예산 180,000원 안에서 실제 plan·비용을 검토한 명시적 생성 승인 전에는 AWS 배포 workflow를 실행하지 않습니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
 
+현재는 관리자에게 [사전 조회 IAM 정책](TEAM4_IAM_PERMISSIONS.md) 연결을 요청한 단계입니다. GitHub 일반 CI 실행과 AWS 배포 활성화를 구분하며, 개인 `team4` 로그인 cache를 GitHub runner로 복사하지 않습니다.
+
 ## 1. 로컬 GitHub 인증과 작업 사본
 
 초기 제공 폴더는 `.git`이 없는 압축본입니다. `git status`가 `not a git repository`를 반환하는 상태에서 push하지 마세요. 기존 저장소를 별도 폴더에 clone하고, 검토한 변경 파일만 작업 브랜치로 옮깁니다. Terraform state, `.aws`, `.kube`, `.env`, 개인키, `evidence/`, 다운로드 파일은 복사하거나 커밋하지 않습니다. 이미 정상 clone한 작업 사본이 있으면 그것을 사용합니다.

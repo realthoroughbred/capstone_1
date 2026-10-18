@@ -45,7 +45,7 @@ resource "aws_cloudwatch_log_group" "flow" {
 }
 resource "aws_iam_role" "flow" {
   permissions_boundary = var.iam_permissions_boundary_arn
-  name = "${var.project}-flow-logs"
+  name                 = "${var.project}-flow-logs"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{ Effect = "Allow", Action = "sts:AssumeRole", Principal = { Service = "vpc-flow-logs.amazonaws.com" },
@@ -73,7 +73,7 @@ resource "aws_iam_openid_connect_provider" "cluster" {
 }
 resource "aws_iam_role" "cni" {
   permissions_boundary = var.iam_permissions_boundary_arn
-  name = "${var.project}-vpc-cni"
+  name                 = "${var.project}-vpc-cni"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{ Effect = "Allow", Action = "sts:AssumeRoleWithWebIdentity", Principal = { Federated = aws_iam_openid_connect_provider.cluster.arn },
@@ -96,7 +96,7 @@ resource "aws_secretsmanager_secret" "demo" {
 }
 resource "aws_iam_role" "eso" {
   permissions_boundary = var.iam_permissions_boundary_arn
-  name = "${var.project}-eso-reader"
+  name                 = "${var.project}-eso-reader"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{ Effect = "Allow", Action = "sts:AssumeRoleWithWebIdentity", Principal = { Federated = aws_iam_openid_connect_provider.cluster.arn },
@@ -118,7 +118,7 @@ resource "aws_iam_role_policy" "eso" {
 }
 resource "aws_iam_role" "kyverno" {
   permissions_boundary = var.iam_permissions_boundary_arn
-  name = "${var.project}-kyverno-ecr-reader"
+  name                 = "${var.project}-kyverno-ecr-reader"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{ Effect = "Allow", Action = "sts:AssumeRoleWithWebIdentity", Principal = { Federated = aws_iam_openid_connect_provider.cluster.arn },

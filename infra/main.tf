@@ -39,7 +39,7 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_iam_role" "cluster" {
   permissions_boundary = var.iam_permissions_boundary_arn
-  name = "${var.project}-eks-cluster"
+  name                 = "${var.project}-eks-cluster"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Principal = { Service = "eks.amazonaws.com" }, Action = "sts:AssumeRole" }]
@@ -104,7 +104,7 @@ resource "aws_eks_access_policy_association" "operators" {
 
 resource "aws_iam_role" "node" {
   permissions_boundary = var.iam_permissions_boundary_arn
-  name = "${var.project}-eks-node"
+  name                 = "${var.project}-eks-node"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Principal = { Service = "ec2.amazonaws.com" }, Action = "sts:AssumeRole" }]

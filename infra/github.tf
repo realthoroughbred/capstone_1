@@ -5,8 +5,8 @@ resource "aws_iam_openid_connect_provider" "github" {
 }
 resource "aws_iam_role" "github_deploy" {
   permissions_boundary = var.iam_permissions_boundary_arn
-  count = var.enable_github_deploy ? 1 : 0
-  name  = "${var.project}-github-deploy"
+  count                = var.enable_github_deploy ? 1 : 0
+  name                 = "${var.project}-github-deploy"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{ Effect = "Allow", Action = "sts:AssumeRoleWithWebIdentity",

@@ -14,6 +14,7 @@ store_id="$(cat evidence/image/image-store-id.txt)"
 sha256sum --check evidence/image/image-tar.sha256
 test "$(python3 scripts/archive-config-digest.py evidence/image/image.tar)" = "$config_digest"
 test "$(docker image inspect "$store_id" --format '{{.Id}}')" = "$store_id"
+python3 scripts/verify_sbom_binding.py evidence/image/sbom.cdx.json evidence/image/sbom-link.json "$config_digest"
 # Re-evaluate the exact saved image, not a mutable remote tag.
 trivy image --input evidence/image/image.tar --scanners vuln --severity HIGH,CRITICAL --exit-code 1
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${ECR_REPOSITORY%%/*}"
@@ -33,6 +34,7 @@ if manifest['config']['digest'] != sys.argv[1]:
 PY
 trivy image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 "$image"
 cosign sign --yes "$image"
+python3 scripts/verify_sbom_binding.py evidence/image/sbom.cdx.json evidence/image/sbom-link.json "$config_digest"
 cosign attest --yes --predicate evidence/image/sbom.cdx.json --type cyclonedx "$image"
 cosign verify --certificate-identity "$COSIGN_IDENTITY" --certificate-oidc-issuer https://token.actions.githubusercontent.com "$image" > evidence/cosign-verify.json
 cosign verify-attestation --certificate-identity "$COSIGN_IDENTITY" --certificate-oidc-issuer https://token.actions.githubusercontent.com --type cyclonedx "$image" > evidence/image/attestation-verify.json

@@ -13,11 +13,11 @@
 | Trivy 취약 이미지 거부 | VERIFIED | PASS / local |
 | CycloneDX SBOM | VERIFIED | PASS / local |
 | cosign 로컬 서명 | VERIFIED | PASS / local |
-| NetworkPolicy | IMPLEMENTED | NOT_TESTED / local |
+| NetworkPolicy | VERIFIED | PASS / local |
 | ESO Fake/rotation | VERIFIED | PASS / local |
 | Kyverno admission | VERIFIED | PASS / local |
-| Argo CD GitOps 복구 | IMPLEMENTED | NOT_TESTED / local |
-| GitHub Actions CI | IMPLEMENTED | NOT_TESTED / github |
+| Argo CD GitOps 복구 | VERIFIED | PASS / local |
+| GitHub Actions CI | IMPLEMENTED | FAIL / github |
 | AWS plan/ECR/EKS/Config/Inspector | BLOCKED | BLOCKED / aws |
 
 VERIFIED는 표의 범위만 의미합니다. 모의 API 테스트를 AWS 검증으로 계산하지 않습니다.

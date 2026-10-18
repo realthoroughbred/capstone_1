@@ -7,17 +7,17 @@
 | Terraform validate | PASS | static | Provider 스키마 검증. 실제 AWS plan/apply와 구분. |
 | Terraform 안전 조건 | PASS | simulated | mock provider: 기본 dry run, 공개 CIDR 금지, OIDC subject, 서명 전용 태그 예외. |
 | Checkov | PASS | static | passed=111, failed=0, skipped=23; 예외는 docs/infra-notes.md. |
-| 자동복구 단위·통합 테스트 | PASS | simulated | 65개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님. |
+| 자동복구 단위·통합 테스트 | PASS | simulated | 70개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님. |
 | Docker HTTP | PASS | local | 비 root·읽기전용 rootfs·cap drop 환경에서 TCP8080 응답. |
 | Trivy 정상 이미지 | PASS | local | 실제 탐지 패키지 17개, HIGH/CRITICAL 0개. 미탐지 목록은 통과시키지 않음. |
 | Trivy 취약 이미지 거부 | PASS | local | 검사 전용 alpine:3.12.0, HIGH/CRITICAL 36건, 실제 프로세스 종료코드1. 실행·배포하지 않음. |
 | CycloneDX SBOM | PASS | local | CycloneDX 1.7, 구성요소 100개. 공식 스키마 검사 및 실제 config digest 연결. |
 | cosign 로컬 서명 | PASS | local | 실제 OCI 레지스트리 서명·정상키 검증·다른키 거부. 테스트 키/tlog 비활성. AWS OIDC/keyless 검증 아님. |
-| NetworkPolicy | NOT_TESTED | local | 실제 DNS, client→server, 독립 ingress/egress 차단 및 양방향 허용 대조군. |
+| NetworkPolicy | PASS | local | 실제 DNS, client→server, 독립 ingress/egress 차단 및 양방향 허용 대조군. |
 | ESO Fake/rotation | PASS | local | Kubernetes Secret와 실행중 Pod 볼륨의 값 변화 확인. 원문 출력 없음. AWS SM 검증 아님. |
 | Kyverno admission | PASS | local | 정상 Pod 허용 및 잘못된 보안 컨텍스트의 실제 webhook 거부. ECR 서명 정책은 별도 검증 필요. |
-| Argo CD GitOps 복구 | NOT_TESTED | local | Git commit 기준 drift 감지→컨트롤러 복구→통신 재검증. admission과 구분. |
-| GitHub Actions CI | NOT_TESTED | github | 실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. |
+| Argo CD GitOps 복구 | PASS | local | Git commit 기준 drift 감지→컨트롤러 복구→통신 재검증. admission과 구분. |
+| GitHub Actions CI | FAIL | github | 실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. |
 | AWS plan/ECR/EKS/Config/Inspector | BLOCKED | aws | team4 프로필 인증됨. 자원 조회 IAM 권한 부족 및 유료 생성 승인 전. |
 
 ## 수정한 실제 실패

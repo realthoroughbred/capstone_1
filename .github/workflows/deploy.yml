@@ -11,7 +11,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment: aws-demo
     # Runner must reach the restricted EKS API; hosted-runner IP ranges are not allowlisted.
-    runs-on: [self-hosted, linux, team4-deploy]
+    runs-on: [self-hosted, linux, x64, team4-deploy]
     timeout-minutes: 40
     permissions:
       contents: read

@@ -23,8 +23,8 @@ rows = []
 observations = []
 
 
-def record(name, policy, scope, passed, paths, detail, blocked=False):
-    status = 'PASS' if passed else ('BLOCKED' if blocked else 'NOT_TESTED')
+def record(name, policy, scope, passed, paths, detail, blocked=False, failed=False):
+    status = 'PASS' if passed else ('BLOCKED' if blocked else ('FAIL' if failed else 'NOT_TESTED'))
     existing = [p for p in paths if (ROOT / p).is_file()]
     rows.append({'feature': name, 'scope': scope, 'result': status, 'detail': detail, 'evidence': existing})
     observations.append({'policy_id': policy, 'target': name, 'tool': name, 'scope': scope,
@@ -68,14 +68,18 @@ record('NetworkPolicy', 'NET-002', 'local', 'PASS: NetworkPolicy enforcement' in
        ['evidence/network-kind-team4.log', 'evidence/network-kind-team4.json'], '실제 DNS, client→server, 독립 ingress/egress 차단 및 양방향 허용 대조군.')
 record('ESO Fake/rotation', 'SEC-001', 'local', 'PASS: Rotation reached' in read('evidence/eso-kind-team4.log'),
        ['evidence/eso-kind-team4.log'], 'Kubernetes Secret와 실행중 Pod 볼륨의 값 변화 확인. 원문 출력 없음. AWS SM 검증 아님.')
-record('Kyverno admission', 'IMG-002', 'local', 'PASS' in read('evidence/admission-kind-team4.json') and 'FAIL' not in read('evidence/admission-kind-team4.json'),
+admission = data('evidence/admission-kind-team4.json')
+required_admission = {'valid-security-context', 'root-user', 'privileged', 'privilege-escalation', 'writable-root-filesystem'}
+passed_admission = {r.get('test') for r in admission if r.get('result') == 'PASS'} if isinstance(admission, list) else set()
+record('Kyverno admission', 'IMG-002', 'local', required_admission <= passed_admission,
        ['evidence/admission-kind-team4.json', 'evidence/admission-kind-team4.log'], '정상 Pod 허용 및 잘못된 보안 컨텍스트의 실제 webhook 거부. ECR 서명 정책은 별도 검증 필요.')
-record('Argo CD GitOps 복구', 'NET-002', 'local', 'PASS' in read('evidence/gitops-kind-team4.json'),
+record('Argo CD GitOps 복구', 'NET-002', 'local', data('evidence/gitops-kind-team4.json').get('result') == 'PASS',
        ['evidence/gitops-kind-team4.json', 'evidence/gitops-kind-team4.log'], 'Git commit 기준 drift 감지→컨트롤러 복구→통신 재검증. admission과 구분.')
 runs = data('evidence/github/runs.json')
 ci_pass = isinstance(runs, list) and bool(runs) and all(r.get('conclusion') == 'success' for r in runs)
 record('GitHub Actions CI', 'OPS-001', 'github', ci_pass,
-       ['evidence/github/runs.json'], '실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음.')
+       ['evidence/github/runs.json'], '실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음.',
+       failed=isinstance(runs, list) and any(r.get('conclusion') in {'failure', 'timed_out', 'action_required'} for r in runs))
 preflight = data('evidence/aws/preflight.json')
 reason = 'team4 프로필 인증됨. 자원 조회 IAM 권한 부족 및 유료 생성 승인 전.' if preflight else 'AWS 계정 사전 점검 필요.'
 record('AWS plan/ECR/EKS/Config/Inspector', 'NET-001', 'aws', False,

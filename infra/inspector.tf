@@ -59,8 +59,8 @@ resource "aws_cloudwatch_log_group" "remediation" {
 }
 resource "aws_iam_role" "remediation" {
   permissions_boundary = var.iam_permissions_boundary_arn
-  count = var.enable_inspector_response ? 1 : 0
-  name  = "${var.project}-image-remediation"
+  count                = var.enable_inspector_response ? 1 : 0
+  name                 = "${var.project}-image-remediation"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{ Effect = "Allow", Action = "sts:AssumeRole", Principal = { Service = "codebuild.amazonaws.com" },
@@ -97,8 +97,8 @@ resource "aws_eks_access_entry" "remediation" {
 
 resource "aws_iam_role" "inspector" {
   permissions_boundary = var.iam_permissions_boundary_arn
-  count = var.enable_inspector_response ? 1 : 0
-  name  = "${var.project}-inspector-response"
+  count                = var.enable_inspector_response ? 1 : 0
+  name                 = "${var.project}-inspector-response"
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Action = "sts:AssumeRole", Principal = { Service = "lambda.amazonaws.com" } }]
