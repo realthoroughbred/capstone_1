@@ -21,6 +21,13 @@
       }
     },
     {
+      "Sid": "ApprovedParentVPCForCreation",
+      "Effect": "Allow",
+      "Action": ["ec2:CreateSubnet", "ec2:CreateRouteTable", "ec2:CreateSecurityGroup", "ec2:CreateFlowLogs"],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:vpc/*",
+      "Condition": {"StringEquals": {"ec2:ResourceTag/Project": "team4"}}
+    },
+    {
       "Sid": "CreateTags",
       "Effect": "Allow",
       "Action": [
@@ -76,21 +83,6 @@
       "Condition": {
         "StringEquals": {
           "ec2:ResourceTag/Project": "team4"
-        }
-      }
-    },
-    {
-      "Sid": "DefaultSGAdoption",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:RevokeSecurityGroupIngress",
-        "ec2:RevokeSecurityGroupEgress",
-        "ec2:CreateTags"
-      ],
-      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:security-group/*",
-      "Condition": {
-        "StringEqualsIfExists": {
-          "aws:RequestTag/Project": "team4"
         }
       }
     },
@@ -191,37 +183,12 @@
       }
     },
     {
-      "Sid": "ProjectOIDC",
-      "Effect": "Allow",
-      "Action": [
-        "iam:*OpenIDConnectProvider*"
-      ],
-      "Resource": [
-        "arn:aws:iam::852093844554:oidc-provider/token.actions.githubusercontent.com",
-        "arn:aws:iam::852093844554:oidc-provider/oidc.eks.ap-northeast-2.amazonaws.com/id/*"
-      ]
-    },
-    {
       "Sid": "KeepBoundary",
       "Effect": "Deny",
       "Action": [
         "iam:DeleteRolePermissionsBoundary"
       ],
       "Resource": "arn:aws:iam::852093844554:role/team4-*"
-    },
-    {
-      "Sid": "CreateKey",
-      "Effect": "Allow",
-      "Action": [
-        "kms:CreateKey"
-      ],
-      "Resource": "*",
-      "Condition": {
-        "StringEquals": {
-          "aws:RequestedRegion": "ap-northeast-2",
-          "aws:RequestTag/Project": "team4"
-        }
-      }
     },
     {
       "Sid": "TaggedKeys",

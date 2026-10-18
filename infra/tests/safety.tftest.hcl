@@ -65,9 +65,32 @@ run "explicit_automation_keeps_dry_run" {
     error_message = "Evidence and stored images require explicit cleanup before deletion."
   }
   assert {
+    condition     = length(aws_cloudwatch_metric_alarm.failures[0].alarm_actions) == 0
+    error_message = "Failure notifications require an explicitly supplied approved topic."
+  }
+  assert {
     condition     = jsondecode(aws_iam_role.github_deploy[0].assume_role_policy).Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:sub"] == "repo:realthoroughbred@272421931/capstone_1@1378935906:environment:aws-demo"
     error_message = "The GitHub role must match the verified immutable subject, with no legacy fallback or wildcard."
   }
+}
+
+run "approved_failure_notifications" {
+  command = plan
+  variables {
+    enable_self_healing           = true
+    existing_config_recorder_name = "reviewed-running-recorder"
+    notification_topic_arn        = "arn:aws:sns:ap-northeast-2:123456789012:approved-operator-alerts"
+  }
+  assert {
+    condition     = aws_cloudwatch_metric_alarm.failures[0].alarm_actions == toset(["arn:aws:sns:ap-northeast-2:123456789012:approved-operator-alerts"])
+    error_message = "Failure alarms must target exactly the supplied topic."
+  }
+}
+
+run "reject_foreign_notification_topic" {
+  command = plan
+  variables { notification_topic_arn = "arn:aws:sns:us-east-1:999999999999:foreign-topic" }
+  expect_failures = [var.notification_topic_arn]
 }
 
 run "reject_unreviewed_worker" {

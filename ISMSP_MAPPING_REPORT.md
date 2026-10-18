@@ -66,7 +66,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "evidence": [
     {
       "path": "evidence/terraform/mock-tests.txt",
-      "sha256": "2307e9e23571f290f991da89c9162dace8f0fccb1820851820c66f1597cd5a88"
+      "sha256": "e3c208f1226c4bf3d4ef469e62906529408251dab8b5607bd639413af8f69bbf"
     }
   ],
   "policy_name": "인프라 보안 형상 검사",
@@ -107,7 +107,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "evidence": [
     {
       "path": "evidence/terraform/checkov.json",
-      "sha256": "c0c3bc8cfd8a3936000de4aa59f9c711976384118334ee084bc8bd8766d5aa0b"
+      "sha256": "ea6778eca36073d3ae58c7a121617fb58cf1d9d19e021017775ce8e59363b625"
     }
   ],
   "policy_name": "인프라 보안 형상 검사",
@@ -556,6 +556,53 @@ Technical evidence mapping only; not an ISMS-P certification determination.
       "sha256": "85f09e8cdb6ccddf3d8216c55533f052f50cb3fdf1900580ccd9dd7a34c5e167"
     }
   ],
+  "violations": [
+    "demo/allow-client-to-server ingress removed by the local test"
+  ],
+  "remediation_executed": true,
+  "remediation_method": "Argo CD automated selfHeal from the pinned local Git mirror",
+  "before": {
+    "podSelector": {
+      "matchLabels": {
+        "app": "server"
+      }
+    },
+    "policyTypes": [
+      "Ingress"
+    ]
+  },
+  "after": {
+    "ingress": [
+      {
+        "from": [
+          {
+            "podSelector": {
+              "matchLabels": {
+                "app": "client"
+              }
+            }
+          }
+        ],
+        "ports": [
+          {
+            "port": 8080,
+            "protocol": "TCP"
+          }
+        ]
+      }
+    ],
+    "podSelector": {
+      "matchLabels": {
+        "app": "server"
+      }
+    },
+    "policyTypes": [
+      "Ingress"
+    ]
+  },
+  "revalidation": "PASS",
+  "duration_seconds": 4.941,
+  "source_commit": "ba6babcf4b06d340ee79292830cfd1ae576b06b3",
   "policy_name": "비인가 Pod 접근 차단",
   "isms_p": [
     {
@@ -565,6 +612,40 @@ Technical evidence mapping only; not an ISMS-P certification determination.
     {
       "id": "2.9.1",
       "name": "변경관리"
+    }
+  ]
+}
+```
+
+## OPS-001 — 로그 및 변경 증적 보존
+
+결과: **PASS** · 검증 범위: **github**
+
+통제: 2.9.1 변경관리, 2.9.4 로그 및 접속기록 관리
+
+```json
+{
+  "policy_id": "OPS-001",
+  "target": "GitHub Actions CI",
+  "tool": "GitHub Actions CI",
+  "scope": "github",
+  "result": "PASS",
+  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `dd13627053f4b76af4ec151894946f5b6509f37f` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770).",
+  "evidence": [
+    {
+      "path": "evidence/github/runs-dd13627053f4b76af4ec151894946f5b6509f37f.json",
+      "sha256": "8dfd66f014633068cbc78c7fea20f0751c3932bfbb3b421e572d619f44f89086"
+    }
+  ],
+  "policy_name": "로그 및 변경 증적 보존",
+  "isms_p": [
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    },
+    {
+      "id": "2.9.4",
+      "name": "로그 및 접속기록 관리"
     }
   ],
   "violations": [],
@@ -579,22 +660,22 @@ Technical evidence mapping only; not an ISMS-P certification determination.
 
 ## OPS-001 — 로그 및 변경 증적 보존
 
-결과: **FAIL** · 검증 범위: **github**
+결과: **PASS** · 검증 범위: **aws**
 
 통제: 2.9.1 변경관리, 2.9.4 로그 및 접속기록 관리
 
 ```json
 {
   "policy_id": "OPS-001",
-  "target": "GitHub Actions CI",
-  "tool": "GitHub Actions CI",
-  "scope": "github",
-  "result": "FAIL",
-  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음.",
+  "target": "AWS 신원·기존 자원 조회",
+  "tool": "AWS 신원·기존 자원 조회",
+  "scope": "aws",
+  "result": "PASS",
+  "details": "team4 프로필, 계정 852093844554. STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회.",
   "evidence": [
     {
-      "path": "evidence/github/runs.json",
-      "sha256": "48d83dd21f416cae46a86f9f022c783fb77dfb61fd61c11183646fde292a018f"
+      "path": "evidence/aws/preflight.json",
+      "sha256": "19014042e5ea3abdb6f4defa81569c8d7ec940bc882aa0575134a2bed42848bb"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -631,11 +712,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "AWS plan/ECR/EKS/Config/Inspector",
   "scope": "aws",
   "result": "BLOCKED",
-  "details": "team4 프로필 인증됨. 자원 조회 IAM 권한 부족 및 유료 생성 승인 전.",
+  "details": "사전 조회 완료. 실제 plan·정확한 범위의 배포 IAM 준비 및 유료 생성 승인이 필요함.",
   "evidence": [
     {
       "path": "evidence/aws/preflight.json",
-      "sha256": "71f904dc7c9bd500f61c0acafd528e89f4a68e25562049a503ce91a9b7d309d4"
+      "sha256": "19014042e5ea3abdb6f4defa81569c8d7ec940bc882aa0575134a2bed42848bb"
     }
   ],
   "policy_name": "공개 SSH 접근 금지",

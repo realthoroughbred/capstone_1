@@ -109,6 +109,15 @@ variable "healing_dry_run" {
   type        = bool
   default     = true
 }
+variable "notification_topic_arn" {
+  description = "Optional existing standard SNS topic approved for failure notifications. Must be in the target account and region; no topic or subscriptions are created."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.notification_topic_arn == "" || can(regex("^arn:aws:sns:${var.region}:${var.aws_account_id}:[A-Za-z0-9_-]{1,256}$", var.notification_topic_arn))
+    error_message = "Use an existing standard SNS topic ARN in the configured AWS account and region, or leave empty for metric-only alarms."
+  }
+}
 variable "create_config_recorder" {
   description = "False when an existing regional recorder already records EC2 SecurityGroup. Never replace an organization recorder."
   type        = bool

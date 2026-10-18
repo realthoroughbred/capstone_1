@@ -1,0 +1,92 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CNIAllocateNewInterface",
+      "Effect": "Allow",
+      "Action": "ec2:CreateNetworkInterface",
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:network-interface/*",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-vpc-cni"
+        }
+      }
+    },
+    {
+      "Sid": "CNIApprovedNetworkPlacement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateNetworkInterface",
+        "ec2:ModifyNetworkInterfaceAttribute"
+      ],
+      "Resource": [
+        "arn:aws:ec2:ap-northeast-2:852093844554:subnet/REPLACE_APPROVED_SUBNET_A_ID",
+        "arn:aws:ec2:ap-northeast-2:852093844554:subnet/REPLACE_APPROVED_SUBNET_C_ID",
+        "arn:aws:ec2:ap-northeast-2:852093844554:security-group/REPLACE_APPROVED_NODE_SECURITY_GROUP_ID"
+      ],
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-vpc-cni",
+          "ec2:Vpc": "arn:aws:ec2:ap-northeast-2:852093844554:vpc/REPLACE_APPROVED_VPC_ID"
+        }
+      }
+    },
+    {
+      "Sid": "CNIInterfaceOperationsInApprovedNetwork",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteNetworkInterface",
+        "ec2:AttachNetworkInterface",
+        "ec2:DetachNetworkInterface",
+        "ec2:ModifyNetworkInterfaceAttribute",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses",
+        "ec2:CreateTags"
+      ],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:network-interface/*",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-vpc-cni",
+          "ec2:Vpc": "arn:aws:ec2:ap-northeast-2:852093844554:vpc/REPLACE_APPROVED_VPC_ID",
+          "ec2:Subnet": [
+            "arn:aws:ec2:ap-northeast-2:852093844554:subnet/REPLACE_APPROVED_SUBNET_A_ID",
+            "arn:aws:ec2:ap-northeast-2:852093844554:subnet/REPLACE_APPROVED_SUBNET_C_ID"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "CNIInstanceAttachmentForClusterNodes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AttachNetworkInterface",
+        "ec2:DetachNetworkInterface",
+        "ec2:ModifyNetworkInterfaceAttribute"
+      ],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:instance/*",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-vpc-cni"
+        },
+        "StringEquals": {
+          "aws:ResourceTag/Project": "team4",
+          "aws:ResourceTag/kubernetes.io/cluster/team4-eks": "owned"
+        }
+      }
+    },
+    {
+      "Sid": "CNITagsDuringApprovedInterfaceCreation",
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:network-interface/*",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-vpc-cni"
+        },
+        "StringEquals": {
+          "ec2:CreateAction": "CreateNetworkInterface"
+        }
+      }
+    }
+  ]
+}

@@ -17,8 +17,9 @@
 | ESO Fake/rotation | PASS | local | Kubernetes Secret와 실행중 Pod 볼륨의 값 변화 확인. 원문 출력 없음. AWS SM 검증 아님. |
 | Kyverno admission | PASS | local | 정상 Pod 허용 및 잘못된 보안 컨텍스트의 실제 webhook 거부. ECR 서명 정책은 별도 검증 필요. |
 | Argo CD GitOps 복구 | PASS | local | Git commit 기준 drift 감지→컨트롤러 복구→통신 재검증. admission과 구분. |
-| GitHub Actions CI | FAIL | github | 실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. |
-| AWS plan/ECR/EKS/Config/Inspector | BLOCKED | aws | team4 프로필 인증됨. 자원 조회 IAM 권한 부족 및 유료 생성 승인 전. |
+| GitHub Actions CI | PASS | github | 실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `dd13627053f4b76af4ec151894946f5b6509f37f` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770). |
+| AWS 신원·기존 자원 조회 | PASS | aws | team4 프로필, 계정 852093844554. STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회. |
+| AWS plan/ECR/EKS/Config/Inspector | BLOCKED | aws | 사전 조회 완료. 실제 plan·정확한 범위의 배포 IAM 준비 및 유료 생성 승인이 필요함. |
 
 ## 수정한 실제 실패
 

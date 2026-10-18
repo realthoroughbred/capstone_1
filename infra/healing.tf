@@ -162,6 +162,7 @@ resource "aws_cloudwatch_metric_alarm" "failures" {
   threshold           = 0
   treat_missing_data  = "notBreaching"
   dimensions          = { QueueName = aws_sqs_queue.failures[0].name }
+  alarm_actions       = var.notification_topic_arn == "" ? [] : [var.notification_topic_arn]
 }
 resource "aws_cloudwatch_log_group" "healing" {
   count             = var.enable_self_healing ? 1 : 0

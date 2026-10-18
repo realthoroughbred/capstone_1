@@ -84,6 +84,7 @@ if __name__ == '__main__':
                 target = Path('evidence/github')
                 target.mkdir(parents=True, exist_ok=True)
                 (target / 'runs.json').write_text(json.dumps(summary, indent=2) + '\n', encoding='utf-8')
+                (target / f'runs-{args.sha}.json').write_text(json.dumps(summary, indent=2) + '\n', encoding='utf-8')
             print(json.dumps(summary, indent=2))
         else:
             print(json.dumps(api(args.repo, '/actions/oidc/customization/sub'), indent=2))

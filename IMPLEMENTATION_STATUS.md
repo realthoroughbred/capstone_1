@@ -17,7 +17,8 @@
 | ESO Fake/rotation | VERIFIED | PASS / local |
 | Kyverno admission | VERIFIED | PASS / local |
 | Argo CD GitOps 복구 | VERIFIED | PASS / local |
-| GitHub Actions CI | IMPLEMENTED | FAIL / github |
+| GitHub Actions CI | VERIFIED | PASS / github |
+| AWS 신원·기존 자원 조회 | VERIFIED | PASS / aws |
 | AWS plan/ECR/EKS/Config/Inspector | BLOCKED | BLOCKED / aws |
 
 VERIFIED는 표의 범위만 의미합니다. 모의 API 테스트를 AWS 검증으로 계산하지 않습니다.

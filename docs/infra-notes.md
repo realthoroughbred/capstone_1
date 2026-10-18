@@ -16,6 +16,8 @@ These are implementation and operating constraints, not proof of a live deployme
 
 The account ID is mandatory and enforced by the AWS provider. Explicit operator IAM principals receive initial cluster administration; automatic creator administrator access is disabled. Workload automation uses separate identities:
 
+For the authenticated team4 account, [the IAM setup guide](TEAM4_IAM_PERMISSIONS.md) supplies separate metadata, provisioning, runtime-boundary and optional validation policies. These deliberately require administrator-reviewed bootstrap for the exact new default SG, KMS key, EKS OIDC issuer and network resource IDs. The base runtime boundary excludes regional ENI mutations; the separate CNI fragment is a template restricted to the CNI role and approved VPC/subnets. A successful Terraform plan or mock test does not prove these IAM prerequisites are satisfied. Do not run a full apply until the administrator has reviewed those exact-resource additions and the paid plan is approved.
+
 | Identity | Boundary |
 |---|---|
 | Node instance profile | Worker-node and ECR-pull policies; IMDSv2 required, hop limit 1 |
@@ -74,7 +76,7 @@ The generated role intentionally omits broad EC2 network-interface permissions b
 
 Create the protected SSM **String** approval parameter outside the automation roles. Its JSON contains the repository name, exact `sha256:` digest, `approved:true` and a future `expires_at` timestamp. Neither Lambda nor the worker may change approval. Keep `inspector_dry_run=true` until the replacement experiment is approved; keep the external project's fixed DRY_RUN value identical. A safe digest must pass current scan and trusted signature checks before replacement; without a safe digest the response stops.
 
-Deduplication rows have no TTL and no runtime delete permission, preventing old events from becoming newly eligible. Uncertain build-start outcomes require manual review. Lambda failure destinations and CodeBuild FAILED/FAULT/STOPPED/TIMED_OUT events go to the encrypted SQS failure queue; the CloudWatch queue-depth alarm provides a visible failure state. There is no configured email/SMS recipient: operators must monitor the alarm or attach an approved notification destination. Simulated EventBridge payloads and genuine Inspector findings must be labelled separately in evidence.
+Deduplication rows have no TTL and no runtime delete permission, preventing old events from becoming newly eligible. Uncertain build-start outcomes require manual review. Lambda failure destinations and CodeBuild FAILED/FAULT/STOPPED/TIMED_OUT events go to the encrypted SQS failure queue; the CloudWatch queue-depth alarm provides a visible failure state. Set optional `notification_topic_arn` to an existing approved standard SNS topic in the same account and region to notify its subscribers on an ALARM transition. Empty is the default: it is a metric-only alarm with **no human notification**. This stack creates no topic or subscriptions and does not send test messages. The topic owner must allow `cloudwatch.amazonaws.com` to publish with the specific alarm `aws:SourceArn` and target `aws:SourceAccount`, confirm subscriptions, and authorize the encryption key when applicable; see [AWS CloudWatch alarm notifications](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Notify_Users_Alarm_Changes.html). Delivery requires separate approved live verification. Simulated EventBridge payloads and genuine Inspector findings must be labelled separately in evidence.
 
 ## Checkov exceptions and review scope
 

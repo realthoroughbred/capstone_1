@@ -8,7 +8,7 @@ AWS는 WSL의 `aws login --remote --profile team4 --region ap-northeast-2`로 IA
 
 ## 1. 로컬 GitHub 인증과 작업 사본
 
-초기 제공 폴더는 `.git`이 없는 압축본입니다. `git status`가 `not a git repository`를 반환하는 상태에서 push하지 마세요. 기존 저장소를 별도 폴더에 clone하고, 검토한 변경 파일만 작업 브랜치로 옮깁니다. Terraform state, `.aws`, `.kube`, `.env`, 개인키, `evidence/`, 다운로드 파일은 복사하거나 커밋하지 않습니다. 이미 정상 clone한 작업 사본이 있으면 그것을 사용합니다.
+초기 제공 폴더는 `.git`이 없는 압축본이었지만 현재는 저장소 이력을 연결하고 작업 브랜치를 push했습니다. 현재 작업 사본을 다시 clone할 필요는 없습니다. `git status`와 branch를 확인하고 이어서 작업합니다. 아래 clone 예시는 새 PC용입니다. Terraform state, `.aws`, `.kube`, `.env`, 개인키, `evidence/`, 다운로드 파일은 복사하거나 커밋하지 않습니다.
 
 GitHub 인증은 기존 GCM 세션으로 실제 API 조회까지 **VERIFIED**했습니다. 저장소는 private이고 저장소 ID는 `1378935906`, 소유자 ID는 `272421931`이며 현재 계정의 admin/push 권한을 확인했습니다. 제한된 실행 세션의 `wincredman` 오류는 일반 권한으로 재검증해 해결했으며 토큰을 출력하거나 파일에 저장하지 않았습니다. `gh`는 PATH에 없지만 현재 인증을 다시 할 필요는 없습니다. 아래 로그인 명령은 다른 PC 또는 인증 만료 시 **본인의 일반 PowerShell 창**에서 사용합니다.
 
@@ -38,6 +38,8 @@ gh repo view realthoroughbred/capstone_1 --json nameWithOwner,viewerPermission
 
 ## 2. `aws-demo` 환경의 승인과 브랜치 제한
 
+실제 GitHub environments 조회 결과는 `total_count=0`이며 **`aws-demo` 환경은 아직 없습니다.** 일반 CI 성공을 배포 보호 설정 완료로 해석하지 않습니다. 아래 항목을 구성하기 전 AWS 배포 job을 시작하지 않습니다.
+
 저장소 관리자/소유자가 **Settings → Environments → New environment**에서 정확히 `aws-demo`를 만듭니다. 워크플로 최초 실행으로 환경을 자동 생성하면 보호 규칙이 없는 환경이 생길 수 있으므로 먼저 설정합니다.
 
 1. **Required reviewers**에 지정된 배포 검토자를 등록합니다. 여러 명을 등록해도 GitHub 기본 동작은 그중 한 명의 승인입니다.
@@ -52,7 +54,7 @@ GitHub의 환경 보호 기능과 요금제별 제공 범위는 [공식 환경 �
 
 ## 3. 배포 runner 격리
 
-`.github/workflows/checkov.yml`의 PR/일반 CI는 GitHub 호스팅 `ubuntu-24.04`에서 실행합니다. `.github/workflows/deploy.yml`만 `self-hosted`, `linux`, `team4-deploy` 라벨을 사용합니다.
+`.github/workflows/checkov.yml`의 PR/일반 CI는 GitHub 호스팅 `ubuntu-24.04`에서 실행합니다. `.github/workflows/deploy.yml`만 `self-hosted`, `linux`, `x64`, `team4-deploy` 라벨을 사용합니다.
 
 - 배포 runner는 별도의 Linux x86_64 머신/일회용 실행 환경으로 준비하고 PR 작업, 포크 코드, `pull_request_target`의 외부 코드 checkout을 실행하지 않습니다. 배포 runner 라벨만으로 접근 통제가 완성되지는 않습니다.
 - 조직 runner group을 사용할 수 있으면 해당 저장소만 허용하고, 지원되는 정책에서 `.github/workflows/deploy.yml@refs/heads/main`만 실행하도록 제한합니다. 개인 공개 저장소에서 동등한 runner 격리를 보장할 수 없다면 외부 PR을 받는 저장소에 AWS 접근 가능한 상시 runner를 연결하지 말고, 보호된 전용 배포 저장소/조직 runner로 옮겨 신뢰 조건을 다시 맞춥니다.
@@ -107,6 +109,8 @@ gh variable list --repo realthoroughbred/capstone_1 --env aws-demo
 명령을 실행하기 전에 `$deployAccount`가 승인한 Terraform 계정과 같은지 대조하고, output 명령이 성공했으며 값이 빈 문자열/`null`이 아닌지 확인합니다. [환경 변수 CLI](https://cli.github.com/manual/gh_variable_set)
 
 ## 6. 첫 실행과 성공 판정
+
+일반 CI는 [run 39116090770](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770), commit `dd13627053f4b76af4ec151894946f5b6509f37f`에서 실제 통과했습니다. artifact의 Python 70개, Terraform mock 6개, Checkov 111 passed/0 failed/23 skipped를 확인했습니다. 이 결과는 AWS 배포 job 실행이나 `aws-demo` 설정 완료 증거가 아닙니다. 후속 변경은 해당 commit의 CI로 새로 검증합니다.
 
 검토한 브랜치를 PR로 반영한 뒤 CI의 정적 검사·이미지 검사를 확인합니다. 배포는 **Actions → Approved EKS deployment → Run workflow → main**에서 요청하고 지정 검토자가 `aws-demo` job을 승인합니다. runner가 연결되지 않으면 job은 queued 상태이므로 배포 완료로 기록하지 않습니다.
 

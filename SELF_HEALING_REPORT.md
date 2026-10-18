@@ -13,13 +13,19 @@
 | CodeBuild worker | 실제 대상 digest/소유 관계 검사 로직, cosign/scan 실패, 동시 수정, rollout 실패, Pod digest 검증 분기 | 실제 서명/취약점 DB, EKS admission/rollout, 새 digest 실행 |
 | 일반 배포 검증 | template뿐 아니라 소유 ReplicaSet/ready Pod runtime digest 검증 로직 | AWS 배포 artifact와 애플리케이션 응답 |
 
-저장소 전체 Python 단위 테스트의 최근 로컬 결과는 **65개 통과**이며 원본은 `evidence/local/unit-tests.txt`에 있다. 증적 디렉터리는 Git에서 제외한다. 자동 복구 관련 테스트는 `tests/test_healing*.py`, `tests/test_inspector*.py`에서 확인할 수 있다. 아래 명령은 AWS 호출 없이 실행된다. 전체 테스트 수는 다른 구성요소 추가에 따라 바뀔 수 있으므로 제출 시 실제 로그를 기준으로 한다.
+저장소 전체 Python 단위 테스트의 최근 로컬 결과는 **70개 통과**이며 원본은 `evidence/local/unit-tests.txt`에 있다. [GitHub CI run 39116090770](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770)도 commit `dd13627053f4b76af4ec151894946f5b6509f37f`에서 모든 job이 통과했고, artifact에서 Python 70개·Terraform mock 6개·Checkov 111 passed/0 failed/23 skipped를 확인했다. 증적 디렉터리는 Git에서 제외한다. 자동 복구 관련 테스트는 `tests/test_healing*.py`, `tests/test_inspector*.py`에서 확인할 수 있다. 아래 명령은 AWS 호출 없이 실행된다.
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
 Terraform의 validate/mock plan과 로컬 단위 테스트 통과는 AWS 권한·네트워크·리전 호환성을 증명하지 않는다. ISMS-P 관련 매핑은 구현 통제를 설명하는 자료이며 인증 획득이나 전 항목 준수 판정이 아니다.
+
+### 실제 로컬 GitOps 복구
+
+2026-10-18 09:35 UTC에 `kind-team4`의 Argo CD NetworkPolicy drift 실험은 **PASS**였다. 최초 게시 commit `ba6babcf4b06d340ee79292830cfd1ae576b06b3`의 로컬 Git mirror를 원본으로 사용했다. 실제 정책 변경 승인 → OutOfSync → 허용 client 통신 차단 → 자동 sync operation → 정책·통신 복원을 관측했다. 원본은 `evidence/gitops-kind-team4.json`이다. admission에 거부되어 drift 자체가 없었던 경우를 성공으로 센 결과가 아니다.
+
+`DRIFT_ADMITTED`는 09:35:07.708090, `DRIFT_DETECTED_OUTOFSYNC`는 09:35:08.269252, `AUTOMATIC_RESTORE_VERIFIED`는 09:35:19.297461 UTC였다. timestamp 차이로 drift부터 복원 검증까지 약 **11.589초**이며, JSON의 `elapsed_seconds=4.941`은 복원 대기 구간의 별도 측정값이다. 이 단일 로컬 실험은 AWS Config/Inspector의 지연, EKS 복구 또는 private GitHub 직접 연결을 입증하지 않는다.
 
 ## 1. 보안 그룹 복구
 
@@ -90,6 +96,6 @@ worker는 취약 digest가 실제 대상에 실행 중인지 확인하고, 승�
 
 ## 3. 실패 처리와 남은 검증
 
-예상 범위를 벗어난 이벤트는 안전하게 거부하고 상태를 기록한다. 재시도 가능한 Lambda 오류는 제한된 재시도 후 SQS 실패 큐/비동기 실패 destination으로 전달된다. CodeBuild 실패 상태도 큐에 보낸다. 큐는 보존 14일이고 CloudWatch queue-depth alarm이 있지만 **SNS·메일·Slack 등 사람에게 보내는 alarm action은 구성하지 않았다.** 운영자가 큐/로그를 확인해야 하며 알림 완료라고 보고할 수 없다. 모든 거부 이벤트가 DLQ에 들어가는 것은 아니다.
+예상 범위를 벗어난 이벤트는 안전하게 거부하고 상태를 기록한다. 재시도 가능한 Lambda 오류는 제한된 재시도 후 SQS 실패 큐/비동기 실패 destination으로 전달된다. CodeBuild 실패 상태도 큐에 보낸다. 큐는 보존 14일이며 CloudWatch queue-depth alarm이 있다. **기본 `notification_topic_arn=""`에서는 사람에게 보내는 alarm action이 없다.** 선택적으로 같은 계정·리전의 승인된 기존 standard SNS topic ARN을 연결할 수 있지만 topic/subscription은 생성하지 않는다. topic/KMS 정책과 확정된 수신자를 준비하고 실제 전달을 검증해야 알림 완료라고 기록할 수 있다. 현재 AWS 알림은 실행 검증하지 않았다. 운영자는 기본 상태에서 큐/로그를 확인해야 하며 모든 거부 이벤트가 DLQ에 들어가는 것은 아니다.
 
 로그·증적은 필요한 ID/상태/시각만 기록하며 raw event, secret 값, 인증 token, 외부 명령의 민감 출력은 남기지 않는다. S3 증적·CodeBuild artifact·배포 runtime JSON을 함께 보존한다. 남은 실환경 검증은 IAM 권한 보완 → 리소스 inventory 및 실제 plan → 180,000원 예산 내 비용·생성 승인 → apply → controller/배포 검증 → 별도 SG 실험 승인 → Config 복구 측정 → 실제 Inspector 및 승인 replacement로 worker 검증 순서이다. 리소스 삭제는 [COST_AND_CLEANUP](COST_AND_CLEANUP.md)의 새로운 명시적 승인 절차를 따른다.

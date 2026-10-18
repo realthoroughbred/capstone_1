@@ -23,6 +23,8 @@ operator_principal_arns = {
 # Enable only in a reviewed paid deployment plan after AWS cost approval.
 enable_self_healing = false
 healing_dry_run = true
+# Existing approved standard SNS topic, same account/region; empty means no human notifications.
+notification_topic_arn = ""
 # Inspect aws configservice describe-configuration-recorders first.
 # Never overwrite an existing recorder or organizational configuration.
 create_config_recorder = false

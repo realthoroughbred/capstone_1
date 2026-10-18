@@ -73,15 +73,37 @@ required_admission = {'valid-security-context', 'root-user', 'privileged', 'priv
 passed_admission = {r.get('test') for r in admission if r.get('result') == 'PASS'} if isinstance(admission, list) else set()
 record('Kyverno admission', 'IMG-002', 'local', required_admission <= passed_admission,
        ['evidence/admission-kind-team4.json', 'evidence/admission-kind-team4.log'], '정상 Pod 허용 및 잘못된 보안 컨텍스트의 실제 webhook 거부. ECR 서명 정책은 별도 검증 필요.')
-record('Argo CD GitOps 복구', 'NET-002', 'local', data('evidence/gitops-kind-team4.json').get('result') == 'PASS',
+gitops = data('evidence/gitops-kind-team4.json')
+record('Argo CD GitOps 복구', 'NET-002', 'local', gitops.get('result') == 'PASS',
        ['evidence/gitops-kind-team4.json', 'evidence/gitops-kind-team4.log'], 'Git commit 기준 drift 감지→컨트롤러 복구→통신 재검증. admission과 구분.')
+events = {item['event']: item for item in gitops.get('events', [])}
+restored = events.get('AUTOMATIC_RESTORE_VERIFIED', {})
+if restored:
+    observations[-1].update({
+        'violations': ['demo/allow-client-to-server ingress removed by the local test'],
+        'remediation_executed': True, 'remediation_method': 'Argo CD automated selfHeal from the pinned local Git mirror',
+        'before': events.get('DRIFT_ADMITTED', {}).get('spec'), 'after': restored.get('restored_spec'),
+        'revalidation': 'PASS' if gitops.get('result') == 'PASS' else 'FAIL',
+        'duration_seconds': restored.get('elapsed_seconds'), 'source_commit': gitops.get('revision')})
 runs = data('evidence/github/runs.json')
 ci_pass = isinstance(runs, list) and bool(runs) and all(r.get('conclusion') == 'success' for r in runs)
+ci_paths = ['evidence/github/runs.json']
+ci_detail = '실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음.'
+if isinstance(runs, list) and runs:
+    snapshot = f"evidence/github/runs-{runs[0].get('head_sha')}.json"
+    if (ROOT / snapshot).is_file():
+        ci_paths = [snapshot]
+    ci_detail += f" 커밋 `{runs[0].get('head_sha', '')}` · [실행]({runs[0].get('url', '')})."
 record('GitHub Actions CI', 'OPS-001', 'github', ci_pass,
-       ['evidence/github/runs.json'], '실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음.',
+       ci_paths, ci_detail,
        failed=isinstance(runs, list) and any(r.get('conclusion') in {'failure', 'timed_out', 'action_required'} for r in runs))
 preflight = data('evidence/aws/preflight.json')
-reason = 'team4 프로필 인증됨. 자원 조회 IAM 권한 부족 및 유료 생성 승인 전.' if preflight else 'AWS 계정 사전 점검 필요.'
+inventory_ready = bool(preflight.get('checks')) and all(c.get('result') == 'PASS' for c in preflight['checks'])
+record('AWS 신원·기존 자원 조회', 'OPS-001', 'aws', inventory_ready,
+       ['evidence/aws/preflight.json'], 'team4 프로필, 계정 852093844554. STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회.',
+       blocked=not inventory_ready)
+reason = ('사전 조회 완료. 실제 plan·정확한 범위의 배포 IAM 준비 및 유료 생성 승인이 필요함.' if inventory_ready else
+          'team4 프로필 인증됨. 자원 조회 IAM 권한 부족 및 유료 생성 승인 전.' if preflight else 'AWS 계정 사전 점검 필요.')
 record('AWS plan/ECR/EKS/Config/Inspector', 'NET-001', 'aws', False,
        ['evidence/aws/preflight.json'], reason, blocked=True)
 
