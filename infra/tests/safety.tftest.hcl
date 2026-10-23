@@ -87,6 +87,23 @@ run "approved_failure_notifications" {
   }
 }
 
+run "explicit_low_quota_sg_demo_keeps_other_guards" {
+  command = plan
+  variables {
+    enable_self_healing                         = true
+    create_config_recorder                      = true
+    healing_use_unreserved_concurrency_for_demo = true
+  }
+  assert {
+    condition     = aws_lambda_function.healing[0].reserved_concurrent_executions == -1 && aws_lambda_function.healing[0].environment[0].variables.DRY_RUN == "true"
+    error_message = "The low-quota exception must be explicit and must not enable live mutation."
+  }
+  assert {
+    condition     = length(aws_lambda_function.inspector) == 0 && aws_lambda_function_event_invoke_config.healing[0].maximum_retry_attempts == 2
+    error_message = "The exception must not enable Inspector or increase the retry budget."
+  }
+}
+
 run "reject_foreign_notification_topic" {
   command = plan
   variables { notification_topic_arn = "arn:aws:sns:us-east-1:999999999999:foreign-topic" }

@@ -110,6 +110,22 @@
       "Resource": "arn:aws:iam::852093844554:role/team4-*"
     },
     {
+      "Sid": "EKSServiceLinkedRolePreflight",
+      "Effect": "Allow",
+      "Action": "iam:GetRole",
+      "Resource": [
+        "arn:aws:iam::852093844554:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+        "arn:aws:iam::852093844554:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
+        "arn:aws:iam::852093844554:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+      ]
+    },
+    {
+      "Sid": "LambdaConcurrencyMetadata",
+      "Effect": "Allow",
+      "Action": "lambda:GetAccountSettings",
+      "Resource": "*"
+    },
+    {
       "Sid": "OIDCMetadata",
       "Effect": "Allow",
       "Action": [
