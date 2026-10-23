@@ -1,8 +1,8 @@
 # 비용, 보존 및 정리 결정
 
-현재 AWS apply 및 삭제를 실행하지 않았고 클라우드 리소스를 만들지 않았다. WSL `team4` profile의 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator`를 확인했고, 사전 조회 5개는 2026-10-18 10:01 UTC(19:01 KST) 재검증에서 모두 통과했다(`evidence/aws/preflight.json`). 사용자 제공 public IPv4 `/32`를 반영한 원본 plan은 **67 add / 0 change / 0 destroy**이며 [검토 문서](docs/AWS_PLAN_REVIEW.md)에 정리했다. 누적 청구액은 아직 확인하지 않았다.
+2026-10-23 단계별 apply를 실행했고 현재 Terraform 관리 자원은 47개다. EKS 제어 영역 ACTIVE, VPC·ECR·KMS·테스트 Secret·OIDC 역할 등이 생성됐으며 노드는 권한 검사 실패로 0개다. S3 버킷은 생성됐으나 후속 조회 권한 부족으로 부분 실패했다. 정리는 아직 실행하지 않았다. 현재 기록은 `evidence/aws/deployment-status.json`, 정리 대상 ID 장부는 `full-partial-ledger-20261023.json`이다. 최초 승인 plan은 **67 add / 0 change / 0 destroy**이며 [검토 문서](docs/AWS_PLAN_REVIEW.md)에 보존했다. 누적 청구액은 아직 확인하지 않았다.
 
-사용자는 **총예산 180,000원 내에서 위 계획의 신규 생성, 최대 8시간 실검증, ENI 미연결 DemoOnly SG의 TCP22 일시 공개·자동 복구, 검증 후 이번에 만든 자원 정리까지 승인**했다. 같은 범위의 생성·정리 승인을 다시 요구하지 않는다. 기존·공유 자원은 보존하며 범위 확대나 장기 운영은 승인에 포함되지 않는다. 현재 남은 실행 조건은 [관리자 IAM bootstrap](docs/TEAM4_ADMIN_BOOTSTRAP.md)이다. 첫 유료 자원 생성 시각부터 시간을 기록하고 삭제 대기 시간을 확보해 정리를 시작한다. 자동 종료나 일괄 destroy를 예약한 상태는 아니다.
+사용자는 **총예산 180,000원 내에서 위 계획의 신규 생성, 최대 8시간 실검증, ENI 미연결 DemoOnly SG의 TCP22 일시 공개·자동 복구, 검증 후 이번에 만든 자원 정리까지 승인**했다. 같은 범위의 생성·정리 승인을 다시 요구하지 않는다. 기존·공유 자원은 보존하며 범위 확대나 장기 운영은 승인에 포함되지 않는다. 현재 남은 실행 조건은 [관리자 IAM bootstrap](docs/TEAM4_ADMIN_BOOTSTRAP.md)의 노드/S3 정책 보완이다. KMS 생성 **10월 23일 19:40:30 KST**부터 보수적으로 계산한 8시간 창은 **10월 24일 03:40:30 KST**까지다. EKS 대기 중에도 요금이 발생하며 삭제 대기 시간을 확보해야 한다. 자동 종료나 일괄 destroy를 예약한 상태는 아니다.
 
 ## 단가와 실제 구성
 

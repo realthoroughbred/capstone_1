@@ -1,10 +1,10 @@
 # Self-Healing 구현 및 검증 보고서
 
-**2026-10-23 재개 점검:** 인증 복구와 초기 IAM·KMS 대조를 확인했다. 신규 키 import 후 네트워크 apply를 실행했고, VPC 생성 뒤 DNS 속성 조회 권한 부족으로 중단됐다. 현재 VPC·KMS가 남아 있으며 EKS/Config 배포와 자동복구 시험은 아직 수행하지 못했다. 현재 상태는 [남은 작업](REMAINING_TASKS.md)을 따른다.
+**2026-10-23 실행 상태:** EKS 제어 영역 ACTIVE와 네트워크·ECR·OIDC 생성을 확인했다. Terraform 관리 자원은 47개이며 노드 시작/S3 후속 조회 권한에서 전체 apply가 부분 실패했다. Config/Lambda 자동복구 체인은 아직 배포되지 않았고 실제 규칙 주입·복구 검증도 미실행이다. 현재 상태는 [남은 작업](REMAINING_TASKS.md)을 따른다.
 
 복구 코드와 로컬 테스트는 구현했으며, **AWS에서 실제 탐지·복구·EKS 교체를 검증한 결과는 아직 없다.** WSL의 IAM 브라우저 로그인으로 승인된 `team4-operator` 신원을 확인했다. SSO 로그인은 사용하지 않았다. 최초 plan **67 add / 0 change / 0 destroy**는 [계획 검토](docs/AWS_PLAN_REVIEW.md)에 보존했고 이후 단계별 실행 결과는 `evidence/aws/deployment-status.json`에 기록한다. 취약 규칙 주입·실제 Inspector finding 수집은 수행하지 않았다.
 
-총예산은 180,000원이며 신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리가 승인됐다. 초기 정책은 확인했고 신규 VPC에 한정한 `ec2:DescribeVpcAttribute` 및 기본 SG 후속 정책 연결을 기다린다. `automation/fixtures/*.simulated.json`과 fake AWS client 테스트는 명시적인 모의 자료이며 실제 CVE나 클라우드 증적으로 취급하지 않는다. 인증 성공, 권한 확인, 복구 성공은 서로 다른 검증 단계다.
+총예산은 180,000원이며 신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리가 승인됐다. 초기 정책과 클러스터 CNI/OIDC 보완은 확인했고 노드 시작/S3 조회 정책 보완을 기다린다. `automation/fixtures/*.simulated.json`과 fake AWS client 테스트는 명시적인 모의 자료이며 실제 CVE나 클라우드 증적으로 취급하지 않는다. 인증 성공, 권한 확인, 복구 성공은 서로 다른 검증 단계다.
 
 ## 현재 검증 범위
 
@@ -15,7 +15,7 @@
 | CodeBuild worker | 실제 대상 digest/소유 관계 검사 로직, cosign/scan 실패, 동시 수정, rollout 실패, Pod digest 검증 분기 | 실제 서명/취약점 DB, EKS admission/rollout, 새 digest 실행 |
 | 일반 배포 검증 | template뿐 아니라 소유 ReplicaSet/ready Pod runtime digest 검증 로직 | AWS 배포 artifact와 애플리케이션 응답 |
 
-저장소 전체 Python 단위 테스트는 2026-10-23 로컬 재검증에서 **98개 통과**했으며 원본은 `evidence/local/unit-tests.txt`에 있다. 세션 만료·잘못된 계정·조회 거부 회귀 검사 6개와 신규 VPC 조회 권한 범위·기존 VPC 거부 검사 3개가 포함된다. 과거 [GitHub CI run 39116090770](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770)은 commit `dd13627053f4b76af4ec151894946f5b6509f37f`에서 Python 70개·Terraform mock 6개·Checkov 111 passed/0 failed/23 skipped였으며, 최신 CI 결과와 구분한다. 증적 디렉터리는 Git에서 제외한다. 자동 복구 관련 테스트는 `tests/test_healing*.py`, `tests/test_inspector*.py`에서 확인할 수 있다. 아래 명령은 AWS 호출 없이 실행된다.
+저장소 전체 Python 단위 테스트는 2026-10-23 로컬 재검증에서 **101개 통과**했으며 원본은 `evidence/local/unit-tests.txt`에 있다. 세션 만료·잘못된 계정·조회 거부 회귀 검사 6개와 신규 VPC 조회 권한 범위·기존 VPC 거부 검사 3개가 포함된다. 과거 [GitHub CI run 39116090770](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770)은 commit `dd13627053f4b76af4ec151894946f5b6509f37f`에서 Python 70개·Terraform mock 6개·Checkov 111 passed/0 failed/23 skipped였으며, 최신 CI 결과와 구분한다. 증적 디렉터리는 Git에서 제외한다. 자동 복구 관련 테스트는 `tests/test_healing*.py`, `tests/test_inspector*.py`에서 확인할 수 있다. 아래 명령은 AWS 호출 없이 실행된다.
 
 후속 SNS 옵션 검증을 포함한 [CI run 39116901979](https://github.com/realthoroughbred/capstone_1/actions/runs/39116901979)도 통과했고 Terraform mock은 **8개**로 늘었다. 위 6개 수치는 앞선 commit artifact의 기록이다.
 

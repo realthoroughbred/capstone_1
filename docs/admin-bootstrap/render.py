@@ -33,7 +33,7 @@ def resource_id(value: str | None, prefix: str) -> str:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path, required=True)
-    parser.add_argument("--phase", choices=["initial", "network", "cluster"], required=True)
+    parser.add_argument("--phase", choices=["initial", "network", "cluster", "nodes"], required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--vpc-id")
     parser.add_argument("--default-sg-id")
@@ -41,6 +41,7 @@ def main():
     parser.add_argument("--subnet-c-id")
     parser.add_argument("--node-sg-id")
     parser.add_argument("--issuer-url")
+    parser.add_argument("--launch-template-id")
     parser.add_argument("--new-github-provider-confirmed", action="store_true",
                         help="Only after inventory proves the GitHub provider is absent.")
     args = parser.parse_args()
@@ -144,6 +145,40 @@ def main():
             "Action": "ec2:DescribeVpcAttribute",
             "Resource": f"arn:aws:ec2:{REGION}:{ACCOUNT}:vpc/{vpc}",
         })
+        if args.phase == "nodes":
+            template = resource_id(args.launch_template_id, "lt")
+            # EKS checks the CreateNodegroup caller's RunInstances/CreateTags
+            # permissions when the supplied launch template tags instances.
+            # Restrict this grant to the actual template, new network and type.
+            if variables.get("node_instance_type") != "t3.large":
+                raise ValueError("Node bootstrap only covers the approved t3.large baseline.")
+            ec2 = f"arn:aws:ec2:{REGION}:{ACCOUNT}:"
+            template_condition = {"ArnEquals": {"ec2:LaunchTemplate": ec2 + f"launch-template/{template}"}}
+            instance_condition = copy.deepcopy(template_condition)
+            instance_condition["StringEquals"] = {
+                "ec2:InstanceType": "t3.large", "aws:RequestTag/Project": PROJECT,
+                "aws:RequestTag/ManagedBy": "Terraform",
+            }
+            bootstrap["Statement"].extend([
+                {"Sid": "OnlyObservedNodeLaunchResources", "Effect": "Allow", "Action": "ec2:RunInstances",
+                 "Resource": [f"arn:aws:ec2:{REGION}::image/*", ec2 + "network-interface/*", ec2 + "volume/*",
+                              ec2 + f"subnet/{subnet_a}", ec2 + f"subnet/{subnet_c}",
+                              ec2 + f"security-group/{node_sg}", ec2 + f"launch-template/{template}"],
+                 "Condition": template_condition},
+                {"Sid": "OnlyTaggedT3LargeNodes", "Effect": "Allow", "Action": "ec2:RunInstances",
+                 "Resource": ec2 + "instance/*", "Condition": instance_condition},
+                {"Sid": "TagNewNodeInstancesOnly", "Effect": "Allow", "Action": "ec2:CreateTags",
+                 "Resource": ec2 + "instance/*", "Condition": {"StringEquals": {
+                     "ec2:CreateAction": "RunInstances", "aws:RequestTag/Project": PROJECT,
+                     "aws:RequestTag/ManagedBy": "Terraform"}}},
+                # These two read actions do not match s3:*Bucket* in the initial
+                # provisioning policy; Terraform reads them even when disabled.
+                {"Sid": "ReadOwnEvidenceBucketConfiguration", "Effect": "Allow",
+                 "Action": ["s3:GetAccelerateConfiguration", "s3:GetReplicationConfiguration"],
+                 "Resource": f"arn:aws:s3:::team4-{ACCOUNT}-{REGION}-evidence"},
+                {"Sid": "DecodeOwnAuthorizationFailures", "Effect": "Allow",
+                 "Action": "sts:DecodeAuthorizationMessage", "Resource": "*"},
+            ])
         documents["operator-new-resource-bootstrap.json"] = bootstrap
 
     # Statement labels are optional. Remove only labels to fit the IAM size limit;

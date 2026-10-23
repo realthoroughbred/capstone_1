@@ -132,7 +132,24 @@ aws iam create-policy-version --profile team4-admin --set-as-default \
 
 관리형 정책 크기는 생성기가 다시 검사합니다. Statement의 선택적 `Sid`만 제거해 크기를 줄이며 action/resource/condition을 생략하지 않습니다. IAM policy version이 5개에 도달했다면 이 프로젝트의 오래된 비기본 버전만 관리자가 검토하여 정리합니다. CNI는 노드의 Project 및 cluster-owned 태그를 요구하므로 실제 노드 태그도 확인합니다. 이 절차는 외부 CodeBuild/VPC 접근을 허용하지 않습니다.
 
-## 5. 전체 배포, 검증, 정리
+## 5. 노드 시작과 S3 후속 조회 권한
+
+10월 23일 전체 apply에서 태그를 포함한 launch template의 노드 시작 검사와 S3 후속 조회가 거부됐다. [EKS 문서](https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html)에 따라 호출자에게 `ec2:RunInstances`와 시작 시 태그 권한이 필요하다. Terraform S3 버킷 조회에는 초기 `s3:*Bucket*`에 포함되지 않는 `s3:GetAccelerateConfiguration`, `s3:GetReplicationConfiguration`도 필요하다.
+
+```sh
+python3 docs/admin-bootstrap/render.py --plan evidence/aws/demo-plan.json \
+  --phase nodes --out generated/admin-bootstrap/nodes \
+  --vpc-id "$DEMO_VPC_ID" --default-sg-id "$DEMO_DEFAULT_SG_ID" \
+  --subnet-a-id "$DEMO_SUBNET_A_ID" --subnet-c-id "$DEMO_SUBNET_C_ID" \
+  --node-sg-id "$DEMO_NODE_SG_ID" --issuer-url "$DEMO_OIDC_ISSUER_URL" \
+  --launch-template-id "$DEMO_LAUNCH_TEMPLATE_ID"
+```
+
+관리자는 `operator-new-resource-bootstrap.json`으로 기존 **team4-operator-new-resource-bootstrap 하나만** 전체 교체하고 기본 버전으로 저장한다. `runtime-boundary.json`은 이전 클러스터 단계와 같아 다시 적용하지 않는다. 시작 권한은 실제 새 template·서브넷·EKS SG, `t3.large`, Project/ManagedBy 태그로 제한한다. 거부 메시지 진단용 `sts:DecodeAuthorizationMessage`는 읽기 전용이며 리소스 단위 제한을 지원하지 않는다. 기존 VPC/DNS/기본 SG/OIDC 권한은 유지한다.
+
+이번 전달 파일은 `generated/team4-node-s3-admin-20261023.zip`이며 안의 `먼저읽기.txt`와 동일 정책명 JSON을 사용한다. 새 IAM 정책·KMS 키·사용자 연결은 필요 없다. 버킷은 이미 생성됐으므로 재시도 전 실제 태그·소유권·상태를 확인하고 필요한 경우 로컬 taint만 해제하여 불필요한 교체를 방지한다.
+
+## 6. 전체 배포, 검증, 정리
 
 운영자는 이제 전체 plan을 다시 확인하여 이번 생성·import한 자원 외의 수정이나 삭제가 없는지 대조하고 적용합니다. SG 실험은 정확한 생성 ID, `Project=team4`, `DemoOnly=true`, ENI 미연결을 다시 확인한 뒤 수행합니다. Lambda는 평소 `DRY_RUN=true`를 유지하고 승인된 해당 실험에만 변경합니다. 합성 secret 검증 과정에서 값 자체를 로그나 문서에 출력하지 않습니다.
 

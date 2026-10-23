@@ -7,7 +7,7 @@
 | Terraform validate | PASS | static | Provider 스키마 검증. 실제 AWS plan/apply와 구분. |
 | Terraform 안전 조건 | PASS | simulated | mock provider: 기본 dry run, 공개 CIDR 금지, OIDC subject, 서명 전용 태그 예외. |
 | Checkov | PASS | static | passed=111, failed=0, skipped=23; 예외는 docs/infra-notes.md. |
-| 자동복구 단위·통합 테스트 | PASS | simulated | 98개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님. |
+| 자동복구 단위·통합 테스트 | PASS | simulated | 101개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님. |
 | Docker HTTP | PASS | local | 비 root·읽기전용 rootfs·cap drop 환경에서 TCP8080 응답. |
 | Trivy 정상 이미지 | PASS | local | 실제 탐지 패키지 17개, HIGH/CRITICAL 0개. 미탐지 목록은 통과시키지 않음. |
 | Trivy 취약 이미지 거부 | PASS | local | 검사 전용 alpine:3.12.0, HIGH/CRITICAL 36건, 실제 프로세스 종료코드1. 실행·배포하지 않음. |
@@ -17,12 +17,13 @@
 | ESO Fake/rotation | PASS | local | Kubernetes Secret와 실행중 Pod 볼륨의 값 변화 확인. 원문 출력 없음. AWS SM 검증 아님. |
 | Kyverno admission | PASS | local | 정상 Pod 허용 및 잘못된 보안 컨텍스트의 실제 webhook 거부. ECR 서명 정책은 별도 검증 필요. |
 | Argo CD GitOps 복구 | PASS | local | Git commit 기준 drift 감지→컨트롤러 복구→통신 재검증. admission과 구분. |
-| GitHub Actions CI | PASS | github | 실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `3a91c9bb763fdd265de8380d6126d75d843bae7d` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39909901980). |
-| AWS 신원·기존 자원 조회 | PASS | aws | STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회. 마지막 확인: 2026-10-23T11:03:20.400702+00:00. |
+| GitHub Actions CI | PASS | github | 실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `bc5fae1a52ad50eddbb4b5cc95833e4a33e9925b` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39948333474). |
+| AWS 신원·기존 자원 조회 | PASS | aws | STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회. 마지막 확인: 2026-10-23T11:48:19.113081+00:00. |
 | AWS Terraform plan | PASS | aws | 보관된 최초 AWS provider 계획: {'add': 67, 'change': 0, 'destroy': 0}. 이후 단계별 apply를 시도했으므로 최신 state·증적을 따라야 함. 현재 입력·자원 상태로 새 plan을 확인한 뒤 실행해야 함. docs/AWS_PLAN_REVIEW.md 참고. |
 | AWS 초기 IAM·KMS 대조 | PASS | aws | 초기 IAM 정책 6개 및 새 KMS 키의 태그·정책 일치 확인. 모든 배포 API 권한이 충분하다는 의미는 아님. |
-| AWS ECR/EKS/Config 실검증 | BLOCKED | aws | 초기 IAM 정책 6개와 KMS 정책·태그 대조 및 신규 키 import 완료. 신규 VPC 생성 후 ec2:DescribeVpcAttribute 권한 부족으로 네트워크 단계 중단. VPC·KMS 2개가 state에 남아 있으며 EKS·EC2·ECR·Config는 미생성, 정리 미완료. 관리자 후속 정책 연결 대기. 현재 PC 공인 IPv4 한 개(/32)로 갱신 승인 및 반영 완료. 최대 8시간 창은 10/24 03:40 KST까지. Inspector/CodeBuild는 승인 범위 밖. 상태 확인: 2026-10-23T11:00:52.542805+00:00. |
-| GitHub AWS 배포 준비 | BLOCKED | github | 확인 2026-10-23T06:07:24.777708+00:00: aws-demo 환경 조회 미확인, 사용 가능한 전용 runner 0개. main에 검토한 배포 workflow 반영·환경 보호 설정·AWS 역할 연결 후 실검증 필요. |
+| AWS EKS 제어 영역 | PASS | aws | 확인 2026-10-23T11:37:03.569715+00:00: EKS 1.35 제어 영역 ACTIVE, 관리 PC /32 및 기본 SG 차단 확인. 노드·워크로드 성공과 구분. |
+| AWS ECR/EKS/Config 실검증 | BLOCKED | aws | EKS 1.35 제어 영역 ACTIVE, CNI/kube-proxy·ECR·OIDC 역할·시험 SG 생성 완료. CNI/OIDC 정책 일치 확인. Terraform 관리 자원 47개. S3 후속 조회 및 노드 RunInstances 권한 누락으로 apply 부분 실패. 노드는 0개, Config·Lambda·ECR 이미지 업로드·EKS 워크로드 검증은 미완료. 관리자 노드/S3 단일 정책 수정 대기. main 전용 GitHub 환경 및 rootless 일회용 runner 등록 완료(오프라인). 신규 자원 정리 미완료, 최대 실습 창 10/24 03:40:30 KST까지. 상태 확인: 2026-10-23T11:57:06.862885+00:00. |
+| GitHub AWS 배포 준비 | BLOCKED | github | 확인 2026-10-23T12:00:18.621593+00:00: aws-demo 환경 조회 성공, 사용 가능한 전용 runner 0개. main에 검토한 배포 workflow 반영·환경 보호 설정·AWS 역할 연결 후 실검증 필요. |
 
 ## 수정한 실제 실패
 

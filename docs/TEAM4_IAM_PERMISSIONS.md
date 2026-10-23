@@ -1,8 +1,8 @@
 # team4 AWS 권한 연결 안내
 
-확인된 계정은 `852093844554`, IAM 사용자는 `team4-operator`, 리전은 `ap-northeast-2`입니다. 사용자는 신규 생성·최대 8시간 실검증·ENI 미연결 DemoOnly SG 시험·신규 자원 정리를 승인했습니다. **10월 23일 초기 배포 정책 6개와 신규 KMS 키가 검토 파일과 일치함을 확인했습니다.** 키 import 후 신규 VPC가 생성됐으나 Terraform의 `ec2:DescribeVpcAttribute` 조회 권한이 빠져 중단됐습니다. 정확한 새 VPC/기본 SG에 한정한 후속 정책은 `generated/team4-admin-fix-20261023.zip`입니다. 초기 정책과 KMS 키를 다시 만들지 않습니다.
+확인된 계정은 `852093844554`, IAM 사용자는 `team4-operator`, 리전은 `ap-northeast-2`입니다. 사용자는 신규 생성·최대 8시간 실검증·ENI 미연결 DemoOnly SG 시험·신규 자원 정리를 승인했습니다. **초기 IAM/KMS와 클러스터 CNI/OIDC 보완은 실제 확인했습니다.** EKS 제어 영역과 ECR 등 47개 자원 생성 후 노드 시작/S3 후속 조회에서 추가 권한 누락이 확인됐습니다. `generated/team4-node-s3-admin-20261023.zip`으로 기존 `team4-operator-new-resource-bootstrap` 하나만 교체·기본 버전 저장합니다. 초기 정책과 KMS 키를 다시 만들지 않습니다.
 
-관리자는 [구체적인 bootstrap 실행 안내](TEAM4_ADMIN_BOOTSTRAP.md)를 따릅니다. 저장된 실제 plan으로 만든 검토용 JSON은 `generated/admin-bootstrap/initial/`에 있으며, [오프라인 생성기](admin-bootstrap/render.py)가 초기·네트워크·클러스터 단계별 문서를 생성합니다. 이번 실행은 Inspector가 꺼져 있으므로 전체 optional-automation 대신 **Config-only 정책**을 연결합니다. 에이전트가 이 관리자 정책을 AWS에 생성·연결했다는 뜻은 아닙니다.
+관리자는 [구체적인 bootstrap 실행 안내](TEAM4_ADMIN_BOOTSTRAP.md)를 따릅니다. 저장된 실제 plan으로 만든 검토용 JSON은 `generated/admin-bootstrap/initial/`에 있으며, [오프라인 생성기](admin-bootstrap/render.py)가 초기·네트워크·클러스터·노드 단계별 문서를 생성합니다. 이번 실행은 Inspector가 꺼져 있으므로 전체 optional-automation 대신 **Config-only 정책**을 연결합니다. 에이전트가 이 관리자 정책을 AWS에 생성·연결했다는 뜻은 아닙니다.
 
 ## 지금 필요한 읽기 권한
 

@@ -145,6 +145,13 @@ if bootstrap_checks:
            len(bootstrap_checks) == 7 and all(c.get('result') in {'PASS', 'MATCH'} for c in bootstrap_checks),
            ['evidence/aws/bootstrap-verification.json'],
            '초기 IAM 정책 6개 및 새 KMS 키의 태그·정책 일치 확인. 모든 배포 API 권한이 충분하다는 의미는 아님.')
+cluster = data('evidence/aws/cluster-status.json')
+if cluster:
+    record('AWS EKS 제어 영역', 'SEC-001', 'aws',
+           cluster.get('result') == 'ACTIVE_CONTROL_PLANE_VERIFIED'
+           and cluster.get('management_cidr_verified') is True and cluster.get('default_sg_closed') is True,
+           ['evidence/aws/cluster-status.json'],
+           f"확인 {cluster.get('timestamp')}: EKS {cluster.get('version')} 제어 영역 ACTIVE, 관리 PC /32 및 기본 SG 차단 확인. 노드·워크로드 성공과 구분.")
 record('AWS ECR/EKS/Config 실검증', 'NET-001', 'aws', False,
        ['evidence/aws/preflight.json', 'evidence/aws/deployment-permissions.json',
         'evidence/aws/deployment-status.json', 'evidence/aws/authorization.json'], reason, blocked=True)

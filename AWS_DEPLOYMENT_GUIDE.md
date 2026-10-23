@@ -1,10 +1,10 @@
 # AWS 배포 및 실환경 검증 절차
 
-**2026-10-23 재개 확인:** `team4` 인증과 초기 IAM 정책 6개·신규 KMS 키를 확인했다. 키 import 및 네트워크 단계 apply를 실행해 신규 VPC가 생성됐으나 `ec2:DescribeVpcAttribute` 조회 권한 부족으로 중단됐다. EKS·EC2·ECR·Config는 아직 생성하지 않았다. 관리자 수정 파일은 `generated/team4-admin-fix-20261023.zip`이며 현재 상태는 [남은 작업](REMAINING_TASKS.md)을 따른다.
+**2026-10-23 실행 상태:** EKS 1.35 제어 영역 ACTIVE, VPC·서브넷·기본 SG 차단·CNI/kube-proxy·ECR·OIDC 역할·테스트 Secret을 생성했다. 현재 Terraform 관리 자원은 47개다. 전체 apply는 S3 후속 조회 권한과 노드 시작 권한 누락으로 부분 실패했다. 노드는 0개이며 Config/Lambda·이미지 업로드·워크로드 실검증은 미완료다. 관리자 수정 파일은 `generated/team4-node-s3-admin-20261023.zip`이며 [남은 작업](REMAINING_TASKS.md)을 따른다.
 
-AWS 인증은 WSL의 IAM 콘솔 브라우저 로그인으로 확인했다. STS 결과는 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`이며 profile은 `team4`이다. 10월 23일 사전 조회 5개와 VPC 생성 DryRun은 통과했다. 최초 승인 plan은 **67 add / 0 change / 0 destroy**이며 [생성 계획 검토](docs/AWS_PLAN_REVIEW.md)에 보존했다. 새 네트워크 plan은 원본과 대조한 7 add였고 부분 실행 후 state에는 VPC·KMS만 있다. 실제 ID와 정리 목록은 `evidence/aws/partial-network-*.json`에 기록했다.
+WSL `team4` profile로 계정 `852093844554`의 `team4-operator` 신원을 재확인했다. 최초 승인 계획 **67 add / 0 change / 0 destroy**는 [생성 계획 검토](docs/AWS_PLAN_REVIEW.md)에 보존했다. 네트워크·제어 영역 단계 성공 후 남은 54 add 계획을 원본과 대조해 실행했고 일부 자원이 생성됐다. 현재 실제 ID 장부는 `evidence/aws/full-partial-ledger-20261023.json`이다. 이전 저장 plan은 재사용하지 않고 현재 state에서 새 plan을 만든다.
 
-사용자가 정한 **총예산은 180,000원**이다. 기본 1노드·최대 8시간 실검증, ECR/EKS 배포, ENI 미연결 DemoOnly SG의 TCP22 임시 공개·자동복구 시험 및 신규 자원 정리는 **이미 승인됐다**. 승인 기록은 `evidence/aws/authorization.json`에 보관했다. KMS 생성 10월 23일 19:40 KST부터 보수적으로 계산한 8시간 창은 **10월 24일 03:40 KST**까지다. 현재 VPC·KMS 정리는 미완료이며 자동 종료가 설정됐다는 뜻은 아니다. 관리 PC 공인 IP 변경은 사용자가 승인했고 현재 IPv4 한 개(`/32`)를 Git 제외 tfvars에 반영했다. 기존 자원 변경이나 Inspector/CodeBuild 확장은 승인 범위 밖이다.
+사용자가 정한 **총예산은 180,000원**이다. 기본 1노드·최대 8시간 실검증, ECR/EKS 배포, ENI 미연결 DemoOnly SG의 TCP22 임시 공개·자동복구 시험 및 신규 자원 정리는 **이미 승인됐다**. 승인 기록은 `evidence/aws/authorization.json`에 보관했다. KMS 생성 10월 23일 19:40 KST부터 보수적으로 계산한 8시간 창은 **10월 24일 03:40 KST**까지다. 현재 신규 AWS 자원 정리는 미완료이며 자동 종료가 설정됐다는 뜻은 아니다. 관리 PC 공인 IP 변경은 사용자가 승인했고 현재 IPv4 한 개(`/32`)를 Git 제외 tfvars에 반영했다. 기존 자원 변경이나 Inspector/CodeBuild 확장은 승인 범위 밖이다.
 
 기본 설계는 서울 리전 `ap-northeast-2`, EKS `team4-eks` 1.35, `t3.large` 노드 1대(min=1, desired=1, max=2), 암호화된 gp3 20 GiB이다. 두 public subnet과 Internet Gateway를 사용하며 NAT Gateway와 ALB는 만들지 않는다. 노드는 public IPv4를 사용하고 SSH를 열지 않는다. EKS public API는 승인된 운영자·배포 runner의 `/32`만 허용하고 private API도 켠다. 실제 용량·가용 버전·비용은 계정 조회와 최종 plan으로 확인한다. 상세 설계는 [infra-notes](docs/infra-notes.md), 예산과 보존 조건은 [COST_AND_CLEANUP](COST_AND_CLEANUP.md)을 따른다.
 

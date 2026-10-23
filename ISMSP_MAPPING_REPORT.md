@@ -144,11 +144,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "자동복구 단위·통합 테스트",
   "scope": "simulated",
   "result": "PASS",
-  "details": "98개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.",
+  "details": "101개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.",
   "evidence": [
     {
       "path": "evidence/local/unit-tests.txt",
-      "sha256": "01708c7d0d4c57dd05baa2728d253381c45c163cfee96a6647e5466863169494"
+      "sha256": "598576bce682bdbde192a8a8383cb201b6d280dbaa7f2666f7cac26e8f3a0fb7"
     }
   ],
   "policy_name": "공개 SSH 접근 금지",
@@ -630,11 +630,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "GitHub Actions CI",
   "scope": "github",
   "result": "PASS",
-  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `3a91c9bb763fdd265de8380d6126d75d843bae7d` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39909901980).",
+  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `bc5fae1a52ad50eddbb4b5cc95833e4a33e9925b` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39948333474).",
   "evidence": [
     {
-      "path": "evidence/github/runs-3a91c9bb763fdd265de8380d6126d75d843bae7d.json",
-      "sha256": "90b8a2bcca7a2f74847fca987614d60928c09e2fd3caca8d8589dfe099353827"
+      "path": "evidence/github/runs-bc5fae1a52ad50eddbb4b5cc95833e4a33e9925b.json",
+      "sha256": "7dc25ae9d0481003bf8dcafe63bde5da4c88773c5fbeb26bc2bf4af51c6cfb2b"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -671,11 +671,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "AWS 신원·기존 자원 조회",
   "scope": "aws",
   "result": "PASS",
-  "details": "STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회. 마지막 확인: 2026-10-23T11:03:20.400702+00:00.",
+  "details": "STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회. 마지막 확인: 2026-10-23T11:48:19.113081+00:00.",
   "evidence": [
     {
       "path": "evidence/aws/preflight.json",
-      "sha256": "ef956e0e446559e2acf25c74413bb75b79482ffd0e3ca4a844ae1e4e3ae3a8fa"
+      "sha256": "dc65577d0387da9e546e217c74a250011973726552392b00bd68b39a6b52a38e"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -781,6 +781,43 @@ Technical evidence mapping only; not an ISMS-P certification determination.
 }
 ```
 
+## SEC-001 — 비밀정보 및 접근권한 관리
+
+결과: **PASS** · 검증 범위: **aws**
+
+통제: 2.10.2 클라우드 보안
+
+```json
+{
+  "policy_id": "SEC-001",
+  "target": "AWS EKS 제어 영역",
+  "tool": "AWS EKS 제어 영역",
+  "scope": "aws",
+  "result": "PASS",
+  "details": "확인 2026-10-23T11:37:03.569715+00:00: EKS 1.35 제어 영역 ACTIVE, 관리 PC /32 및 기본 SG 차단 확인. 노드·워크로드 성공과 구분.",
+  "evidence": [
+    {
+      "path": "evidence/aws/cluster-status.json",
+      "sha256": "eba8bd0dada542059fd446de952bba170a5914026fb13985fb881ff34cbdbdb2"
+    }
+  ],
+  "policy_name": "비밀정보 및 접근권한 관리",
+  "isms_p": [
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
 ## NET-001 — 공개 SSH 접근 금지
 
 결과: **BLOCKED** · 검증 범위: **aws**
@@ -794,11 +831,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "AWS ECR/EKS/Config 실검증",
   "scope": "aws",
   "result": "BLOCKED",
-  "details": "초기 IAM 정책 6개와 KMS 정책·태그 대조 및 신규 키 import 완료. 신규 VPC 생성 후 ec2:DescribeVpcAttribute 권한 부족으로 네트워크 단계 중단. VPC·KMS 2개가 state에 남아 있으며 EKS·EC2·ECR·Config는 미생성, 정리 미완료. 관리자 후속 정책 연결 대기. 현재 PC 공인 IPv4 한 개(/32)로 갱신 승인 및 반영 완료. 최대 8시간 창은 10/24 03:40 KST까지. Inspector/CodeBuild는 승인 범위 밖. 상태 확인: 2026-10-23T11:00:52.542805+00:00.",
+  "details": "EKS 1.35 제어 영역 ACTIVE, CNI/kube-proxy·ECR·OIDC 역할·시험 SG 생성 완료. CNI/OIDC 정책 일치 확인. Terraform 관리 자원 47개. S3 후속 조회 및 노드 RunInstances 권한 누락으로 apply 부분 실패. 노드는 0개, Config·Lambda·ECR 이미지 업로드·EKS 워크로드 검증은 미완료. 관리자 노드/S3 단일 정책 수정 대기. main 전용 GitHub 환경 및 rootless 일회용 runner 등록 완료(오프라인). 신규 자원 정리 미완료, 최대 실습 창 10/24 03:40:30 KST까지. 상태 확인: 2026-10-23T11:57:06.862885+00:00.",
   "evidence": [
     {
       "path": "evidence/aws/preflight.json",
-      "sha256": "ef956e0e446559e2acf25c74413bb75b79482ffd0e3ca4a844ae1e4e3ae3a8fa"
+      "sha256": "dc65577d0387da9e546e217c74a250011973726552392b00bd68b39a6b52a38e"
     },
     {
       "path": "evidence/aws/deployment-permissions.json",
@@ -806,7 +843,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
     },
     {
       "path": "evidence/aws/deployment-status.json",
-      "sha256": "8fce5f371f0514488f0d352d4e60492c3759c4dcd259f3aee9fc68bb5904bac0"
+      "sha256": "151f69aa7c87b80cbcdcedef9d553bc30afce069a11ed9c7e27e3bbada85ca2c"
     },
     {
       "path": "evidence/aws/authorization.json",
@@ -851,11 +888,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "GitHub AWS 배포 준비",
   "scope": "github",
   "result": "BLOCKED",
-  "details": "확인 2026-10-23T06:07:24.777708+00:00: aws-demo 환경 조회 미확인, 사용 가능한 전용 runner 0개. main에 검토한 배포 workflow 반영·환경 보호 설정·AWS 역할 연결 후 실검증 필요.",
+  "details": "확인 2026-10-23T12:00:18.621593+00:00: aws-demo 환경 조회 성공, 사용 가능한 전용 runner 0개. main에 검토한 배포 workflow 반영·환경 보호 설정·AWS 역할 연결 후 실검증 필요.",
   "evidence": [
     {
       "path": "evidence/github/deployment-readiness.json",
-      "sha256": "e160cc0d6e748a41d0557c7b8517ed76f4500870acbbe88a487be2c2a8ce9749"
+      "sha256": "22badf17f12fd9cce0dcdd8bbb6bb118f985a9fb8cd05022e6d9bd266b56980f"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",

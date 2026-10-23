@@ -2,7 +2,7 @@
 
 대상: **계정 852093844554 / 서울 ap-northeast-2 / IAM 사용자 team4-operator**.
 
-사용자는 예산 180,000원 안에서 신규 생성, 최대 8시간 검증, DemoOnly SG TCP 22 시험, 신규 자원 정리를 승인했습니다. **10월 23일 아래 초기 작업은 완료 확인했습니다. 정책·KMS 키를 다시 만들지 않습니다.** 현재는 신규 VPC DNS 속성 조회 권한이 부족해 `generated/team4-admin-fix-20261023.zip`의 후속 정책 연결이 필요합니다. ZIP 안 `ADMIN_README.txt`를 따릅니다. 아래 절차는 최초 설치 기록으로 보존합니다.
+사용자는 예산 180,000원 안에서 신규 생성, 최대 8시간 검증, DemoOnly SG TCP 22 시험, 신규 자원 정리를 승인했습니다. **초기 설치 및 CNI/OIDC 정책 수정은 확인 완료입니다.** 현재 `generated/team4-node-s3-admin-20261023.zip` 안의 `먼저읽기.txt`대로 기존 `team4-operator-new-resource-bootstrap` 정책 하나를 교체·기본 버전 저장하면 됩니다. 새 정책·KMS 키·사용자 재연결이나 runtime boundary 수정은 필요 없습니다. 아래 최초 설치 절차는 기록으로 보존합니다.
 
 검토할 파일은 프로젝트의 **`generated/admin-bootstrap/initial/`** 안에 있습니다. 이 폴더는 Git에 올라가지 않으므로 7개 JSON과 manifest를 직접 받거나 [생성 절차](TEAM4_ADMIN_BOOTSTRAP.md)를 사용합니다. **7개 JSON은 IAM 정책 6개 + KMS 생성 입력 1개**입니다.
 

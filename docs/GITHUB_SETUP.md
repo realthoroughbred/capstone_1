@@ -1,8 +1,8 @@
 # GitHub CI와 승인된 AWS 배포 설정
 
-**2026-10-23 읽기 전용 재점검:** `aws-demo` environment 조회는 HTTP 404, 등록된 self-hosted runner는 0개였다. 구현 PR #1은 draft/open이며 main에는 아직 반영되지 않았다. 따라서 일반 CI 성공과 별개로 배포 environment·전용 runner·검토한 main workflow·AWS OIDC 역할 연결을 준비해야 한다. AWS 인증은 갱신됐고 초기 IAM 정책도 확인했다. 원본 GitHub 조회 결과는 `evidence/github/deployment-readiness.json`에 보관한다.
+**2026-10-23 실행 상태:** `aws-demo` environment와 main 전용 branch 규칙, 배포 변수 3개를 생성·재조회했다. Windows 드라이브와 개인 AWS/Git 자격증명을 공유하지 않는 별도 WSL에 rootless Docker와 일회용 runner를 준비·등록했다. runner는 오프라인이며 배포 job은 아직 실행하지 않았다. GitHub OIDC provider와 배포 IAM 역할은 생성됐고, PR #1의 main 반영 및 실제 노드 배포가 남아 있다. 원본 증적은 `evidence/github/environment-created-20261023.json`, `runner-registration-20261023.json`에 보관한다.
 
-대상 저장소는 `realthoroughbred/capstone_1`입니다. 이 문서는 설정 절차이며, GitHub 환경·runner·AWS 역할이 실제로 연결되었다는 증거는 아닙니다. 이번 생성·검증·SG 시연·검증 후 신규 자원 정리는 이미 받은 승인 범위에서 진행하며 같은 승인을 다시 요청하지 않습니다. main 반영 여부와 실행할 commit은 root 작업에서 결정합니다.
+대상 저장소는 `realthoroughbred/capstone_1`입니다. 아래는 재현 절차이며 실제 실행 결과는 위 증적과 [현재 상태](../IMPLEMENTATION_STATUS.md)를 따릅니다. 이번 생성·검증·SG 시연·검증 후 신규 자원 정리는 이미 받은 승인 범위에서 진행하며 같은 승인을 다시 요청하지 않습니다. main 반영 여부와 실행할 commit은 root 작업에서 결정합니다.
 
 AWS는 WSL의 IAM 브라우저 로그인으로 `team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 총예산 180,000원 내 기본 1노드·최대 8시간 생성·검증·SG 시험 및 신규 자원 정리가 승인됐습니다. 초기 IAM·KMS 확인과 신규 VPC 생성 후 DNS 속성 조회 권한에서 중단돼 관리자 후속 정책 연결을 기다립니다. OIDC 역할/EKS 배포 준비도 아직 완료되지 않았습니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
 

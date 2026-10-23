@@ -21,6 +21,7 @@
 | AWS 신원·기존 자원 조회 | VERIFIED | PASS / aws |
 | AWS Terraform plan | VERIFIED | PASS / aws |
 | AWS 초기 IAM·KMS 대조 | VERIFIED | PASS / aws |
+| AWS EKS 제어 영역 | VERIFIED | PASS / aws |
 | AWS ECR/EKS/Config 실검증 | BLOCKED | BLOCKED / aws |
 | GitHub AWS 배포 준비 | BLOCKED | BLOCKED / github |
 
