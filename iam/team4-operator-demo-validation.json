@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ApprovedSyntheticSecretRotationOnly",
+      "Effect": "Allow",
+      "Action": ["secretsmanager:GetSecretValue", "secretsmanager:PutSecretValue"],
+      "Resource": "arn:aws:secretsmanager:ap-northeast-2:852093844554:secret:team4/demo/token-*",
+      "Condition": {"StringEquals": {"aws:ResourceTag/Project": "team4"}}
+    },
+    {
+      "Sid": "SyntheticSecretEncryptionOnly",
+      "Effect": "Allow",
+      "Action": ["kms:GenerateDataKey", "kms:Decrypt"],
+      "Resource": "arn:aws:kms:ap-northeast-2:852093844554:key/*",
+      "Condition": {
+        "StringEquals": {"aws:ResourceTag/Project": "team4", "kms:ViaService": "secretsmanager.ap-northeast-2.amazonaws.com"},
+        "StringLike": {"kms:EncryptionContext:SecretARN": "arn:aws:secretsmanager:ap-northeast-2:852093844554:secret:team4/demo/token-*"}
+      }
+    }
+  ]
+}

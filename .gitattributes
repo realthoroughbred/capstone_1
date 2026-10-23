@@ -2,3 +2,9 @@
 *.sh text eol=lf
 *.yaml text eol=lf
 *.tf text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.template text eol=lf
+*.lock.hcl text eol=lf
+Dockerfile text eol=lf

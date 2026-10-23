@@ -1,0 +1,5 @@
+directory:
+  - infra
+framework:
+  - terraform
+soft-fail: false

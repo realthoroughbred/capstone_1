@@ -1,0 +1,42 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "OptionalRegionalConfigAndScanning",
+      "Effect": "Allow",
+      "Action": [
+        "config:PutConfigurationRecorder",
+        "config:DeleteConfigurationRecorder",
+        "config:StartConfigurationRecorder",
+        "config:StopConfigurationRecorder",
+        "config:PutDeliveryChannel",
+        "config:DeleteDeliveryChannel",
+        "config:PutConfigRule",
+        "config:DeleteConfigRule",
+        "config:TagResource",
+        "config:UntagResource",
+        "config:ListTagsForResource",
+        "ecr:PutRegistryScanningConfiguration"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "ap-northeast-2"
+        }
+      }
+    },
+    {
+      "Sid": "InspectorServiceLinkedRole",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateServiceLinkedRole"
+      ],
+      "Resource": "arn:aws:iam::852093844554:role/aws-service-role/inspector2.amazonaws.com/*",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": "inspector2.amazonaws.com"
+        }
+      }
+    }
+  ]
+}

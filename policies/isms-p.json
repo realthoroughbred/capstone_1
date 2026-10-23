@@ -1,0 +1,22 @@
+{
+  "source": "https://isms.kisa.or.kr/board/file/bbs_0000000000000005/316/FILE_000000000000559/2020052814323363328.pdf",
+  "verified_on": "2026-10-18",
+  "scope": "Technical evidence mapping only; not an ISMS-P certification determination.",
+  "controls": {
+    "2.6.1": "네트워크 접근",
+    "2.9.1": "변경관리",
+    "2.9.4": "로그 및 접속기록 관리",
+    "2.10.2": "클라우드 보안",
+    "2.10.8": "패치관리",
+    "2.11.2": "취약점 점검 및 조치"
+  },
+  "policies": {
+    "NET-001": {"name": "공개 SSH 접근 금지", "controls": ["2.6.1", "2.10.2", "2.9.4"]},
+    "NET-002": {"name": "비인가 Pod 접근 차단", "controls": ["2.6.1", "2.9.1"]},
+    "SEC-001": {"name": "비밀정보 및 접근권한 관리", "controls": ["2.10.2"]},
+    "IMG-001": {"name": "HIGH/CRITICAL 이미지 취약점 관리", "controls": ["2.10.8", "2.11.2"]},
+    "IMG-002": {"name": "미서명 이미지 배포 제한", "controls": ["2.9.1", "2.10.2"]},
+    "IAC-001": {"name": "인프라 보안 형상 검사", "controls": ["2.10.2", "2.11.2"]},
+    "OPS-001": {"name": "로그 및 변경 증적 보존", "controls": ["2.9.1", "2.9.4"]}
+  }
+}

@@ -1,0 +1,21 @@
+# Local test data ONLY. Real secret values must never be put in this provider.
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata: {name: team4-fake, namespace: demo}
+spec:
+  provider:
+    fake:
+      data:
+        - key: /team4/demo/token
+          value: local-test-initial
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata: {name: team4-eso-demo, namespace: demo}
+spec:
+  refreshInterval: 10s
+  secretStoreRef: {name: team4-fake, kind: SecretStore}
+  target: {name: team4-eso-demo, creationPolicy: Owner}
+  data:
+    - secretKey: token
+      remoteRef: {key: /team4/demo/token}

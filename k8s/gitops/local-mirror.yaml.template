@@ -1,0 +1,88 @@
+# Local kind-only mirror. Never expose this service outside the cluster.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: team4-git-mirror
+  namespace: argocd
+  annotations:
+    team4/source-commit: ${GITOPS_REVISION}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: team4-git-mirror}
+  template:
+    metadata:
+      labels: {app: team4-git-mirror}
+      annotations:
+        team4/source-commit: ${GITOPS_REVISION}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      initContainers:
+        - name: unpack
+          image: ${MIRROR_IMAGE}
+          imagePullPolicy: IfNotPresent
+          command: [sh, -c, 'tar -xzf /bundle/repo.tar.gz -C /git']
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          volumeMounts:
+            - {name: bundle, mountPath: /bundle, readOnly: true}
+            - {name: repository, mountPath: /git}
+      containers:
+        - name: http
+          image: ${MIRROR_IMAGE}
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - 'if command -v busybox-extras >/dev/null 2>&1; then exec busybox-extras httpd -f -p 8080 -h /git; else exec busybox httpd -f -p 8080 -h /git; fi'
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe:
+            httpGet: {path: /repo.git/HEAD, port: http}
+            periodSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          volumeMounts:
+            - {name: repository, mountPath: /git, readOnly: true}
+      volumes:
+        - name: bundle
+          configMap: {name: '${MIRROR_CONFIGMAP}', defaultMode: 0444}
+        - name: repository
+          emptyDir: {sizeLimit: 64Mi}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: team4-git-mirror, namespace: argocd}
+spec:
+  type: ClusterIP
+  selector: {app: team4-git-mirror}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: team4-git-mirror-isolation, namespace: argocd}
+spec:
+  podSelector:
+    matchLabels: {app: team4-git-mirror}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app.kubernetes.io/name: argocd-repo-server}
+      ports: [{protocol: TCP, port: 8080}]
+  egress: []

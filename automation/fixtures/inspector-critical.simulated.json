@@ -1,0 +1,32 @@
+{
+  "_evidence_kind": "SIMULATED_FIXTURE",
+  "id": "simulated-event",
+  "source": "aws.inspector2",
+  "detail-type": "Inspector2 Finding",
+  "account": "123456789012",
+  "region": "ap-northeast-2",
+  "time": "2026-10-18T00:00:00+00:00",
+  "detail": {
+    "awsAccountId": "123456789012",
+    "findingArn": "arn:aws:inspector2:ap-northeast-2:123456789012:finding/simulated-finding",
+    "status": "ACTIVE",
+    "severity": "CRITICAL",
+    "type": "PACKAGE_VULNERABILITY",
+    "resources": [
+      {
+        "type": "AWS_ECR_CONTAINER_IMAGE",
+        "region": "ap-northeast-2",
+        "partition": "aws",
+        "id": "arn:aws:ecr:ap-northeast-2:123456789012:repository/team4-test/sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "details": {
+          "awsEcrContainerImage": {
+            "registry": "123456789012",
+            "repositoryName": "team4-test",
+            "imageHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      }
+    ]
+  },
+  "_warning": "Synthetic finding only; never claim as an observed Inspector CVE"
+}

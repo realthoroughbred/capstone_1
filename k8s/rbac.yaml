@@ -1,0 +1,61 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: team4-deploy, namespace: demo}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments, replicasets]
+    verbs: [get, list, watch, create, update, patch]
+  - apiGroups: ['']
+    resources: [services]
+    verbs: [get, list, create, update, patch]
+  - apiGroups: ['']
+    resources: [pods, events]
+    verbs: [get, list, watch]
+  - apiGroups: ['']
+    resources: [pods/exec]
+    verbs: [create]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: [get, list, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: team4-deploy, namespace: demo}
+subjects: [{kind: Group, name: 'team4:deploy', apiGroup: rbac.authorization.k8s.io}]
+roleRef: {kind: Role, name: team4-deploy, apiGroup: rbac.authorization.k8s.io}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: team4-namespace-reader}
+rules:
+  - apiGroups: ['']
+    resources: [namespaces]
+    resourceNames: [demo]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: team4-namespace-reader}
+subjects: [{kind: Group, name: 'team4:deploy', apiGroup: rbac.authorization.k8s.io}]
+roleRef: {kind: ClusterRole, name: team4-namespace-reader, apiGroup: rbac.authorization.k8s.io}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: team4-image-remediator, namespace: demo}
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [server]
+    verbs: [get, watch, patch]
+  - apiGroups: [apps]
+    resources: [replicasets]
+    verbs: [get, list]
+  - apiGroups: ['']
+    resources: [pods]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: team4-image-remediator, namespace: demo}
+subjects: [{kind: Group, name: 'team4:image-remediator', apiGroup: rbac.authorization.k8s.io}]
+roleRef: {kind: Role, name: team4-image-remediator, apiGroup: rbac.authorization.k8s.io}

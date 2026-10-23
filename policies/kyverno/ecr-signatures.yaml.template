@@ -1,0 +1,60 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: team4-approved-images
+spec:
+  background: true
+  rules:
+    - name: approved-ecr-digest
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [demo]
+      validate:
+        failureAction: Enforce
+        message: Every image must reference the approved ECR repository and an immutable SHA256 digest.
+        foreach:
+          - list: request.object.spec.[containers, initContainers, ephemeralContainers][]
+            deny:
+              conditions:
+                any:
+                  - key: "{{ starts_with(element.image, '${ECR_REPOSITORY_URL}@sha256:') }}"
+                    operator: Equals
+                    value: false
+                  - key: "{{ regex_match('^.+@sha256:[a-f0-9]{64}$', element.image) }}"
+                    operator: Equals
+                    value: false
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: team4-verify-signatures
+spec:
+  background: false
+  webhookConfiguration:
+    failurePolicy: Fail
+    timeoutSeconds: 30
+  rules:
+    - name: github-oidc-signature
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: [demo]
+      verifyImages:
+        - imageReferences: ['${ECR_REPOSITORY_URL}@sha256:*']
+          failureAction: Enforce
+          required: true
+          mutateDigest: false
+          verifyDigest: true
+          imageRegistryCredentials:
+            providers: [amazon]
+          attestors:
+            - count: 1
+              entries:
+                - keyless:
+                    subject: https://github.com/realthoroughbred/capstone_1/.github/workflows/deploy.yml@refs/heads/main
+                    issuer: https://token.actions.githubusercontent.com
+                    rekor:
+                      url: https://rekor.sigstore.dev

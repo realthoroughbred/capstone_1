@@ -1,0 +1,27 @@
+{
+  "source": "aws.config",
+  "detail-type": "Config Rules Compliance Change",
+  "account": "123456789012",
+  "region": "ap-northeast-2",
+  "detail": {
+    "resourceType": "AWS::EC2::SecurityGroup",
+    "resourceId": "sg-0123456789abcdef0",
+    "configRuleName": "team4-restricted-ssh",
+    "newEvaluationResult": {
+      "complianceType": "NON_COMPLIANT",
+      "resultRecordedTime": "2026-10-18T00:00:00Z",
+      "evaluationResultIdentifier": {
+        "orderingTimestamp": "2026-10-18T00:00:00Z",
+        "evaluationResultQualifier": {
+          "configRuleName": "team4-restricted-ssh",
+          "resourceType": "AWS::EC2::SecurityGroup",
+          "resourceId": "sg-0123456789abcdef0"
+        }
+      }
+    }
+  },
+  "_evidence_kind": "SIMULATED_FIXTURE",
+  "_warning": "Synthetic event only; not evidence of AWS Config detection",
+  "id": "simulated-config-event",
+  "time": "2026-10-18T00:00:00Z"
+}

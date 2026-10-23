@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "OnlyNewProjectVPCDefaultSecurityGroup",
+      "Effect": "Allow",
+      "Action": ["ec2:RevokeSecurityGroupIngress", "ec2:RevokeSecurityGroupEgress", "ec2:CreateTags"],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:security-group/REPLACE_WITH_NEW_VPC_DEFAULT_SG_ID"
+    },
+    {
+      "Sid": "OnlyNewProjectClusterOIDCIssuer",
+      "Effect": "Allow",
+      "Action": ["iam:CreateOpenIDConnectProvider", "iam:DeleteOpenIDConnectProvider", "iam:UpdateOpenIDConnectProviderThumbprint", "iam:TagOpenIDConnectProvider", "iam:UntagOpenIDConnectProvider"],
+      "Resource": "arn:aws:iam::852093844554:oidc-provider/oidc.eks.ap-northeast-2.amazonaws.com/id/REPLACE_WITH_NEW_CLUSTER_ISSUER_ID"
+    }
+  ]
+}
