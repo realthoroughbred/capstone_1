@@ -70,13 +70,14 @@ resource "aws_iam_role" "config" {
   })
 }
 resource "aws_iam_role_policy" "config" {
-  #checkov:skip=CKV_AWS_355:DescribeSecurityGroups and DescribeSecurityGroupRules require wildcard resources; recorder is limited to the SecurityGroup type.
+  #checkov:skip=CKV_AWS_355:Config uses EC2 Describe APIs for resource relationships and PutEvaluations for rule results. These APIs use wildcard resources; region is constrained and recording remains SecurityGroup-only. No EC2 write is granted.
   count = var.enable_self_healing && var.create_config_recorder ? 1 : 0
   role  = aws_iam_role.config[0].id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      { Effect = "Allow", Action = ["ec2:DescribeSecurityGroups", "ec2:DescribeSecurityGroupRules", "ec2:DescribeTags"], Resource = "*" },
+      { Effect = "Allow", Action = ["ec2:Describe*"], Resource = "*", Condition = { StringEquals = { "aws:RequestedRegion" = var.region } } },
+      { Effect = "Allow", Action = ["config:PutEvaluations"], Resource = "*", Condition = { StringEquals = { "aws:RequestedRegion" = var.region } } },
       { Effect = "Allow", Action = ["s3:GetBucketAcl", "s3:ListBucket"], Resource = aws_s3_bucket.evidence[0].arn },
       { Effect = "Allow", Action = ["s3:PutObject"], Resource = "${aws_s3_bucket.evidence[0].arn}/config/AWSLogs/${var.aws_account_id}/Config/*", Condition = { StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control" } } },
       { Effect = "Allow", Action = ["kms:GenerateDataKey", "kms:Decrypt"], Resource = aws_kms_key.project.arn }

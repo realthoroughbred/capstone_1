@@ -152,11 +152,62 @@ if cluster:
            and cluster.get('management_cidr_verified') is True and cluster.get('default_sg_closed') is True,
            ['evidence/aws/cluster-status.json'],
            f"확인 {cluster.get('timestamp')}: EKS {cluster.get('version')} 제어 영역 ACTIVE, 관리 PC /32 및 기본 SG 차단 확인. 노드·워크로드 성공과 구분.")
-record('AWS ECR/EKS/Config 실검증', 'NET-001', 'aws', False,
-       ['evidence/aws/preflight.json', 'evidence/aws/deployment-permissions.json',
-        'evidence/aws/deployment-status.json', 'evidence/aws/authorization.json'], reason, blocked=True)
+node = data('evidence/aws/eks-ready-20261023.json')
+record('AWS EKS 노드·애드온', 'SEC-001', 'aws',
+       node.get('nodegroup_status') == 'ACTIVE' and node.get('ready_nodes') == 1
+       and set(node.get('addons', {})) == {'vpc-cni', 'kube-proxy', 'coredns'}
+       and all(a.get('status') == 'ACTIVE' for a in node.get('addons', {}).values()),
+       ['evidence/aws/eks-ready-20261023.json'],
+       f"확인 {node.get('timestamp', '증거 없음')}: 1노드 Ready 및 CNI·kube-proxy·CoreDNS의 실제 AWS 상태. 워크로드 검증과 구분.")
+signed = data('evidence/aws/signed-deployment.json')
+record('AWS ECR 서명·EKS 앱 배포', 'IMG-002', 'aws', signed.get('result') == 'PASS',
+       ['evidence/aws/signed-deployment.json'],
+       'GitHub main OIDC로 ECR 업로드, cosign keyless 서명·SBOM 검증, 실행 Pod digest 및 HTTP 응답을 대조한 증거만 인정.',
+       failed=signed.get('result') == 'FAIL')
+record('AWS NetworkPolicy', 'NET-002', 'aws',
+       'PASS: NetworkPolicy enforcement' in read('evidence/network-team4-eks.log'),
+       ['evidence/network-team4-eks.log', 'evidence/network-team4-eks.json'],
+       'EKS에서 DNS·정상 통신과 ingress/egress 독립 차단·양방향 허용 대조군 검증.')
+record('AWS ESO·비밀값 교체', 'SEC-001', 'aws',
+       'PASS: Rotation reached' in read('evidence/eso-team4-eks.log'),
+       ['evidence/eso-team4-eks.log', 'evidence/eso-team4-eks.json'],
+       '전용 합성 Secrets Manager 값의 변경이 Kubernetes Secret와 실행 중 Pod 볼륨에 반영됐는지 검증. 원문 비밀값은 보관하지 않음.')
+aws_admission = data('evidence/admission-team4-eks.json')
+aws_admission_passes = {r.get('test') for r in aws_admission if r.get('result') == 'PASS'} if isinstance(aws_admission, list) else set()
+record('AWS Kyverno 보안 컨텍스트·이미지 제한', 'IMG-002', 'aws',
+       required_admission | {'unapproved-repository', 'mutable-tag'} <= aws_admission_passes,
+       ['evidence/admission-team4-eks.json', 'evidence/admission-team4-eks.log'],
+       '정상 Pod 허용 대조군 및 위험한 보안 컨텍스트·외부 저장소·가변 태그 거부. server dry-run이므로 위험 Pod는 실행하지 않음.')
+record('AWS Kyverno 미서명 이미지 거부', 'IMG-002', 'aws', 'unsigned-ecr-image' in aws_admission_passes,
+       ['evidence/admission-team4-eks.json'], '같은 ECR의 실제 미서명 digest를 사용한 webhook 거부 대조군. 서명 검증 오류를 확인하며 위험 Pod는 실행하지 않음.')
+aws_gitops = data('evidence/gitops-team4-eks.json')
+record('AWS Argo CD 정책 복구', 'NET-002', 'aws', aws_gitops.get('result') == 'PASS',
+       ['evidence/gitops-team4-eks.json', 'evidence/gitops-team4-eks.log', 'evidence/gitops-mirror-team4-eks.json'],
+       'EKS 내 읽기 전용 고정 commit 미러에서 실제 정책 drift 탐지·자동복구·통신 복구 확인. GitHub 직접 인증 연동은 별도 미검증.')
+healing = data('evidence/aws/sg-healing-demo.json')
+healing_pass = (healing.get('status') == 'VERIFIED' and healing.get('verification') == 'PASS'
+                and healing.get('evidence_kind') == 'REAL_AWS_OBSERVATION'
+                and bool(healing.get('lambda_remediation_proof'))
+                and bool(healing.get('config_noncompliant_recorded_at'))
+                and bool(healing.get('config_compliant_recorded_at')))
+record('AWS Config→EventBridge→Lambda SG 복구', 'NET-001', 'aws', healing_pass,
+       ['evidence/aws/sg-healing-demo.json'],
+       f"실제 미연결 DemoOnly SG 시험. 상태={healing.get('status', '미실행')}, "
+       f"제거 관측={healing.get('injection_to_removal_observed_seconds', '미측정')}초. Config 평가와 Lambda 로그 및 최종 규칙을 함께 요구.",
+       failed=healing.get('status') == 'FAILED')
+if healing_pass:
+    observations[-1].update(remediation_executed=True, remediation_method='Real Config event through EventBridge to guarded Lambda',
+                            revalidation='PASS', duration_seconds=healing.get('injection_to_removal_observed_seconds'))
+cleanup = data('evidence/aws/cleanup-verification.json')
+record('AWS 신규 유료 자원 정리', 'OPS-001', 'aws', cleanup.get('result') == 'PASS',
+       ['evidence/aws/cleanup-verification.json'],
+       '승인된 신규 ID 장부·증적 내보내기·실제 삭제 후 조회로 확인. KMS/Secrets Manager의 삭제 예약과 즉시 삭제를 구분.')
+record('AWS Inspector→CodeBuild 이미지 교체', 'IMG-001', 'aws', False, [],
+       '코드·모의 검증은 구현됨. 이번 승인 계획에서 Inspector 및 외부 CodeBuild는 비활성이므로 실제 finding·이미지 교체는 미검증.')
+record('Argo CD GitHub 직접 인증', 'OPS-001', 'aws', False, [],
+       'EKS 정책 복구는 고정 commit의 클러스터 내부 읽기 전용 Git 미러로 검증함. private GitHub 직접 인증은 미검증.')
 github_readiness = data('evidence/github/deployment-readiness.json')
-if github_readiness:
+if github_readiness and not data('evidence/github/aws-deployment-dispatch-20261023.json').get('dispatched'):
     readiness_checks = github_readiness.get('checks', {})
     environment = readiness_checks.get('deployment_environment', {}).get('summary', {})
     runners = readiness_checks.get('runners', {}).get('summary', {})
@@ -199,10 +250,12 @@ remaining = '# 남은 작업\n\n' + intro
 for row in rows:
     if row['result'] != 'PASS':
         remaining += f"- **{row['feature']} — {row['result']}**: {row['detail']}\n"
-remaining += ('\nAWS 실행 순서: 로그인 갱신 → 관리자 배포 IAM 준비 확인 → 기존 state/자원 확인 → 최신 Terraform plan·비용을 기존 승인 범위와 대조 → apply → ECR 서명·EKS 배포 → SM rotation/서명 정책 → Config 실복구 → 증적 보존 → 이번 신규 자원 정리. Inspector는 별도 범위이며 안전 digest와 연결 가능한 CodeBuild가 준비되어야 합니다.\n\n'
+remaining += ('\n재현 순서: 로그인 확인 → 현재 IAM·자원·state 조사 → 새 plan·기간·비용 검토 → 승인된 배포 → 보안·복구 시험 → 증적 보존 → 신규 자원 정리. 위 단계의 이번 실행 결과는 구현 현황을 따릅니다. Inspector는 별도 범위이며 안전 digest와 연결 가능한 CodeBuild가 준비되어야 합니다.\n\n'
     '총예산 상한은 사용자 지정 **180,000원**입니다. 예산은 자원 생성 승인과 별개이며 자동 종료를 보장하지 않습니다. 자세한 절차는 `AWS_DEPLOYMENT_GUIDE.md`, `COST_AND_CLEANUP.md`, `docs/TEAM4_IAM_PERMISSIONS.md`를 참고합니다.\n')
 if authorized:
-    remaining += '\n현재 사용자는 신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리를 승인했습니다. 같은 범위의 재승인 대신 관리자 IAM 준비 후 실행하며 기존 자원은 변경하지 않습니다.\n'
+    remaining += ('\n이번 승인 범위의 생성·실검증·신규 자원 정리는 완료했습니다. KMS/Secret의 복구 기간을 둔 삭제 예약은 물리적 삭제 완료와 구분합니다. 재배포나 Inspector/CodeBuild 확장에는 새 계획·비용·실행 기간 검토가 필요합니다.\n'
+                  if cleanup.get('result') == 'PASS' else
+                  '\n사용자는 신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리를 승인했습니다. 같은 범위의 재승인은 요구하지 않으며 현재 미완료 단계는 위 증거 상태를 따릅니다.\n')
 (ROOT / 'REMAINING_TASKS.md').write_text(remaining, encoding='utf-8')
 readme = '''# AWS EKS DevSecOps + ISMS-P Self-Healing
 

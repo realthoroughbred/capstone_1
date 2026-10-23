@@ -1,6 +1,6 @@
 # team4 AWS 권한 연결 안내
 
-확인된 계정은 `852093844554`, IAM 사용자는 `team4-operator`, 리전은 `ap-northeast-2`입니다. 사용자는 신규 생성·최대 8시간 실검증·ENI 미연결 DemoOnly SG 시험·신규 자원 정리를 승인했습니다. **초기 IAM/KMS와 클러스터 CNI/OIDC 보완은 실제 확인했습니다.** EKS 제어 영역과 ECR 등 47개 자원 생성 후 노드 시작/S3 후속 조회에서 추가 권한 누락이 확인됐습니다. `generated/team4-node-s3-admin-20261023.zip`으로 기존 `team4-operator-new-resource-bootstrap` 하나만 교체·기본 버전 저장합니다. 초기 정책과 KMS 키를 다시 만들지 않습니다.
+확인된 계정은 `852093844554`, IAM 사용자는 `team4-operator`, 리전은 `ap-northeast-2`입니다. 사용자는 신규 생성·최대 8시간 실검증·ENI 미연결 DemoOnly SG 시험·신규 자원 정리를 승인했습니다. **2026-10-23 관리자 정책 보완 후 신규 자원 67개 생성, EKS 배포 및 실제 Config SG 자동복구를 검증했습니다.** 최종 대조한 정책은 preflight v3, 신규 자원 bootstrap v5, runtime boundary v3입니다. Config `PutEvaluations`는 서울의 Config 역할 하나에만 허용했습니다. 현재 관리자에게 추가 정책 변경을 요청하는 상태가 아니며, 아래는 재현·권한 검토 절차입니다.
 
 관리자는 [구체적인 bootstrap 실행 안내](TEAM4_ADMIN_BOOTSTRAP.md)를 따릅니다. 저장된 실제 plan으로 만든 검토용 JSON은 `generated/admin-bootstrap/initial/`에 있으며, [오프라인 생성기](admin-bootstrap/render.py)가 초기·네트워크·클러스터·노드 단계별 문서를 생성합니다. 이번 실행은 Inspector가 꺼져 있으므로 전체 optional-automation 대신 **Config-only 정책**을 연결합니다. 에이전트가 이 관리자 정책을 AWS에 생성·연결했다는 뜻은 아닙니다.
 
@@ -84,6 +84,6 @@ operator_principal_arns = {
 - Config recorder/delivery channel과 ECR registry scanning 설정은 계정/리전 단위 설정입니다. optional 정책은 같은 리전의 기존 설정도 바꿀 수 있으므로 기존 조직 설정이 있다면 그대로 적용하지 말고 보존/통합안을 먼저 검토합니다.
 - 공급자 관리에 필요한 role 정책, Lambda 환경설정, 로그, KMS grant 같은 API가 포함됩니다. 제공되는 Lambda 환경변수는 리소스 식별자와 dry-run 설정이며 실제 비밀값을 넣지 않습니다. 경계는 현재 no-ALB 구성에 맞춰 ELB/IAM 관리자/SSM 쓰기 권한을 허용하지 않습니다.
 - 외부 CodeBuild 프로젝트의 VPC ENI 정책과 private GitHub 연결 사용 권한은 실제 승인된 subnet/connection ARN을 알고 있는 관리자가 별도로 제한해서 설정해야 합니다. 네트워크 경계 조각도 승인한 VPC/subnet으로만 제한하며, 기본 경계는 `Project=team4` 태그가 있는 CodeConnections 사용 범위만 제공합니다. 프로젝트 설정·권한·네트워크는 아직 실제 실행 검증되지 않았습니다.
-- JSON 문법과 관리형 정책 크기는 로컬 검사합니다. **AWS IAM Access Analyzer policy validation, IAM 실제 평가 및 Terraform apply는 아직 검증하지 않았습니다.** 관리자는 IAM 정책 생성 화면 또는 `aws accessanalyzer validate-policy --policy-document file://... --policy-type IDENTITY_POLICY`로 AWS 검증을 수행할 수 있습니다. 실제 plan/API가 추가 action을 요구하면 거부된 action과 ARN에 맞춰 수정하며 관리자 전체 권한으로 대체하지 않습니다.
+- JSON 문법과 관리형 정책 크기는 로컬 검사했고 승인된 배포·실복구·정리 API 경로를 실제 검증했습니다. **AWS IAM Access Analyzer policy validation은 별도 미검증**입니다. 관리자는 IAM 정책 생성 화면 또는 `aws accessanalyzer validate-policy --policy-document file://... --policy-type IDENTITY_POLICY`로 추가 검사할 수 있습니다. 이번 경로의 성공이 다른 계정 SCP·경계·서비스 조건에서도 같은 권한이 충분하다는 뜻은 아닙니다.
 
 현재 예산 한도는 **180,000원**이며, 이번에 신규 생성하는 실험 자원의 생성·8시간 검증·정리는 이미 승인되었습니다. 기존 자원의 수정·삭제는 이 범위에 포함되지 않습니다. 정책 연결만으로 유료 리소스가 생성되지는 않으며, 관리자 권한 연결 후 승인된 plan 범위에서 실행을 이어갑니다.

@@ -66,7 +66,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "evidence": [
     {
       "path": "evidence/terraform/mock-tests.txt",
-      "sha256": "b41793d12ce8027da67044db04e9d56fa953c8df18a457bd8850b882ed6e642b"
+      "sha256": "ee70655e32465f7339820d0f819cade77d2e037aa0a839d428f308eeba8786e2"
     }
   ],
   "policy_name": "인프라 보안 형상 검사",
@@ -103,11 +103,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "Checkov",
   "scope": "static",
   "result": "PASS",
-  "details": "passed=111, failed=0, skipped=23; 예외는 docs/infra-notes.md.",
+  "details": "passed=164, failed=0, skipped=23; 예외는 docs/infra-notes.md.",
   "evidence": [
     {
       "path": "evidence/terraform/checkov.json",
-      "sha256": "ea6778eca36073d3ae58c7a121617fb58cf1d9d19e021017775ce8e59363b625"
+      "sha256": "0a7174bcd7bf43b90fe4219ab8ac1fd9fb6c4ab6406a77a58da03cf5596c4a9e"
     }
   ],
   "policy_name": "인프라 보안 형상 검사",
@@ -144,11 +144,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "자동복구 단위·통합 테스트",
   "scope": "simulated",
   "result": "PASS",
-  "details": "101개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.",
+  "details": "106개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.",
   "evidence": [
     {
       "path": "evidence/local/unit-tests.txt",
-      "sha256": "598576bce682bdbde192a8a8383cb201b6d280dbaa7f2666f7cac26e8f3a0fb7"
+      "sha256": "48ae40fa5897dbb6b5faf394ef6de4bd5952f370bd80e9e89d66373fb3398138"
     }
   ],
   "policy_name": "공개 SSH 접근 금지",
@@ -630,11 +630,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "GitHub Actions CI",
   "scope": "github",
   "result": "PASS",
-  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `bc5fae1a52ad50eddbb4b5cc95833e4a33e9925b` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39948333474).",
+  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `a2288bd2db999decc04ea365669d5d791d8f34eb` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39955517961).",
   "evidence": [
     {
-      "path": "evidence/github/runs-bc5fae1a52ad50eddbb4b5cc95833e4a33e9925b.json",
-      "sha256": "7dc25ae9d0481003bf8dcafe63bde5da4c88773c5fbeb26bc2bf4af51c6cfb2b"
+      "path": "evidence/github/runs-a2288bd2db999decc04ea365669d5d791d8f34eb.json",
+      "sha256": "8ad0dac6ae5fde9e5d6648b21f5f0fbe9635ad521a6ff72e9f070b9bb4394634"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -671,11 +671,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "AWS 신원·기존 자원 조회",
   "scope": "aws",
   "result": "PASS",
-  "details": "STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회. 마지막 확인: 2026-10-23T11:48:19.113081+00:00.",
+  "details": "STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회. 마지막 확인: 2026-10-23T12:57:28.601324+00:00.",
   "evidence": [
     {
       "path": "evidence/aws/preflight.json",
-      "sha256": "dc65577d0387da9e546e217c74a250011973726552392b00bd68b39a6b52a38e"
+      "sha256": "a34a4eeee971a98353902dba4bb43edbdda28bc2518f956660fd027cb6728cba"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -818,38 +818,329 @@ Technical evidence mapping only; not an ISMS-P certification determination.
 }
 ```
 
+## SEC-001 — 비밀정보 및 접근권한 관리
+
+결과: **PASS** · 검증 범위: **aws**
+
+통제: 2.10.2 클라우드 보안
+
+```json
+{
+  "policy_id": "SEC-001",
+  "target": "AWS EKS 노드·애드온",
+  "tool": "AWS EKS 노드·애드온",
+  "scope": "aws",
+  "result": "PASS",
+  "details": "확인 2026-10-23T12:43:00.856695+00:00: 1노드 Ready 및 CNI·kube-proxy·CoreDNS의 실제 AWS 상태. 워크로드 검증과 구분.",
+  "evidence": [
+    {
+      "path": "evidence/aws/eks-ready-20261023.json",
+      "sha256": "db53843b67937eb441bbbaeb5f3283fe311a41f2b5c5612803b9db481b7975df"
+    }
+  ],
+  "policy_name": "비밀정보 및 접근권한 관리",
+  "isms_p": [
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## IMG-002 — 미서명 이미지 배포 제한
+
+결과: **PASS** · 검증 범위: **aws**
+
+통제: 2.9.1 변경관리, 2.10.2 클라우드 보안
+
+```json
+{
+  "policy_id": "IMG-002",
+  "target": "AWS ECR 서명·EKS 앱 배포",
+  "tool": "AWS ECR 서명·EKS 앱 배포",
+  "scope": "aws",
+  "result": "PASS",
+  "details": "GitHub main OIDC로 ECR 업로드, cosign keyless 서명·SBOM 검증, 실행 Pod digest 및 HTTP 응답을 대조한 증거만 인정.",
+  "evidence": [
+    {
+      "path": "evidence/aws/signed-deployment.json",
+      "sha256": "56ffa5a05291a4b8c6ffc8415dd9c1f5bdb0c1da181781d493d760d789715d6d"
+    }
+  ],
+  "policy_name": "미서명 이미지 배포 제한",
+  "isms_p": [
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    },
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## NET-002 — 비인가 Pod 접근 차단
+
+결과: **PASS** · 검증 범위: **aws**
+
+통제: 2.6.1 네트워크 접근, 2.9.1 변경관리
+
+```json
+{
+  "policy_id": "NET-002",
+  "target": "AWS NetworkPolicy",
+  "tool": "AWS NetworkPolicy",
+  "scope": "aws",
+  "result": "PASS",
+  "details": "EKS에서 DNS·정상 통신과 ingress/egress 독립 차단·양방향 허용 대조군 검증.",
+  "evidence": [
+    {
+      "path": "evidence/network-team4-eks.log",
+      "sha256": "3c292dbb92a2586f497eb8f58090d1dbbe27c4b874c92f8456e00dbb054392e3"
+    },
+    {
+      "path": "evidence/network-team4-eks.json",
+      "sha256": "8de5507eef1725cbbacf399721ba7efdc8a078d6a778ee312ffb1e63314b187b"
+    }
+  ],
+  "policy_name": "비인가 Pod 접근 차단",
+  "isms_p": [
+    {
+      "id": "2.6.1",
+      "name": "네트워크 접근"
+    },
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## SEC-001 — 비밀정보 및 접근권한 관리
+
+결과: **PASS** · 검증 범위: **aws**
+
+통제: 2.10.2 클라우드 보안
+
+```json
+{
+  "policy_id": "SEC-001",
+  "target": "AWS ESO·비밀값 교체",
+  "tool": "AWS ESO·비밀값 교체",
+  "scope": "aws",
+  "result": "PASS",
+  "details": "전용 합성 Secrets Manager 값의 변경이 Kubernetes Secret와 실행 중 Pod 볼륨에 반영됐는지 검증. 원문 비밀값은 보관하지 않음.",
+  "evidence": [
+    {
+      "path": "evidence/eso-team4-eks.log",
+      "sha256": "33e09dfc0015b5e7806a20dfca262a091f8bf79dbe1131cba376edd6f4f9bc29"
+    },
+    {
+      "path": "evidence/eso-team4-eks.json",
+      "sha256": "0c8022a17f93e21782d85c9e4ab23f2c3aa5a34dc74d72e52f23af8a994e13ac"
+    }
+  ],
+  "policy_name": "비밀정보 및 접근권한 관리",
+  "isms_p": [
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## IMG-002 — 미서명 이미지 배포 제한
+
+결과: **PASS** · 검증 범위: **aws**
+
+통제: 2.9.1 변경관리, 2.10.2 클라우드 보안
+
+```json
+{
+  "policy_id": "IMG-002",
+  "target": "AWS Kyverno 보안 컨텍스트·이미지 제한",
+  "tool": "AWS Kyverno 보안 컨텍스트·이미지 제한",
+  "scope": "aws",
+  "result": "PASS",
+  "details": "정상 Pod 허용 대조군 및 위험한 보안 컨텍스트·외부 저장소·가변 태그 거부. server dry-run이므로 위험 Pod는 실행하지 않음.",
+  "evidence": [
+    {
+      "path": "evidence/admission-team4-eks.json",
+      "sha256": "886248dcb247d37d89f05d262ec9934fb8e74e4f5b9282d8053374f6e6d27c4a"
+    },
+    {
+      "path": "evidence/admission-team4-eks.log",
+      "sha256": "89f15ac55649a5b636fff678c528208843ac62b07221f84e60285f3b94c2bcd3"
+    }
+  ],
+  "policy_name": "미서명 이미지 배포 제한",
+  "isms_p": [
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    },
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## IMG-002 — 미서명 이미지 배포 제한
+
+결과: **PASS** · 검증 범위: **aws**
+
+통제: 2.9.1 변경관리, 2.10.2 클라우드 보안
+
+```json
+{
+  "policy_id": "IMG-002",
+  "target": "AWS Kyverno 미서명 이미지 거부",
+  "tool": "AWS Kyverno 미서명 이미지 거부",
+  "scope": "aws",
+  "result": "PASS",
+  "details": "같은 ECR의 실제 미서명 digest를 사용한 webhook 거부 대조군. 서명 검증 오류를 확인하며 위험 Pod는 실행하지 않음.",
+  "evidence": [
+    {
+      "path": "evidence/admission-team4-eks.json",
+      "sha256": "886248dcb247d37d89f05d262ec9934fb8e74e4f5b9282d8053374f6e6d27c4a"
+    }
+  ],
+  "policy_name": "미서명 이미지 배포 제한",
+  "isms_p": [
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    },
+    {
+      "id": "2.10.2",
+      "name": "클라우드 보안"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## NET-002 — 비인가 Pod 접근 차단
+
+결과: **PASS** · 검증 범위: **aws**
+
+통제: 2.6.1 네트워크 접근, 2.9.1 변경관리
+
+```json
+{
+  "policy_id": "NET-002",
+  "target": "AWS Argo CD 정책 복구",
+  "tool": "AWS Argo CD 정책 복구",
+  "scope": "aws",
+  "result": "PASS",
+  "details": "EKS 내 읽기 전용 고정 commit 미러에서 실제 정책 drift 탐지·자동복구·통신 복구 확인. GitHub 직접 인증 연동은 별도 미검증.",
+  "evidence": [
+    {
+      "path": "evidence/gitops-team4-eks.json",
+      "sha256": "4ffea28a83b84211d5129488ee8f56b544161a5a728fdd3771952217f7f43301"
+    },
+    {
+      "path": "evidence/gitops-team4-eks.log",
+      "sha256": "85f09e8cdb6ccddf3d8216c55533f052f50cb3fdf1900580ccd9dd7a34c5e167"
+    },
+    {
+      "path": "evidence/gitops-mirror-team4-eks.json",
+      "sha256": "99d46307c2056a4891567d9267f73bb2cb39e8b80b1aa83816191d4dde661635"
+    }
+  ],
+  "policy_name": "비인가 Pod 접근 차단",
+  "isms_p": [
+    {
+      "id": "2.6.1",
+      "name": "네트워크 접근"
+    },
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
 ## NET-001 — 공개 SSH 접근 금지
 
-결과: **BLOCKED** · 검증 범위: **aws**
+결과: **PASS** · 검증 범위: **aws**
 
 통제: 2.6.1 네트워크 접근, 2.10.2 클라우드 보안, 2.9.4 로그 및 접속기록 관리
 
 ```json
 {
   "policy_id": "NET-001",
-  "target": "AWS ECR/EKS/Config 실검증",
-  "tool": "AWS ECR/EKS/Config 실검증",
+  "target": "AWS Config→EventBridge→Lambda SG 복구",
+  "tool": "AWS Config→EventBridge→Lambda SG 복구",
   "scope": "aws",
-  "result": "BLOCKED",
-  "details": "EKS 1.35 제어 영역 ACTIVE, CNI/kube-proxy·ECR·OIDC 역할·시험 SG 생성 완료. CNI/OIDC 정책 일치 확인. Terraform 관리 자원 47개. S3 후속 조회 및 노드 RunInstances 권한 누락으로 apply 부분 실패. 노드는 0개, Config·Lambda·ECR 이미지 업로드·EKS 워크로드 검증은 미완료. 관리자 노드/S3 단일 정책 수정 대기. main 전용 GitHub 환경 및 rootless 일회용 runner 등록 완료(오프라인). 신규 자원 정리 미완료, 최대 실습 창 10/24 03:40:30 KST까지. 상태 확인: 2026-10-23T11:57:06.862885+00:00.",
+  "result": "PASS",
+  "details": "실제 미연결 DemoOnly SG 시험. 상태=VERIFIED, 제거 관측=123.473초. Config 평가와 Lambda 로그 및 최종 규칙을 함께 요구.",
   "evidence": [
     {
-      "path": "evidence/aws/preflight.json",
-      "sha256": "dc65577d0387da9e546e217c74a250011973726552392b00bd68b39a6b52a38e"
-    },
-    {
-      "path": "evidence/aws/deployment-permissions.json",
-      "sha256": "d3189ea0c50ff9b6c21c25389eb3fccd45aad0bc2b06e0e90858ae78390fd84d"
-    },
-    {
-      "path": "evidence/aws/deployment-status.json",
-      "sha256": "151f69aa7c87b80cbcdcedef9d553bc30afce069a11ed9c7e27e3bbada85ca2c"
-    },
-    {
-      "path": "evidence/aws/authorization.json",
-      "sha256": "625ca095407c5a9afec84a2f00f64dd50f06265e64a38a4771f06cfb44fc3fd7"
+      "path": "evidence/aws/sg-healing-demo.json",
+      "sha256": "f757ed4cd32986c707b023542a9ea53601e42624400590726cd052bee3519657"
     }
   ],
+  "remediation_executed": true,
+  "remediation_method": "Real Config event through EventBridge to guarded Lambda",
+  "revalidation": "PASS",
+  "duration_seconds": 123.473,
   "policy_name": "공개 SSH 접근 금지",
   "isms_p": [
     {
@@ -866,6 +1157,79 @@ Technical evidence mapping only; not an ISMS-P certification determination.
     }
   ],
   "violations": [],
+  "before": null,
+  "after": null
+}
+```
+
+## OPS-001 — 로그 및 변경 증적 보존
+
+결과: **PASS** · 검증 범위: **aws**
+
+통제: 2.9.1 변경관리, 2.9.4 로그 및 접속기록 관리
+
+```json
+{
+  "policy_id": "OPS-001",
+  "target": "AWS 신규 유료 자원 정리",
+  "tool": "AWS 신규 유료 자원 정리",
+  "scope": "aws",
+  "result": "PASS",
+  "details": "승인된 신규 ID 장부·증적 내보내기·실제 삭제 후 조회로 확인. KMS/Secrets Manager의 삭제 예약과 즉시 삭제를 구분.",
+  "evidence": [
+    {
+      "path": "evidence/aws/cleanup-verification.json",
+      "sha256": "6faed69fc03a94f434c01d5a76d451a2e93928308582aceea477bbb99663e06d"
+    }
+  ],
+  "policy_name": "로그 및 변경 증적 보존",
+  "isms_p": [
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
+    },
+    {
+      "id": "2.9.4",
+      "name": "로그 및 접속기록 관리"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## IMG-001 — HIGH/CRITICAL 이미지 취약점 관리
+
+결과: **NOT_TESTED** · 검증 범위: **aws**
+
+통제: 2.10.8 패치관리, 2.11.2 취약점 점검 및 조치
+
+```json
+{
+  "policy_id": "IMG-001",
+  "target": "AWS Inspector→CodeBuild 이미지 교체",
+  "tool": "AWS Inspector→CodeBuild 이미지 교체",
+  "scope": "aws",
+  "result": "NOT_TESTED",
+  "details": "코드·모의 검증은 구현됨. 이번 승인 계획에서 Inspector 및 외부 CodeBuild는 비활성이므로 실제 finding·이미지 교체는 미검증.",
+  "evidence": [],
+  "policy_name": "HIGH/CRITICAL 이미지 취약점 관리",
+  "isms_p": [
+    {
+      "id": "2.10.8",
+      "name": "패치관리"
+    },
+    {
+      "id": "2.11.2",
+      "name": "취약점 점검 및 조치"
+    }
+  ],
+  "violations": [],
   "remediation_executed": false,
   "remediation_method": null,
   "before": null,
@@ -877,24 +1241,19 @@ Technical evidence mapping only; not an ISMS-P certification determination.
 
 ## OPS-001 — 로그 및 변경 증적 보존
 
-결과: **BLOCKED** · 검증 범위: **github**
+결과: **NOT_TESTED** · 검증 범위: **aws**
 
 통제: 2.9.1 변경관리, 2.9.4 로그 및 접속기록 관리
 
 ```json
 {
   "policy_id": "OPS-001",
-  "target": "GitHub AWS 배포 준비",
-  "tool": "GitHub AWS 배포 준비",
-  "scope": "github",
-  "result": "BLOCKED",
-  "details": "확인 2026-10-23T12:00:18.621593+00:00: aws-demo 환경 조회 성공, 사용 가능한 전용 runner 0개. main에 검토한 배포 workflow 반영·환경 보호 설정·AWS 역할 연결 후 실검증 필요.",
-  "evidence": [
-    {
-      "path": "evidence/github/deployment-readiness.json",
-      "sha256": "22badf17f12fd9cce0dcdd8bbb6bb118f985a9fb8cd05022e6d9bd266b56980f"
-    }
-  ],
+  "target": "Argo CD GitHub 직접 인증",
+  "tool": "Argo CD GitHub 직접 인증",
+  "scope": "aws",
+  "result": "NOT_TESTED",
+  "details": "EKS 정책 복구는 고정 commit의 클러스터 내부 읽기 전용 Git 미러로 검증함. private GitHub 직접 인증은 미검증.",
+  "evidence": [],
   "policy_name": "로그 및 변경 증적 보존",
   "isms_p": [
     {

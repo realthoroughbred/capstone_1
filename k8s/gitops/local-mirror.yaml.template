@@ -1,4 +1,5 @@
-# Local kind-only mirror. Never expose this service outside the cluster.
+# Read-only mirror of an explicitly pinned commit for kind or approved demo EKS.
+# Never expose this service outside the cluster; no GitHub credential is copied.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

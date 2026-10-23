@@ -1,8 +1,8 @@
 # 비용, 보존 및 정리 결정
 
-2026-10-23 단계별 apply를 실행했고 현재 Terraform 관리 자원은 47개다. EKS 제어 영역 ACTIVE, VPC·ECR·KMS·테스트 Secret·OIDC 역할 등이 생성됐으며 노드는 권한 검사 실패로 0개다. S3 버킷은 생성됐으나 후속 조회 권한 부족으로 부분 실패했다. 정리는 아직 실행하지 않았다. 현재 기록은 `evidence/aws/deployment-status.json`, 정리 대상 ID 장부는 `full-partial-ledger-20261023.json`이다. 최초 승인 plan은 **67 add / 0 change / 0 destroy**이며 [검토 문서](docs/AWS_PLAN_REVIEW.md)에 보존했다. 누적 청구액은 아직 확인하지 않았다.
+2026-10-23 승인된 Terraform 자원 **67개를 생성**하고 EKS 1노드·ECR 서명 배포·보안 정책·ESO·Argo CD·실제 SG 자동복구 검증을 마쳤다. 실제 ID 장부는 `evidence/aws/full-created-ledger-20261023.json`이다. 최초 승인 plan **67 add / 0 change / 0 destroy**는 [검토 문서](docs/AWS_PLAN_REVIEW.md)에 보존했다. 검증 후 생성한 삭제 계획은 **0 add / 0 change / 67 destroy**이며 정확한 신규 ID를 대조했다. 최종 삭제 후 조회 결과는 `evidence/aws/cleanup-verification.json`과 [현재 상태](IMPLEMENTATION_STATUS.md)를 따른다. 누적 청구액은 아직 확인하지 않았다.
 
-사용자는 **총예산 180,000원 내에서 위 계획의 신규 생성, 최대 8시간 실검증, ENI 미연결 DemoOnly SG의 TCP22 일시 공개·자동 복구, 검증 후 이번에 만든 자원 정리까지 승인**했다. 같은 범위의 생성·정리 승인을 다시 요구하지 않는다. 기존·공유 자원은 보존하며 범위 확대나 장기 운영은 승인에 포함되지 않는다. 현재 남은 실행 조건은 [관리자 IAM bootstrap](docs/TEAM4_ADMIN_BOOTSTRAP.md)의 노드/S3 정책 보완이다. KMS 생성 **10월 23일 19:40:30 KST**부터 보수적으로 계산한 8시간 창은 **10월 24일 03:40:30 KST**까지다. EKS 대기 중에도 요금이 발생하며 삭제 대기 시간을 확보해야 한다. 자동 종료나 일괄 destroy를 예약한 상태는 아니다.
+사용자는 **총예산 180,000원 내에서 위 계획의 신규 생성, 최대 8시간 실검증, ENI 미연결 DemoOnly SG의 TCP22 일시 공개·자동 복구, 검증 후 이번에 만든 자원 정리까지 승인**했다. 같은 범위의 정리 승인을 다시 요구하지 않는다. 기존·공유 자원은 보존하며 범위 확대나 장기 운영은 포함하지 않는다. KMS 생성 **10월 23일 19:40:30 KST**부터 계산한 8시간 창은 **10월 24일 03:40:30 KST**까지다. 실검증 종료 후 **10월 23일 22:58:06 KST**에 검토한 삭제 계획을 실행했다. 삭제 완료 시각은 실행 결과와 후속 AWS 조회로 확인한다.
 
 ## 단가와 실제 구성
 
@@ -19,7 +19,7 @@
 
 EC2·gp3는 **AWS Price List의 공식 서울 지역 CSV 원문**에서 확인했다. 2026-10-23 최신 카탈로그 `20261022231453`의 같은 SKU·OnDemand·USD 행을 다시 조회했고 두 단가는 변하지 않았다. 선택 행은 `evidence/pricing/seoul-selected-prices-20261023.json`, 이전 조회는 `seoul-selected-prices.json`에 보존했다. 지역 인덱스에서 고정 버전 URL을 얻고 스트리밍으로 필요한 행을 읽었으며 전체 CSV는 저장하지 않았다. [최신 조회에 사용한 공식 가격표](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/20261022231453/ap-northeast-2/index.csv).
 
-10월 23일 현재 신규 KMS 키와 VPC만 생성됐고 네트워크 단계가 조회 권한 부족으로 중단됐다. EKS·EC2는 미생성이다. KMS 생성 시각 19:40 KST를 기준으로 최대 8시간 창은 **10월 24일 03:40 KST**까지로 기록했다. 소유 자원 ID는 `evidence/aws/partial-network-ledger-20261023.json`에 있고 정리는 아직 완료되지 않았다. KMS는 삭제 예약 후 30일 대기 상태를 실제 삭제와 구분한다.
+실제 실험은 EKS 제어 영역 1개와 `t3.large` 1노드, gp3 20 GiB 1개로 실행했다. 별도 로드밸런서·영구 볼륨은 없었다. 과거 부분 배포 장부를 최종 삭제 근거로 사용하지 않으며 KMS의 30일 삭제 대기와 Secret의 7일 복구 기간은 즉시 삭제와 구분한다.
 
 gp3는 기본 3,000 IOPS·125 MB/s를 포함하며 이 구성은 추가 성능을 지정하지 않는다. 가격표의 GB는 1024³ bytes이므로 여기서는 GiB로 표기했다. [EBS 요금 및 단위](https://aws.amazon.com/ebs/pricing/). Free Tier·크레딧·약정 할인은 차감하지 않았다. 실제 사용량·청구 기간·가격 변경은 [AWS Pricing Calculator](https://calculator.aws/)와 생성 시점의 최신 요금으로 다시 대조한다.
 
@@ -78,4 +78,14 @@ EKS는 사용하지 않는 시간에도 클러스터 요금이 발생한다. 노
 4. **검사한 저장 destroy plan으로 정리한다.** 부분 apply 실패도 현재 생성된 승인 범위만 정리한다. 삭제 실패 시 state·오류를 보존하고 새 plan으로 재검사한다. state에 빠진 자원은 정확한 생성 기록을 찾아 복구한 뒤 처리한다. 임의 `state rm`, lock 삭제, ENI 강제 detach로 문제를 숨기지 않는다.
 5. **잔존 비용을 확인한다.** EC2/EBS/IP/ENI, EKS, S3/ECR/Logs와 자동화 자원을 실제 조회한다. Secrets Manager **7일 복구 기간**, KMS **30일 삭제 대기**는 유지하고 예약 ID·예정일을 별도 보고한다. 백업 검증은 KMS 삭제 예약 전에 끝낸다. 기존 VPC·공유 자원·외부 runner 및 관리자 IAM 정책은 이번 Terraform 정리 대상에서 제외한다. 청구 반영 지연도 후속 확인한다.
 
-로그·증적의 365일 보존 설정은 destroy 뒤에도 자동으로 유지된다는 뜻이 아니다. 내보내기 실패로 일부 신규 저장 자원을 남겨야 한다면 정확한 ID·이유·예상 보관료를 보고하고 다른 확인된 신규 유료 자원을 우선 정리한다. `--approved-demo`는 SG 실험의 고유 TCP22 규칙 한 개와 실패 시 그 규칙의 복구를 제한하는 실행 옵션이며, 전체 신규 자원 정리의 근거는 사용자의 별도 명시적 승인이다. 수동 제거를 자동 복구 성공으로 보고하지 않는다. 현재 그러한 실험이나 정리도 실행하지 않았다.
+로그·증적의 365일 보존 설정은 destroy 뒤에도 자동으로 유지된다는 뜻이 아니다. 내보내기 실패로 일부 신규 저장 자원을 남겨야 한다면 정확한 ID·이유·예상 보관료를 보고하고 다른 확인된 신규 유료 자원을 우선 정리한다. `--approved-demo`는 SG 실험의 고유 TCP22 규칙 한 개와 실패 시 그 규칙의 복구를 제한하는 실행 옵션이며, 전체 신규 자원 정리의 근거는 사용자의 별도 명시적 승인이다. 이번 시험은 Lambda의 실제 제거를 확인했고 수동 시험 규칙 제거는 필요하지 않았다. 이어서 신규 자원 정리를 실행한 결과는 아래와 같다.
+
+## 이번 실험의 정리 결과
+
+Terraform 삭제는 **2026-10-23 23:09:10 KST**에 완료했고, **23:12:48 KST** 후속 AWS 조회 46개 항목이 통과했다. EKS·노드·EC2·EBS·ENI·신규 VPC 및 ECR/S3/Config/Lambda/EventBridge/SQS/프로젝트 역할의 정리를 확인했다. 기존 기본 VPC, 관리자 정책과 공유 서비스 연결 역할은 유지했다. Terraform managed state는 비어 있다.
+
+KMS는 `PendingDeletion`, 삭제 예정 시각은 `2026-11-22T23:09:08.324000+09:00`다. Secret은 7일 복구 기간의 삭제 예약이며, CloudTrail의 성공한 DeleteSecret 응답에서 확인한 예정 시각은 `2026-10-30T13:58:19Z`다. DescribeSecret의 DeletedDate는 요청 시각으로 반환되어 예약 종료 시각의 근거로 사용하지 않았다. 두 항목은 물리적 삭제 완료로 표시하지 않는다. 원본 증거는 `evidence/aws/cleanup-verification.json`, 실행 로그는 `evidence/cleanup/destroy-final-apply-20261023.txt`다.
+
+신규 KMS 생성부터 최종 재조회까지 약 **3.54시간**으로 8시간 창 안에 정리했다. 모든 기본 항목을 이 전체 시간에 적용한 보수적 산식은 $0.76이며, 기존 $3 변동비 예비액·환율 1,500원·VAT 10% 가정까지 넣으면 **약 6,200원**이다. 이 값은 청구액이나 확정 상한이 아니다. 실제 누적 사용료와 기존 계정 비용은 조회하지 않았으며 사용량·세금·청구 반영에 따라 달라진다.
+
+보존한 자료: ECR digest 4개와 OCI blob 14개, S3 객체 버전 2개, Config SG 이력·평가, 배포 artifact, EKS/Lambda/VPC 로그 및 Terraform 계획·state·ID 장부. 로그 백업은 고정한 snapshot 종료 시각까지 조회된 내용이며 이후 늦게 도착한 로그와 정리 중 로그의 완전 보존은 주장하지 않는다. 원본 증거·state·tfvars·자격증명은 Git에서 제외한다.

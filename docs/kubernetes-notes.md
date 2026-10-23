@@ -81,11 +81,11 @@ AppProject는 해당 저장소에서 `demo`의 NetworkPolicy만 관리하도록 
 
 ## 증적과 경계
 
-### GitHub deploy key가 금지된 저장소의 로컬 검증
+### GitHub deploy key가 금지된 저장소의 클러스터 내 미러 검증
 
 실제 GitHub 응답 `Deploy keys are disabled for this repository`가 확인되었다. 저장소 보안 설정을 바꾸거나 사용자 토큰을 Argo CD에 저장하지 않는다. 직접 GitHub 연동은 승인된 GitHub App 또는 읽기 전용 자격증명이 준비될 때까지 `BLOCKED`다.
 
-로컬 Argo CD 복구 기능은 정확한 원격 게시 commit의 로컬 Git 객체를 복제한 읽기 전용 mirror로 별도 검증할 수 있다.
+Argo CD 복구 기능은 정확한 원격 게시 commit의 로컬 Git 객체를 복제한 읽기 전용 mirror로 별도 검증할 수 있다. 기본 대상은 kind이며, 이미 생성 승인을 받은 실습 EKS는 명시적으로 `team4-eks`를 전달한다.
 
 ```bash
 export GITOPS_REVISION=<게시가_확인된_40자리_commit_SHA>
@@ -94,7 +94,9 @@ export GITOPS_REPO_URL=http://team4-git-mirror.argocd.svc.cluster.local:8080/rep
 bash scripts/11-gitops-drift-test.sh kind-team4
 ```
 
-mirror는 `kind-team4`에서만 생성하며, commit과 전체 도달 가능한 Git 객체를 담은 900,000 byte 이하 archive를 immutable ConfigMap으로 전달한다. 일반 HTTP Git 전송에는 shallow 저장소를 사용하지 않는다. `argocd`의 HTTP Pod는 읽기 전용 볼륨을 제공하며 외부 엔드포인트가 없는 ClusterIP Service를 쓴다. NetworkPolicy는 같은 네임스페이스의 Argo repo-server에서 TCP8080으로 접근하는 것만 허용하며 mirror egress는 모두 차단한다. 실제 repo-server의 `git ls-remote` 결과와 지정 SHA가 일치해야 mirror 준비를 성공 처리한다. `evidence/gitops-local-mirror.json`에 commit과 archive 해시를 남긴다. 이 검증은 로컬 mirror의 자동 복구 증거이며 직접 GitHub 인증·동기화 성공으로 표시하지 않는다.
+승인된 EKS에서 같은 검증을 수행할 때는 미러 준비와 drift 시험 두 명령의 인자에 모두 `team4-eks`를 사용한다. EKS 미러는 이미 서명 검증을 통과한 server의 ECR digest를 사용한다. 추가 노드나 외부 LoadBalancer는 만들지 않는다.
+
+mirror는 지정된 `kind-team4` 또는 승인된 `team4-eks`에 생성하며, commit과 전체 도달 가능한 Git 객체를 담은 900,000 byte 이하 archive를 immutable ConfigMap으로 전달한다. 일반 HTTP Git 전송에는 shallow 저장소를 사용하지 않는다. `argocd`의 HTTP Pod는 읽기 전용 볼륨을 제공하며 외부 엔드포인트가 없는 ClusterIP Service를 쓴다. NetworkPolicy는 같은 네임스페이스의 Argo repo-server에서 TCP8080으로 접근하는 것만 허용하며 mirror egress는 모두 차단한다. 실제 repo-server의 `git ls-remote` 결과와 지정 SHA가 일치해야 mirror 준비를 성공 처리한다. `evidence/gitops-mirror-<context>.json`에 commit과 archive 해시를 남긴다. 이 검증은 클러스터 내 mirror의 자동 복구 증거이며 직접 GitHub 인증·동기화 성공으로 표시하지 않는다.
 
 - `evidence/network-<context>.log/json`: 실제 연결과 최종 정책. 이 JSON은 정책 상태이며 테스트 결과 JSON은 아니다. 복구 후 무변경 확인은 별도 `network-<context>-verify-only.log`를 사용하여 기존 양방향 분리 시험 증거를 보존한다.
 - `evidence/eso-<context>.log/json`: Secret/Pod 일치와 rotation 검사, ExternalSecret 상태. Secret 원문 없음.
