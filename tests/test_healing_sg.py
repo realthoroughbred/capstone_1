@@ -128,6 +128,41 @@ class HealingTests(unittest.TestCase):
             self.run_healing(ec2, env=dict(ENV, DRY_RUN="false"))
         self.assertEqual([], ec2.calls)
 
+    def test_empty_filtered_eni_page_is_followed_before_proving_absence(self):
+        ec2 = EC2()
+        requests = []
+        def pages(**kwargs):
+            requests.append(copy.deepcopy(kwargs))
+            return ({"NetworkInterfaces": [], "NextToken": "page2"} if 'NextToken' not in kwargs
+                    else {"NetworkInterfaces": []})
+        ec2.describe_network_interfaces = pages
+        self.assertEqual('DRY_RUN', self.run_healing(ec2)['status'])
+        self.assertEqual(len(requests), 2)
+        self.assertEqual(requests[1]['NextToken'], 'page2')
+        self.assertEqual(requests[0]['Filters'], requests[1]['Filters'])
+
+    def test_attachment_on_later_eni_page_prevents_mutation(self):
+        ec2 = EC2()
+        ec2.describe_network_interfaces = lambda **kw: (
+            {"NetworkInterfaces": [], "NextToken": "page2"} if 'NextToken' not in kw
+            else {"NetworkInterfaces": [{"NetworkInterfaceId": "eni-attached"}]})
+        with self.assertRaisesRegex(Rejected, 'security_group_has_network_interfaces'):
+            self.run_healing(ec2, env=dict(ENV, DRY_RUN='false'))
+        self.assertEqual(ec2.calls, [])
+
+    def test_repeated_or_unbounded_eni_pages_prevent_mutation(self):
+        for repeated in (True, False):
+            ec2 = EC2()
+            calls = []
+            def pages(**kwargs):
+                calls.append(kwargs)
+                return {"NetworkInterfaces": [], "NextToken": 'same' if repeated else str(len(calls))}
+            ec2.describe_network_interfaces = pages
+            with self.assertRaisesRegex(Rejected, 'network_interfaces_pagination'):
+                self.run_healing(ec2, env=dict(ENV, DRY_RUN='false'))
+            self.assertLessEqual(len(calls), 20)
+            self.assertEqual(ec2.calls, [])
+
     def test_broad_rule_requires_manual_review_without_partial_remediation(self):
         for broad in (rule("sgr-all", IpProtocol="-1"), rule("sgr-range", FromPort=0, ToPort=65535)):
             with self.subTest(broad=broad):

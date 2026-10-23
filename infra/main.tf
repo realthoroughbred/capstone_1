@@ -120,6 +120,9 @@ resource "aws_iam_role_policy_attachment" "node" {
 }
 resource "aws_launch_template" "node" {
   name_prefix = "${var.project}-node-"
+  # Explicitly select the same cluster SG used by managed nodes. Otherwise
+  # EKS's RunInstances preflight may inspect the closed VPC default SG.
+  vpc_security_group_ids = [aws_eks_cluster.demo.vpc_config[0].cluster_security_group_id]
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"

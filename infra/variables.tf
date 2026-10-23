@@ -109,6 +109,11 @@ variable "healing_dry_run" {
   type        = bool
   default     = true
 }
+variable "healing_use_unreserved_concurrency_for_demo" {
+  description = "Explicit short-lived SG demo exception when the account cannot reserve one execution. Uses the shared account limit, not a per-function cap; default remains reserved concurrency 1."
+  type        = bool
+  default     = false
+}
 variable "notification_topic_arn" {
   description = "Optional existing standard SNS topic approved for failure notifications. Must be in the target account and region; no topic or subscriptions are created."
   type        = string

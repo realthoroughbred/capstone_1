@@ -19,11 +19,14 @@ from .sg_healing import _exposes_ssh, _rules, _validate_target
 
 
 def evaluations(config, group_id, rule_name):
-    request = {"ResourceType": "AWS::EC2::SecurityGroup", "ResourceId": group_id,
+    # The operator can read this project's tagged Config rule. Filter its
+    # paginated results to the exact target instead of requiring account-wide
+    # GetComplianceDetailsByResource permission.
+    request = {"ConfigRuleName": rule_name,
                "ComplianceTypes": ["COMPLIANT", "NON_COMPLIANT"]}
     matches = []
     while True:
-        response = config.get_compliance_details_by_resource(**request)
+        response = config.get_compliance_details_by_config_rule(**request)
         for item in response.get("EvaluationResults", []):
             qualifier = item.get("EvaluationResultIdentifier", {}).get("EvaluationResultQualifier", {})
             if (qualifier.get("ConfigRuleName") == rule_name

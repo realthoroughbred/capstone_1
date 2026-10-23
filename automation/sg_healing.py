@@ -48,12 +48,21 @@ def _validate_target(ec2, group_id, account, project):
     tags = {item["Key"]: item["Value"] for item in group.get("Tags", [])}
     require(tags.get("Project") == project and tags.get("DemoOnly") == "true",
             "security_group_tags_mismatch")
-    # A single attached ENI is enough to refuse. Never interpret a truncated
-    # empty response as proof of no attachments.
-    enis = ec2.describe_network_interfaces(
-        Filters=[{"Name": "group-id", "Values": [group_id]}], MaxResults=5)
-    require(not enis.get("NetworkInterfaces") and not enis.get("NextToken"),
-            "security_group_has_network_interfaces")
+    # EC2 can return an empty filtered page with a continuation token. Follow
+    # every page before proving absence; any attachment or incomplete traversal
+    # still refuses mutation. Bound calls and reject repeating tokens.
+    request = {"Filters": [{"Name": "group-id", "Values": [group_id]}], "MaxResults": 1000}
+    seen = set()
+    for _ in range(20):
+        enis = ec2.describe_network_interfaces(**request)
+        require(not enis.get("NetworkInterfaces"), "security_group_has_network_interfaces")
+        token = enis.get("NextToken")
+        if not token:
+            return
+        require(token not in seen, "network_interfaces_pagination_repeated")
+        seen.add(token)
+        request["NextToken"] = token
+    raise Rejected("network_interfaces_pagination_incomplete")
 
 
 def remediate(event, env, ec2, sts, sleep=time.sleep):

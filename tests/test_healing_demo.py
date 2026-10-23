@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 from automation.common import Rejected
-from automation.sg_demo import demonstrate
+from automation.sg_demo import demonstrate, evaluations
 
 
 ACCOUNT, REGION, SG = "123456789012", "ap-northeast-2", "sg-0123456789abcdef0"
@@ -73,7 +73,7 @@ class DemoTests(unittest.TestCase):
                 "CONFIG_RULE_NAME": "team4-restricted-ssh", "ALLOWED_SECURITY_GROUP_IDS": SG, "DRY_RUN": "false"}}}
         self.clients["configservice"].describe_config_rules.return_value = {"ConfigRules": [{
             "ConfigRuleState": "ACTIVE", "Source": {"Owner": "AWS", "SourceIdentifier": "INCOMING_SSH_DISABLED"}}]}
-        self.clients["configservice"].get_compliance_details_by_resource.side_effect = self.evaluation
+        self.clients["configservice"].get_compliance_details_by_config_rule.side_effect = self.evaluation
         self.clients["logs"].filter_log_events.side_effect = self.logs
 
     def evaluation(self, **kwargs):
@@ -104,6 +104,22 @@ class DemoTests(unittest.TestCase):
         self.assertEqual("PREFLIGHT_PASS", self.run_demo()["status"])
         self.assertEqual([], self.ec2.inject_calls)
         self.assertEqual([], self.ec2.revoke_calls)
+
+    def test_rule_evaluations_ignore_other_resources_across_pages(self):
+        expected = self.evaluation()["EvaluationResults"][0]
+        wrong_sg = copy.deepcopy(expected)
+        wrong_sg["EvaluationResultIdentifier"]["EvaluationResultQualifier"]["ResourceId"] = "sg-fffffffffffffffff"
+        wrong_rule = copy.deepcopy(expected)
+        wrong_rule["EvaluationResultIdentifier"]["EvaluationResultQualifier"]["ConfigRuleName"] = "other-rule"
+        config = Mock()
+        config.get_compliance_details_by_config_rule.side_effect = [
+            {"EvaluationResults": [wrong_sg, wrong_rule], "NextToken": "page-two"},
+            {"EvaluationResults": [expected]}]
+        self.assertEqual([expected], evaluations(config, SG, self.options.config_rule))
+        requests = config.get_compliance_details_by_config_rule.call_args_list
+        self.assertEqual(self.options.config_rule, requests[0].kwargs["ConfigRuleName"])
+        self.assertEqual("page-two", requests[1].kwargs["NextToken"])
+        config.get_compliance_details_by_resource.assert_not_called()
 
     def test_approved_live_flow_requires_config_and_lambda_proof(self):
         self.options.approved_demo = True
@@ -173,7 +189,7 @@ class DemoTests(unittest.TestCase):
             result = original_evaluation(**kwargs)
             result["EvaluationResults"][0]["ComplianceType"] = "COMPLIANT"
             return result
-        self.clients["configservice"].get_compliance_details_by_resource.side_effect = compliant_only
+        self.clients["configservice"].get_compliance_details_by_config_rule.side_effect = compliant_only
         original_logs = self.logs
         def old_log(**kwargs):
             result = original_logs(**kwargs)

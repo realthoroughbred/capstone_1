@@ -209,7 +209,7 @@ resource "aws_lambda_function" "healing" {
   source_code_hash               = data.archive_file.automation[0].output_base64sha256
   timeout                        = 60
   memory_size                    = 128
-  reserved_concurrent_executions = 1
+  reserved_concurrent_executions = var.healing_use_unreserved_concurrency_for_demo ? -1 : 1
   kms_key_arn                    = aws_kms_key.project.arn
   tracing_config { mode = "Active" }
   dead_letter_config { target_arn = aws_sqs_queue.failures[0].arn }
