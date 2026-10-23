@@ -137,6 +137,13 @@ def main():
                 fragment_text = fragment_text.replace(placeholder, value)
             boundary["Statement"].extend(json.loads(fragment_text)["Statement"])
             bootstrap["Statement"][1]["Resource"] = f"arn:aws:iam::{ACCOUNT}:oidc-provider/{args.issuer_url.removeprefix('https://')}"
+        # Terraform reads DNS attributes after creating the VPC. Keep this
+        # recovery grant bound to the observed new VPC, including cluster phase.
+        bootstrap["Statement"].append({
+            "Sid": "OnlyNewProjectVPCAttributes", "Effect": "Allow",
+            "Action": "ec2:DescribeVpcAttribute",
+            "Resource": f"arn:aws:ec2:{REGION}:{ACCOUNT}:vpc/{vpc}",
+        })
         documents["operator-new-resource-bootstrap.json"] = bootstrap
 
     # Statement labels are optional. Remove only labels to fit the IAM size limit;

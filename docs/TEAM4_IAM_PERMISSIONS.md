@@ -1,6 +1,6 @@
 # team4 AWS 권한 연결 안내
 
-확인된 계정은 `852093844554`, IAM 사용자는 `team4-operator`, 리전은 `ap-northeast-2`입니다. `aws login --remote --profile team4` 로그인과 STS 신원 확인은 성공했습니다. 처음에는 EKS 목록, VPC 조회, AWS Config recorder 조회, ECR repository 조회가 AccessDenied였으며, 외부에서 읽기 권한을 연결한 후 5개 확인 명령이 모두 성공했습니다. 실제 plan도 67 add / 0 change / 0 destroy로 성공했습니다. 사용자는 신규 생성·최대 8시간 실검증·연결되지 않은 DemoOnly SG의 TCP 22 시험·검증 후 신규 자원 정리를 명시 승인했습니다. 현재의 실행 장애는 승인 부족이 아니라 배포 IAM 권한과 경계 정책의 부재입니다.
+확인된 계정은 `852093844554`, IAM 사용자는 `team4-operator`, 리전은 `ap-northeast-2`입니다. 사용자는 신규 생성·최대 8시간 실검증·ENI 미연결 DemoOnly SG 시험·신규 자원 정리를 승인했습니다. **10월 23일 초기 배포 정책 6개와 신규 KMS 키가 검토 파일과 일치함을 확인했습니다.** 키 import 후 신규 VPC가 생성됐으나 Terraform의 `ec2:DescribeVpcAttribute` 조회 권한이 빠져 중단됐습니다. 정확한 새 VPC/기본 SG에 한정한 후속 정책은 `generated/team4-admin-fix-20261023.zip`입니다. 초기 정책과 KMS 키를 다시 만들지 않습니다.
 
 관리자는 [구체적인 bootstrap 실행 안내](TEAM4_ADMIN_BOOTSTRAP.md)를 따릅니다. 저장된 실제 plan으로 만든 검토용 JSON은 `generated/admin-bootstrap/initial/`에 있으며, [오프라인 생성기](admin-bootstrap/render.py)가 초기·네트워크·클러스터 단계별 문서를 생성합니다. 이번 실행은 Inspector가 꺼져 있으므로 전체 optional-automation 대신 **Config-only 정책**을 연결합니다. 에이전트가 이 관리자 정책을 AWS에 생성·연결했다는 뜻은 아닙니다.
 
@@ -35,7 +35,7 @@ aws configservice describe-configuration-recorders --profile team4 --region ap-n
 aws ecr describe-repositories --profile team4 --region ap-northeast-2
 ```
 
-성공 기준은 각 명령의 종료코드 0입니다. 목록이 비어 있어도 정상입니다. 계속 거부되면 조직 SCP, 사용자 permissions boundary, 다른 정책의 명시적 Deny 또는 로그인 계정을 함께 확인해야 합니다. 에이전트는 연결 확인 후 기존 리소스 중복 여부, add-on 버전, Terraform 실제 plan과 비용 영향을 이어서 검토합니다. 현재 state가 없는 새 배포 plan에 필요한 조회를 준비했으며, 기존 Lambda 등이 state에 있다면 환경설정 조회가 필요하므로 아래 배포 정책 검토가 추가로 필요할 수 있습니다.
+성공 기준은 각 명령의 종료코드 0입니다. 목록이 비어 있어도 정상입니다. 계속 거부되면 SCP, 사용자 boundary, 명시적 Deny 또는 로그인 계정을 함께 확인합니다. 최초 조회 정책은 state 없는 plan 기준이었으며 생성 후 속성 조회도 필요합니다. 현재 파일에는 Project 태그가 있는 VPC의 `ec2:DescribeVpcAttribute`를 추가했습니다. 이번 후속 ZIP은 더 좁은 정확한 신규 VPC ID로 같은 조회를 허용하므로 preflight 정책까지 중복 변경할 필요는 없습니다. IAM 권한 초안은 실제 provider 실행에서 추가 보완이 필요할 수 있습니다.
 
 ## 실제 배포 전에 검토할 정책
 

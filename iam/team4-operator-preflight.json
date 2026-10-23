@@ -54,6 +54,17 @@
       }
     },
     {
+      "Sid": "ProjectVPCAttributes",
+      "Effect": "Allow",
+      "Action": "ec2:DescribeVpcAttribute",
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:vpc/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Project": "team4"
+        }
+      }
+    },
+    {
       "Sid": "ProjectEKSMetadata",
       "Effect": "Allow",
       "Action": [

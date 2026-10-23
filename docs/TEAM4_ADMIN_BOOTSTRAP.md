@@ -2,7 +2,7 @@
 
 사용자는 서울 리전 계정 `852093844554`에서 신규 리소스 생성, 최대 8시간 실검증, **연결되지 않은 `DemoOnly=true` SG의 TCP 22 실험**, 검증 후 이번에 만든 리소스 정리를 승인했습니다. 예산은 **180,000원**입니다. 이 문서는 그 승인 범위를 실행하기 위한 관리자 권한 연결 절차이며 같은 작업의 승인을 다시 요구하는 문서가 아닙니다.
 
-현재 로그인 주체는 `arn:aws:iam::852093844554:user/team4-operator`입니다. 읽기 확인 5개와 실제 Terraform plan은 성공했고 저장된 원본 plan은 **67 add / 0 change / 0 destroy**입니다. 그러나 runtime boundary와 배포용 IAM 정책은 `NoSuchEntity`, 실제 태그를 포함한 `CreateVpc --dry-run`은 `UnauthorizedOperation`입니다. 사용자에게 `AdministratorAccess`나 IAM 정책 편집 권한을 주는 대신, 아래 정책은 기존 계정 관리자가 생성·연결합니다. 비밀키나 로그인 토큰을 공유하지 않습니다.
+현재 로그인 주체는 `arn:aws:iam::852093844554:user/team4-operator`입니다. 원본 승인 plan은 **67 add / 0 change / 0 destroy**입니다. **10월 23일 초기 정책 6개와 신규 KMS 키의 내용 일치를 확인했고 키 import·VPC 생성까지 실행했습니다.** 네트워크 apply는 `ec2:DescribeVpcAttribute`에서 중단됐으므로 현재는 `generated/team4-admin-fix-20261023.zip`의 후속 정책이 필요합니다. 초기 정책과 KMS 키를 다시 만들지 않습니다. 아래는 전체 단계의 설치 절차입니다.
 
 ## 1. 지금 관리자에게 전달할 파일
 
@@ -91,7 +91,9 @@ python3 docs/admin-bootstrap/render.py --plan evidence/aws/demo-plan.json \
   --vpc-id "$DEMO_VPC_ID" --default-sg-id "$DEMO_DEFAULT_SG_ID"
 ```
 
-관리자는 `network/operator-new-resource-bootstrap.json`을 검토하여 `team4-operator-new-resource-bootstrap` 정책으로 생성·연결합니다. 이 단계의 정책에는 **정확한 새 default SG 한 개**의 규칙 제거와 태그 설정만 있습니다. VPC가 자동으로 만든 default SG는 처음에 Project 태그가 없어서 일반 Project-tag 정책만으로는 Terraform의 기본 규칙 제거가 허용되지 않습니다. 다른 SG에 Project 태그를 붙이는 광범위한 예외는 사용하지 않습니다.
+관리자는 `network/operator-new-resource-bootstrap.json`을 검토하여 `team4-operator-new-resource-bootstrap` 정책으로 생성·연결합니다. 정책은 **정확한 새 default SG 한 개**의 규칙 제거·태그 설정과 **정확한 새 VPC 한 개**의 `ec2:DescribeVpcAttribute` 조회를 허용합니다. DNS 설정 후 Terraform이 속성을 읽는 데 필요합니다. VPC가 자동으로 만든 default SG는 처음에 Project 태그가 없으므로 정확한 ID로 제한합니다. [EC2 IAM 리소스·조건 지원](https://docs.aws.amazon.com/service-authorization/latest/reference/list_ec2.html).
+
+10월 23일 부분 생성된 VPC는 Terraform state에 tainted로 기록됐습니다. 권한 연결 후 실제 DNS 속성·태그·CIDR·연결 자원을 확인하고, 재사용 가능할 때 로컬 state의 taint를 해제한 뒤 새 plan을 검토합니다. 원래 저장 plan 재적용이나 자동 교체로 새 ID를 만들지 않습니다.
 
 ## 4. Control plane 생성, 정확한 OIDC/CNI 권한 완성
 

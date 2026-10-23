@@ -17,7 +17,9 @@
 | 새 프로젝트 KMS CMK 1개 | 공식 **$1/key-month**, 시간 비례. 요청료 별도이며 장기 보유 후 키 회전은 추가 보관료가 생길 수 있다. [KMS 요금](https://aws.amazon.com/kms/pricing/) |
 | Secrets Manager 1개 | 공개 요금 **$0.40/secret-month**, API **$0.05/10,000 calls**. ESO refresh 호출 포함. [Secrets Manager 요금](https://aws.amazon.com/secrets-manager/pricing/) |
 
-EC2·gp3는 2026-10-18에 **AWS Price List의 공식 서울 지역 CSV 원문**에서 확인했다. 카탈로그 버전은 `20261015191316`, 게시 시각은 `2026-10-15T19:13:16Z`, 두 가격의 적용일은 `2026-10-01`이다. 지역 `ap-northeast-2`, 위치 `Asia Pacific (Seoul)`, OnDemand, 통화 USD와 각 단위를 확인한 선택 행은 `evidence/pricing/seoul-selected-prices.json`에 보관했다. 지역 인덱스에서 고정 버전 URL을 얻고 스트리밍/HTTP Range로 필요한 행만 읽었으며 전체 CSV는 저장하지 않았다. [AWS 공식 가격 파일 조회 방법](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/using-the-aws-price-list-bulk-api-fetching-price-list-files-manually.html).
+EC2·gp3는 **AWS Price List의 공식 서울 지역 CSV 원문**에서 확인했다. 2026-10-23 최신 카탈로그 `20261022231453`의 같은 SKU·OnDemand·USD 행을 다시 조회했고 두 단가는 변하지 않았다. 선택 행은 `evidence/pricing/seoul-selected-prices-20261023.json`, 이전 조회는 `seoul-selected-prices.json`에 보존했다. 지역 인덱스에서 고정 버전 URL을 얻고 스트리밍으로 필요한 행을 읽었으며 전체 CSV는 저장하지 않았다. [최신 조회에 사용한 공식 가격표](https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/20261022231453/ap-northeast-2/index.csv).
+
+10월 23일 현재 신규 KMS 키와 VPC만 생성됐고 네트워크 단계가 조회 권한 부족으로 중단됐다. EKS·EC2는 미생성이다. KMS 생성 시각 19:40 KST를 기준으로 최대 8시간 창은 **10월 24일 03:40 KST**까지로 기록했다. 소유 자원 ID는 `evidence/aws/partial-network-ledger-20261023.json`에 있고 정리는 아직 완료되지 않았다. KMS는 삭제 예약 후 30일 대기 상태를 실제 삭제와 구분한다.
 
 gp3는 기본 3,000 IOPS·125 MB/s를 포함하며 이 구성은 추가 성능을 지정하지 않는다. 가격표의 GB는 1024³ bytes이므로 여기서는 GiB로 표기했다. [EBS 요금 및 단위](https://aws.amazon.com/ebs/pricing/). Free Tier·크레딧·약정 할인은 차감하지 않았다. 실제 사용량·청구 기간·가격 변경은 [AWS Pricing Calculator](https://calculator.aws/)와 생성 시점의 최신 요금으로 다시 대조한다.
 

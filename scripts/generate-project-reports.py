@@ -118,10 +118,13 @@ record('AWS 신원·기존 자원 조회', 'OPS-001', 'aws', inventory_ready,
        ['evidence/aws/preflight.json'], inventory_detail,
        blocked=not inventory_ready)
 aws_plan = data('evidence/aws/plan-summary.json')
+deployment = data('evidence/aws/deployment-status.json')
 plan_ready = aws_plan.get('result') == 'PASS' and aws_plan.get('read_only') is True
 record('AWS Terraform plan', 'IAC-001', 'aws', plan_ready,
        ['evidence/aws/plan-summary.json', 'evidence/aws/demo-plan.txt'],
-       f"보관된 실제 AWS provider 계획: {aws_plan.get('actions', {})}. apply 미실행. 현재 입력·자원 상태로 새 plan을 확인한 뒤 실행해야 함. docs/AWS_PLAN_REVIEW.md 참고.")
+       f"보관된 최초 AWS provider 계획: {aws_plan.get('actions', {})}. " +
+       ('이후 단계별 apply를 시도했으므로 최신 state·증적을 따라야 함. ' if deployment.get('apply_attempted') else 'apply 미실행. ') +
+       '현재 입력·자원 상태로 새 plan을 확인한 뒤 실행해야 함. docs/AWS_PLAN_REVIEW.md 참고.')
 authorization = data('evidence/aws/authorization.json')
 authorized = authorization.get('resource_creation') is True and authorization.get('cleanup_after_validation_new_resources_only') is True
 reason = ('team4 AWS 로그인 세션 만료. aws login으로 재인증 후 IAM·기존 자원·최신 plan을 재확인해야 함. AWS 작업은 실행하지 않음.'
@@ -131,8 +134,20 @@ reason = ('team4 AWS 로그인 세션 만료. aws login으로 재인증 후 IAM�
           '실제 plan 완료. 정확한 범위의 배포 IAM 준비 및 유료 생성 승인 대기.' if plan_ready else
           '사전 조회 완료. 실제 plan·정확한 범위의 배포 IAM 준비 및 유료 생성 승인이 필요함.' if inventory_ready else
           'team4 프로필 인증됨. 자원 조회 IAM 권한 부족 및 유료 생성 승인 전.' if preflight else 'AWS 계정 사전 점검 필요.')
-record('AWS plan/ECR/EKS/Config/Inspector', 'NET-001', 'aws', False,
-       ['evidence/aws/preflight.json', 'evidence/aws/deployment-permissions.json', 'evidence/aws/authorization.json'], reason, blocked=True)
+if deployment.get('apply_attempted'):
+    reason = deployment['summary'] + f" 상태 확인: {deployment['timestamp']}."
+    if auth_blocked:
+        reason += ' 현재 AWS 인증도 실패하여 재로그인이 필요함.'
+bootstrap = data('evidence/aws/bootstrap-verification.json')
+bootstrap_checks = bootstrap.get('checks', [])
+if bootstrap_checks:
+    record('AWS 초기 IAM·KMS 대조', 'SEC-001', 'aws',
+           len(bootstrap_checks) == 7 and all(c.get('result') in {'PASS', 'MATCH'} for c in bootstrap_checks),
+           ['evidence/aws/bootstrap-verification.json'],
+           '초기 IAM 정책 6개 및 새 KMS 키의 태그·정책 일치 확인. 모든 배포 API 권한이 충분하다는 의미는 아님.')
+record('AWS ECR/EKS/Config 실검증', 'NET-001', 'aws', False,
+       ['evidence/aws/preflight.json', 'evidence/aws/deployment-permissions.json',
+        'evidence/aws/deployment-status.json', 'evidence/aws/authorization.json'], reason, blocked=True)
 github_readiness = data('evidence/github/deployment-readiness.json')
 if github_readiness:
     readiness_checks = github_readiness.get('checks', {})

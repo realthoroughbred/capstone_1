@@ -1,10 +1,10 @@
 # GitHub CI와 승인된 AWS 배포 설정
 
-**2026-10-23 읽기 전용 재점검:** `aws-demo` environment 조회는 HTTP 404, 등록된 self-hosted runner는 0개였다. 구현 PR #1은 draft/open이며 main에는 아직 반영되지 않았다. 따라서 일반 CI 성공과 별개로 배포 environment·전용 runner·검토한 main workflow·AWS OIDC 역할 연결을 준비해야 한다. AWS `team4` 세션도 만료되어 로그인 갱신이 필요하다. 원본 조회 결과는 Git에서 제외한 `evidence/github/deployment-readiness.json`에 보관한다.
+**2026-10-23 읽기 전용 재점검:** `aws-demo` environment 조회는 HTTP 404, 등록된 self-hosted runner는 0개였다. 구현 PR #1은 draft/open이며 main에는 아직 반영되지 않았다. 따라서 일반 CI 성공과 별개로 배포 environment·전용 runner·검토한 main workflow·AWS OIDC 역할 연결을 준비해야 한다. AWS 인증은 갱신됐고 초기 IAM 정책도 확인했다. 원본 GitHub 조회 결과는 `evidence/github/deployment-readiness.json`에 보관한다.
 
 대상 저장소는 `realthoroughbred/capstone_1`입니다. 이 문서는 설정 절차이며, GitHub 환경·runner·AWS 역할이 실제로 연결되었다는 증거는 아닙니다. 이번 생성·검증·SG 시연·검증 후 신규 자원 정리는 이미 받은 승인 범위에서 진행하며 같은 승인을 다시 요청하지 않습니다. main 반영 여부와 실행할 commit은 root 작업에서 결정합니다.
 
-AWS는 WSL의 `aws login --remote --profile team4 --region ap-northeast-2`로 IAM 사용자 `arn:aws:iam::852093844554:user/team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 서비스 사전 조회 5개는 모두 통과했습니다(`evidence/aws/preflight.json`). 총예산 180,000원 내 기본 1노드·최대 8시간 생성·검증·SG 시험과 검증 후 신규 자원 정리가 승인됐습니다. 현재는 VPC 생성 DryRun 거부와 runtime boundary 부재로 관리자 배포 IAM 준비를 기다리며, OIDC 역할/EKS 배포 준비도 아직 완료되지 않았습니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
+AWS는 WSL의 IAM 브라우저 로그인으로 `team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 총예산 180,000원 내 기본 1노드·최대 8시간 생성·검증·SG 시험 및 신규 자원 정리가 승인됐습니다. 초기 IAM·KMS 확인과 신규 VPC 생성 후 DNS 속성 조회 권한에서 중단돼 관리자 후속 정책 연결을 기다립니다. OIDC 역할/EKS 배포 준비도 아직 완료되지 않았습니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
 
 현재는 [IAM 권한 문서](TEAM4_IAM_PERMISSIONS.md)에 따라 추가 provisioning 권한과 실제 plan을 준비하는 단계입니다. GitHub 일반 CI 실행과 AWS 배포 활성화를 구분하며, 개인 `team4` 로그인 cache를 GitHub runner로 복사하지 않습니다.
 

@@ -51,7 +51,7 @@ bare BusyBox 원본은 APK/DPKG 목록이 없어 취약점 검사 범위가 비�
 
 ## AWS 배포
 
-현재 실행 조건: team4 AWS 로그인 세션 만료. aws login으로 재인증 후 IAM·기존 자원·최신 plan을 재확인해야 함. AWS 작업은 실행하지 않음.
+현재 실행 조건: 초기 IAM 정책 6개와 KMS 정책·태그 대조 및 신규 키 import 완료. 신규 VPC 생성 후 ec2:DescribeVpcAttribute 권한 부족으로 네트워크 단계 중단. VPC·KMS 2개가 state에 남아 있으며 EKS·EC2·ECR·Config는 미생성, 정리 미완료. 관리자 후속 정책 연결 대기. 현재 PC 공인 IPv4 한 개(/32)로 갱신 승인 및 반영 완료. 최대 8시간 창은 10/24 03:40 KST까지. Inspector/CodeBuild는 승인 범위 밖. 상태 확인: 2026-10-23T11:00:52.542805+00:00.
 
 [실제 AWS 계획](docs/AWS_PLAN_REVIEW.md), [배포 가이드](AWS_DEPLOYMENT_GUIDE.md), [IAM 권한](docs/TEAM4_IAM_PERMISSIONS.md), [GitHub 설정](docs/GITHUB_SETUP.md), [비용·정리](COST_AND_CLEANUP.md)를 확인합니다. `team4` 프로필/계정 `852093844554`/서울 리전, 총예산 상한 180,000원입니다. 실제 plan을 검토하고 유료 생성 승인을 받은 뒤 배포합니다. 자동복구는 기본 DRY_RUN이며 운영 자원은 대상으로 삼지 않습니다.
 

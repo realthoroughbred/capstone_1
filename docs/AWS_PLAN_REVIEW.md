@@ -1,8 +1,8 @@
 # 실제 AWS 생성 계획 검토
 
-**신규 생성·최대 8시간 실검증·SG 시험 및 검증 후 신규 자원 정리가 승인됐으며, apply는 아직 실행하지 않았습니다.** 계정 `852093844554`, 리전 `ap-northeast-2`, 프로필 `team4`의 실제 AWS API를 사용한 Terraform 계획입니다. 사용자 승인 기록은 `evidence/aws/authorization.json`에 보관했습니다. 총예산은 180,000원이며 기존 리소스 변경이나 Inspector/CodeBuild 확장은 승인 범위에 없습니다.
+**신규 생성·최대 8시간 실검증·SG 시험 및 신규 자원 정리가 승인됐으며, 10월 23일 네트워크 단계 apply를 시도했습니다.** 새 KMS 키 import와 VPC 생성까지 진행했고 DNS 속성 조회 권한에서 중단됐습니다. EKS·EC2·ECR·Config는 아직 생성되지 않았습니다. 아래 표는 계정 `852093844554`, 리전 `ap-northeast-2`의 최초 승인 계획입니다. 총예산은 180,000원이며 기존 리소스 변경이나 Inspector/CodeBuild 확장은 승인 범위 밖입니다.
 
-Terraform 결과는 **67 add / 0 change / 0 destroy**입니다. IAM 정책 연결 등도 별도 항목이므로 유료 서비스 67개라는 뜻은 아닙니다. 로컬 state가 없음을 확인했고 이름 조회에서 기존 EKS·ECR·Config recorder·OIDC provider·프로젝트 역할·시크릿·KMS alias가 없었습니다. 기존 기본 VPC는 대상에 포함하지 않습니다.
+최초 Terraform 결과는 **67 add / 0 change / 0 destroy**입니다. IAM 정책 연결 등도 별도 항목이므로 유료 서비스 67개라는 뜻은 아닙니다. 당시 로컬 state와 동명 프로젝트 자원의 부재를 확인했습니다. 현재 state에는 이번 신규 VPC·KMS가 있으므로 최초 저장 plan을 다시 적용하면 안 됩니다. 기존 기본 VPC는 대상에 포함하지 않습니다.
 
 | 범위 | 생성 계획 |
 |---|---|
@@ -25,12 +25,12 @@ EKS public API는 사용자가 제공한 관리 PC IPv4 **한 주소의 /32**로
 ## 실행 전 남은 조건
 
 - 사용자 승인 완료: 신규 생성·ECR/EKS 검증·DemoOnly SG 시험·검증 후 신규 자원 정리. 같은 범위에 대한 재승인을 요구하지 않습니다.
-- [관리자 IAM bootstrap](TEAM4_IAM_PERMISSIONS.md): runtime boundary, provisioning 권한, 새 리소스에만 한정한 default SG/OIDC/network 권한과 검토된 KMS 생성·import. 현재 runtime boundary와 역할들은 존재하지 않습니다. 준비된 기본 정책만으로 한 번에 전체 apply가 가능하다고 보장하지 않습니다.
+- [관리자 IAM bootstrap](TEAM4_IAM_PERMISSIONS.md): 초기 정책 6개와 신규 KMS 키를 확인하고 import했습니다. 신규 VPC의 DNS 조회·기본 SG 후속 권한이 남아 있습니다. 이후 실제 EKS issuer/subnet/SG에 맞춘 CNI 경계 정책 단계도 필요합니다.
 - bootstrap/import 뒤 state에 맞춰 계획을 다시 생성하고 승인된 자원·비용 범위를 대조합니다. 이 문서의 저장 plan을 그대로 강행하지 않습니다.
 - GitHub `aws-demo` 보호 환경·전용 runner·OIDC 연결. ECR/EKS 및 Config 실검증은 이 준비 이후에 수행합니다.
 - 실제 SG 복구 시연은 이미 승인된 범위에서 해당 새 DemoOnly SG가 ENI 미연결임을 재확인하고, 공개 TCP22 규칙을 일시 추가한 뒤 Config 탐지·Lambda 복구·재평가 증적을 확인합니다.
 
-현재 실제 쓰기 권한 검사: `ec2:CreateVpc`의 `--dry-run`이 `UnauthorizedOperation`으로 거부됐으며 관리자에게 안내한 IAM 정책 6개는 모두 `NoSuchEntity`였습니다. 조회용 정책은 정상입니다. 증적은 `evidence/aws/deployment-permissions.json`이며, 이 실패로 실제 자원이 생성되지는 않았습니다. [관리자 초기 작업 안내](TEAM4_ADMIN_QUICKSTART.md)의 IAM 준비가 현재 실행 차단 원인입니다.
+10월 23일에는 IAM 정책 6개가 검토 파일과 일치했고 `CreateVpc` DryRun도 통과했습니다. 7 add 네트워크 계획을 원본과 대조해 실행했으나 VPC 생성 후 `ec2:DescribeVpcAttribute`에서 거부됐습니다. VPC는 state에서 tainted이므로 권한 보완 뒤 실제 DNS 상태를 검증하고 재사용 여부를 판단해야 합니다. 무조건 재실행해 교체하지 않습니다. 관리자 수정 ZIP은 `generated/team4-admin-fix-20261023.zip`입니다. 키 생성 19:40 KST 기준 최대 8시간 창은 **10월 24일 03:40 KST**까지이며 정리는 아직 완료되지 않았습니다.
 
 ## 원본 증적
 
