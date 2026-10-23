@@ -51,6 +51,20 @@ class BootstrapScopeTests(unittest.TestCase):
     def test_cluster_update_preserves_exact_vpc_read_permission(self):
         self.assert_attribute_scope('cluster')
 
+    def test_config_result_permission_stays_with_config_role_and_region(self):
+        result = self.render('cluster')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        boundary = json.loads((self.path / 'output/runtime-boundary.json').read_text())
+        statements = [s for s in boundary['Statement']
+                      if 'config:PutEvaluations' in ([s['Action']] if isinstance(s['Action'], str) else s['Action'])]
+        self.assertEqual(len(statements), 1)
+        self.assertEqual(statements[0]['Action'], 'config:PutEvaluations')
+        self.assertEqual(statements[0]['Effect'], 'Allow')
+        self.assertEqual(statements[0]['Condition'], {'StringEquals': {
+            'aws:PrincipalArn': 'arn:aws:iam::852093844554:role/team4-config-recorder',
+            'aws:RequestedRegion': 'ap-northeast-2'}})
+        self.assertLessEqual(len(json.dumps(boundary, separators=(',', ':'))), 6144)
+
     def test_existing_default_vpc_is_rejected(self):
         result = self.render('network', vpc='vpc-044ea157cc2bf6edc')
         self.assertNotEqual(result.returncode, 0)

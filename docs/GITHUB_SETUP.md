@@ -1,12 +1,12 @@
 # GitHub CI와 승인된 AWS 배포 설정
 
-**2026-10-23 실행 상태:** `aws-demo` environment와 main 전용 branch 규칙, 배포 변수 3개를 생성·재조회했다. Windows 드라이브와 개인 AWS/Git 자격증명을 공유하지 않는 별도 WSL에 rootless Docker와 일회용 runner를 준비·등록했다. runner는 오프라인이며 배포 job은 아직 실행하지 않았다. GitHub OIDC provider와 배포 IAM 역할은 생성됐고, PR #1의 main 반영 및 실제 노드 배포가 남아 있다. 원본 증적은 `evidence/github/environment-created-20261023.json`, `runner-registration-20261023.json`에 보관한다.
+**2026-10-23 실행 결과:** `aws-demo` 환경과 main 전용 branch 규칙을 적용하고 [배포 run 39955813458](https://github.com/realthoroughbred/capstone_1/actions/runs/39955813458)이 성공했다. 실행 commit은 `a2288bd2db999decc04ea365669d5d791d8f34eb`이며 GitHub OIDC→ECR 서명·SBOM→EKS Pod digest·HTTP 응답을 검증했다. 개인 AWS/Git 자격증명과 Windows 드라이브를 공유하지 않는 별도 WSL의 rootless Docker·일회용 runner를 사용했다. 검증 후 runner 등록과 전용 WSL 배포판은 제거했다. 배포 artifact는 `evidence/aws/deployment-run-39955813458/`, 집계 증거는 `evidence/aws/signed-deployment.json`, runner 정리는 `evidence/github/isolated-runner-cleanup.json`에 보관한다.
 
 대상 저장소는 `realthoroughbred/capstone_1`입니다. 아래는 재현 절차이며 실제 실행 결과는 위 증적과 [현재 상태](../IMPLEMENTATION_STATUS.md)를 따릅니다. 이번 생성·검증·SG 시연·검증 후 신규 자원 정리는 이미 받은 승인 범위에서 진행하며 같은 승인을 다시 요청하지 않습니다. main 반영 여부와 실행할 commit은 root 작업에서 결정합니다.
 
-AWS는 WSL의 IAM 브라우저 로그인으로 `team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 총예산 180,000원 내 기본 1노드·최대 8시간 생성·검증·SG 시험 및 신규 자원 정리가 승인됐습니다. 초기 IAM·KMS 확인과 신규 VPC 생성 후 DNS 속성 조회 권한에서 중단돼 관리자 후속 정책 연결을 기다립니다. OIDC 역할/EKS 배포 준비도 아직 완료되지 않았습니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
+AWS는 WSL의 IAM 브라우저 로그인으로 `team4-operator` 인증을 확인했습니다. SSO 방식이 아닙니다. 총예산 180,000원 내 기본 1노드·최대 8시간 생성·검증·SG 시험 및 신규 자원 정리가 승인됐으며 OIDC 역할과 EKS 배포를 실제 검증했습니다. 재배포 전에는 삭제된 AWS 역할·클러스터와 일회용 runner를 다시 준비하고 GitHub 환경 변수의 현재 유효성을 확인해야 합니다. [AWS 준비 절차](../AWS_DEPLOYMENT_GUIDE.md).
 
-현재는 [IAM 권한 문서](TEAM4_IAM_PERMISSIONS.md)에 따라 추가 provisioning 권한과 실제 plan을 준비하는 단계입니다. GitHub 일반 CI 실행과 AWS 배포 활성화를 구분하며, 개인 `team4` 로그인 cache를 GitHub runner로 복사하지 않습니다.
+GitHub 일반 CI와 AWS 배포는 별도 workflow입니다. 개인 `team4` 로그인 cache를 GitHub runner로 복사하지 않습니다. 아래 설정 절차는 다른 PC·새 환경에서 재현할 때 사용합니다.
 
 ## 1. 로컬 GitHub 인증과 작업 사본
 
@@ -40,7 +40,7 @@ gh repo view realthoroughbred/capstone_1 --json nameWithOwner,viewerPermission
 
 ## 2. `aws-demo` 환경의 승인과 브랜치 제한
 
-마지막 GitHub environments 조회 결과는 `total_count=0`이며 **`aws-demo` 환경 설정은 아직 검증되지 않았습니다.** 일반 CI 성공을 배포 보호 설정 완료로 해석하지 않습니다. 실행 전 실제 환경 설정을 확인합니다.
+`aws-demo` 환경과 main 한정 branch 규칙을 생성·재조회하고 실제 배포에 사용했습니다. `evidence/github/environment-created-20261023.json`에 설정 증거가 있습니다. 재실행 전에는 설정이 유지되는지 확인합니다.
 
 저장소 관리자/소유자가 **Settings → Environments → New environment**에서 정확히 `aws-demo`를 만듭니다. 워크플로 최초 실행으로 환경을 자동 생성하면 보호 규칙이 없는 환경이 생길 수 있으므로 먼저 설정합니다.
 

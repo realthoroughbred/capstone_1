@@ -22,8 +22,17 @@
 | AWS Terraform plan | VERIFIED | PASS / aws |
 | AWS 초기 IAM·KMS 대조 | VERIFIED | PASS / aws |
 | AWS EKS 제어 영역 | VERIFIED | PASS / aws |
-| AWS ECR/EKS/Config 실검증 | BLOCKED | BLOCKED / aws |
-| GitHub AWS 배포 준비 | BLOCKED | BLOCKED / github |
+| AWS EKS 노드·애드온 | VERIFIED | PASS / aws |
+| AWS ECR 서명·EKS 앱 배포 | VERIFIED | PASS / aws |
+| AWS NetworkPolicy | VERIFIED | PASS / aws |
+| AWS ESO·비밀값 교체 | VERIFIED | PASS / aws |
+| AWS Kyverno 보안 컨텍스트·이미지 제한 | VERIFIED | PASS / aws |
+| AWS Kyverno 미서명 이미지 거부 | VERIFIED | PASS / aws |
+| AWS Argo CD 정책 복구 | VERIFIED | PASS / aws |
+| AWS Config→EventBridge→Lambda SG 복구 | VERIFIED | PASS / aws |
+| AWS 신규 유료 자원 정리 | VERIFIED | PASS / aws |
+| AWS Inspector→CodeBuild 이미지 교체 | UNVERIFIED | NOT_TESTED / aws |
+| Argo CD GitHub 직접 인증 | UNVERIFIED | NOT_TESTED / aws |
 
 VERIFIED는 표의 범위만 의미합니다. 모의 API 테스트를 AWS 검증으로 계산하지 않습니다.
 

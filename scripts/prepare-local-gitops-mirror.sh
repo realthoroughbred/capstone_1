@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/lib-k8s.sh
-require_demo_context kind-team4
+require_demo_context "${1:-kind-team4}"
 : "${GITOPS_REVISION:?Set the full published Git commit to mirror}"
 [[ "$GITOPS_REVISION" =~ ^[a-f0-9]{40}$ ]]
 git -c "safe.directory=$PWD" cat-file -e "${GITOPS_REVISION}^{commit}"
@@ -45,14 +45,14 @@ for attempt in {1..15}; do
   sleep 2
 done
 [[ "$mirror_ready" == true ]] || { echo 'FAIL: repo-server HTTP refs did not match the required commit' >&2; exit 1; }
-python3 - "$GITOPS_REVISION" "$bundle_hash" "$bundle_bytes" "$GITOPS_REPO_URL" > evidence/gitops-local-mirror.json <<'PY'
+python3 - "$GITOPS_REVISION" "$bundle_hash" "$bundle_bytes" "$GITOPS_REPO_URL" "$context" > "evidence/gitops-mirror-${context}.json" <<'PY'
 import json,sys
 from datetime import datetime,timezone
-print(json.dumps({"result":"PASS", "scope":"local-readonly-mirror", "source_commit":sys.argv[1],
+print(json.dumps({"result":"PASS", "scope":"cluster-readonly-mirror", "context":sys.argv[5], "source_commit":sys.argv[1],
                   "archive_sha256":sys.argv[2], "archive_bytes":int(sys.argv[3]), "url":sys.argv[4],
                   "checked_at":datetime.now(timezone.utc).isoformat(),
                   "direct_github_integration":"BLOCKED: repository disables deploy keys"}, indent=2))
 PY
 printf 'PASS: exact local Git mirror HTTP refs match %s\n' "$GITOPS_REVISION"
 printf 'Next: export GITOPS_REPO_URL=%s\n' "$GITOPS_REPO_URL"
-printf 'Then: bash scripts/11-gitops-drift-test.sh kind-team4\n'
+printf 'Then: bash scripts/11-gitops-drift-test.sh %s\n' "$context"

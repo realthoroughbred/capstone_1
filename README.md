@@ -51,7 +51,7 @@ bare BusyBox 원본은 APK/DPKG 목록이 없어 취약점 검사 범위가 비�
 
 ## AWS 배포
 
-현재 실행 조건: EKS 1.35 제어 영역 ACTIVE, CNI/kube-proxy·ECR·OIDC 역할·시험 SG 생성 완료. CNI/OIDC 정책 일치 확인. Terraform 관리 자원 47개. S3 후속 조회 및 노드 RunInstances 권한 누락으로 apply 부분 실패. 노드는 0개, Config·Lambda·ECR 이미지 업로드·EKS 워크로드 검증은 미완료. 관리자 노드/S3 단일 정책 수정 대기. main 전용 GitHub 환경 및 rootless 일회용 runner 등록 완료(오프라인). 신규 자원 정리 미완료, 최대 실습 창 10/24 03:40:30 KST까지. 상태 확인: 2026-10-23T11:57:06.862885+00:00.
+현재 실행 조건: 승인된 신규 자원 67개 생성 및 EKS 1노드 Ready 확인. 실제 GitHub OIDC→ECR 서명·SBOM→EKS HTTP 배포, NetworkPolicy, ESO rotation, Kyverno 미서명 거부, Argo CD 정책 복구 통과. Config→EventBridge→Lambda 실제 SG 자동복구·정상 재평가 통과. 신규 실행 자원 삭제 후 조회 완료; KMS/Secret은 복구 기간을 둔 삭제 예약. 상태 확인: 2026-10-23T14:12:48.687037+00:00.
 
 [실제 AWS 계획](docs/AWS_PLAN_REVIEW.md), [배포 가이드](AWS_DEPLOYMENT_GUIDE.md), [IAM 권한](docs/TEAM4_IAM_PERMISSIONS.md), [GitHub 설정](docs/GITHUB_SETUP.md), [비용·정리](COST_AND_CLEANUP.md)를 확인합니다. `team4` 프로필/계정 `852093844554`/서울 리전, 총예산 상한 180,000원입니다. 실제 plan을 검토하고 유료 생성 승인을 받은 뒤 배포합니다. 자동복구는 기본 DRY_RUN이며 운영 자원은 대상으로 삼지 않습니다.
 

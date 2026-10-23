@@ -1,23 +1,34 @@
 # Self-Healing 구현 및 검증 보고서
 
-**2026-10-23 실행 상태:** EKS 제어 영역 ACTIVE와 네트워크·ECR·OIDC 생성을 확인했다. Terraform 관리 자원은 47개이며 노드 시작/S3 후속 조회 권한에서 전체 apply가 부분 실패했다. Config/Lambda 자동복구 체인은 아직 배포되지 않았고 실제 규칙 주입·복구 검증도 미실행이다. 현재 상태는 [남은 작업](REMAINING_TASKS.md)을 따른다.
+**2026-10-23 실환경 결과:** Config→EventBridge→Lambda 보안 그룹 자동복구와 EKS Argo CD 정책 복구를 실제 AWS에서 검증했다. ECR 서명·SBOM·EKS 배포, NetworkPolicy, ESO rotation, Kyverno 미서명 이미지 거부도 통과했다. 이번 실험에서 생성한 Terraform 자원은 67개이며 검증 후 정리 상태는 [현재 상태](IMPLEMENTATION_STATUS.md)를 따른다.
 
-복구 코드와 로컬 테스트는 구현했으며, **AWS에서 실제 탐지·복구·EKS 교체를 검증한 결과는 아직 없다.** WSL의 IAM 브라우저 로그인으로 승인된 `team4-operator` 신원을 확인했다. SSO 로그인은 사용하지 않았다. 최초 plan **67 add / 0 change / 0 destroy**는 [계획 검토](docs/AWS_PLAN_REVIEW.md)에 보존했고 이후 단계별 실행 결과는 `evidence/aws/deployment-status.json`에 기록한다. 취약 규칙 주입·실제 Inspector finding 수집은 수행하지 않았다.
+SG 시험은 ENI에 연결하지 않은 `DemoOnly=true` 그룹에 TCP22 공개 규칙 하나를 주입했다. 실제 Config 평가와 Lambda 로그, 최종 EC2 규칙 조회를 대조했으며 수동 Lambda 호출이나 모의 Config 이벤트는 사용하지 않았다. `evidence/aws/sg-healing-demo.json`은 `VERIFIED/PASS`다. **Inspector finding에 따른 이미지 자동 교체는 이번 승인 계획에 포함되지 않아 실검증하지 않았다.** 일반 서명 이미지 배포 성공을 Inspector 자동교체 성공으로 계산하지 않는다.
 
-총예산은 180,000원이며 신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리가 승인됐다. 초기 정책과 클러스터 CNI/OIDC 보완은 확인했고 노드 시작/S3 조회 정책 보완을 기다린다. `automation/fixtures/*.simulated.json`과 fake AWS client 테스트는 명시적인 모의 자료이며 실제 CVE나 클라우드 증적으로 취급하지 않는다. 인증 성공, 권한 확인, 복구 성공은 서로 다른 검증 단계다.
+총예산은 180,000원이며 신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리가 승인됐다. Config 기록 역할의 EC2 조회 범위와 `PutEvaluations` 누락을 실제 오류로 진단해 보완한 뒤 시험했다. 운영자 권한 경계는 관리자가 수정했다. `automation/fixtures/*.simulated.json`과 fake AWS client 테스트는 모의 자료로 유지한다.
+
+| SG 시험 단계 | UTC 시각 / 측정값 |
+| --- | --- |
+| 규칙 주입 요청 | 2026-10-23 13:46:28.798 |
+| Config NON_COMPLIANT 결과 기록 | 13:48:04.508 · 주입 요청부터 **95.710초** |
+| Lambda 규칙 제거 후 검증 | handler **1,343ms** · 실제 Config 이벤트에서 실행 |
+| 외부 조회에서 규칙 제거 관측 | 13:48:32.271 · 주입 요청부터 **123.473초** |
+| Config COMPLIANT 재평가 | 13:49:58.947 |
+| 전체 증거 검증 종료 | 13:50:07.012 |
+
+제거 관측 시간에는 API 조회·polling 지연이 포함된다. handler 처리 시간은 Config 탐지 지연과 다르다. 시험 후 Lambda는 dry-run으로 복원했고, 새 EventBridge rule·Config recorder를 중지했다. 실패 큐의 visible/in-flight/delayed 메시지는 모두 0개였다.
 
 ## 현재 검증 범위
 
 | 대상 | 확인한 내용 | 아직 확인하지 못한 내용 |
 | --- | --- | --- |
-| SG Lambda | 계정/리전/태그/미부착 SG 제한, IPv4·IPv6 TCP22 정확한 규칙, 중복·권한 오류·검증 실패 처리 | 실제 Config 지연, EventBridge 전달, IAM 성공, SG 복구와 재평가 |
+| SG Lambda | 실제 IPv4 TCP22 주입→Config→EventBridge→Lambda 제거→정상 재평가, 범위·오류 처리 단위 테스트 | IPv6 위반 주입과 장기 반복 부하 시험 |
 | Inspector Lambda | finding 원본 재조회, approved digest/expiry/scan 확인, project 설정 검증, 영구 dedup·불확실한 시작 차단 | 실제 Inspector finding, 외부 CodeBuild 연결/권한, 빌드 실행 |
 | CodeBuild worker | 실제 대상 digest/소유 관계 검사 로직, cosign/scan 실패, 동시 수정, rollout 실패, Pod digest 검증 분기 | 실제 서명/취약점 DB, EKS admission/rollout, 새 digest 실행 |
-| 일반 배포 검증 | template뿐 아니라 소유 ReplicaSet/ready Pod runtime digest 검증 로직 | AWS 배포 artifact와 애플리케이션 응답 |
+| 일반 배포 검증 | 실제 GitHub OIDC·ECR 서명·SBOM과 소유 ReplicaSet/Ready Pod runtime digest·HTTP 응답 | Inspector 경로의 이미지 교체와 혼동하지 않음 |
 
-저장소 전체 Python 단위 테스트는 2026-10-23 로컬 재검증에서 **101개 통과**했으며 원본은 `evidence/local/unit-tests.txt`에 있다. 세션 만료·잘못된 계정·조회 거부 회귀 검사 6개와 신규 VPC 조회 권한 범위·기존 VPC 거부 검사 3개가 포함된다. 과거 [GitHub CI run 39116090770](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770)은 commit `dd13627053f4b76af4ec151894946f5b6509f37f`에서 Python 70개·Terraform mock 6개·Checkov 111 passed/0 failed/23 skipped였으며, 최신 CI 결과와 구분한다. 증적 디렉터리는 Git에서 제외한다. 자동 복구 관련 테스트는 `tests/test_healing*.py`, `tests/test_inspector*.py`에서 확인할 수 있다. 아래 명령은 AWS 호출 없이 실행된다.
+저장소 전체 Python 단위 테스트는 2026-10-23 로컬 재검증에서 **106개 통과**, Terraform mock **9개 통과**, Checkov **164 passed / 0 failed / 23 documented skips**였다. 원본은 `evidence/local/unit-tests.txt`, `evidence/terraform/`에 있다. Config 결과 제출을 특정 역할·리전으로 제한하는 회귀 검사도 포함한다. 증적 디렉터리는 Git에서 제외한다. 아래 명령은 AWS 호출 없이 실행된다.
 
-후속 SNS 옵션 검증을 포함한 [CI run 39116901979](https://github.com/realthoroughbred/capstone_1/actions/runs/39116901979)도 통과했고 Terraform mock은 **8개**로 늘었다. 위 6개 수치는 앞선 commit artifact의 기록이다.
+실제 배포에 사용한 main commit의 [CI run 39955517961](https://github.com/realthoroughbred/capstone_1/actions/runs/39955517961)과 [AWS 배포 run 39955813458](https://github.com/realthoroughbred/capstone_1/actions/runs/39955813458)은 모두 성공했다. 이후 Config 권한 보완·보고서 변경의 CI는 해당 변경 commit 결과를 별도로 확인한다.
 
 ```bash
 python -m unittest discover -s tests -v
@@ -25,7 +36,9 @@ python -m unittest discover -s tests -v
 
 Terraform의 validate/mock plan과 로컬 단위 테스트 통과는 AWS 권한·네트워크·리전 호환성을 증명하지 않는다. ISMS-P 관련 매핑은 구현 통제를 설명하는 자료이며 인증 획득이나 전 항목 준수 판정이 아니다.
 
-### 실제 로컬 GitOps 복구
+### 실제 EKS 및 로컬 GitOps 복구
+
+EKS에서는 main commit `a2288bd2db999decc04ea365669d5d791d8f34eb`의 읽기 전용 클러스터 내부 Git 미러를 사용했다. 2026-10-23 13:24:06.864 UTC에 NetworkPolicy drift를 허용한 뒤 OutOfSync와 실제 통신 차단, Argo CD 자동 sync, 정책·통신 복원을 관측했다. 복원 검증 시각은 13:24:31.077 UTC로 주입부터 약 **24.213초**다. 원본은 `evidence/gitops-team4-eks.json`이며 private GitHub 직접 인증 연동은 미검증이다.
 
 2026-10-18 09:35 UTC에 `kind-team4`의 Argo CD NetworkPolicy drift 실험은 **PASS**였다. 최초 게시 commit `ba6babcf4b06d340ee79292830cfd1ae576b06b3`의 로컬 Git mirror를 원본으로 사용했다. 실제 정책 변경 승인 → OutOfSync → 허용 client 통신 차단 → 자동 sync operation → 정책·통신 복원을 관측했다. 원본은 `evidence/gitops-kind-team4.json`이다. admission에 거부되어 drift 자체가 없었던 경우를 성공으로 센 결과가 아니다.
 
@@ -41,7 +54,7 @@ Lambda는 account/region/Config rule/SG allowlist, `Project=team4`, `DemoOnly=tr
 
 ### 승인된 실제 데모 절차
 
-[AWS 배포 안내](AWS_DEPLOYMENT_GUIDE.md)에 따라 실제 plan·비용을 검토하고, 별도 승인을 받아 Config 기록·Lambda를 준비한다. 기본 계정 조회는 통과했지만 아직 복구 리소스를 배포하지 않아 아래 SG preflight의 실환경 성공은 검증하지 않았다. Bash에서 `AWS_PROFILE=team4`를 설정한다. `--approved-demo`가 없으면 규칙을 만들지 않는다.
+[AWS 배포 안내](AWS_DEPLOYMENT_GUIDE.md)에 따라 실제 plan·비용과 실험 범위를 검토한다. 이번 시험은 기존 명시적 승인에 따라 실행했으며 아래는 재현 절차다. 정리 후 다시 시험하려면 새 자원과 정상 Config baseline부터 준비한다. Bash에서 `AWS_PROFILE=team4`를 설정한다. `--approved-demo`가 없으면 규칙을 만들지 않는다.
 
 ```bash
 export AWS_PROFILE=team4 AWS_REGION=ap-northeast-2 AWS_PAGER=""
@@ -102,4 +115,4 @@ worker는 취약 digest가 실제 대상에 실행 중인지 확인하고, 승�
 
 예상 범위를 벗어난 이벤트는 안전하게 거부하고 상태를 기록한다. 재시도 가능한 Lambda 오류는 제한된 재시도 후 SQS 실패 큐/비동기 실패 destination으로 전달된다. CodeBuild 실패 상태도 큐에 보낸다. 큐는 보존 14일이며 CloudWatch queue-depth alarm이 있다. **기본 `notification_topic_arn=""`에서는 사람에게 보내는 alarm action이 없다.** 선택적으로 같은 계정·리전의 승인된 기존 standard SNS topic ARN을 연결할 수 있지만 topic/subscription은 생성하지 않는다. topic/KMS 정책과 확정된 수신자를 준비하고 실제 전달을 검증해야 알림 완료라고 기록할 수 있다. 현재 AWS 알림은 실행 검증하지 않았다. 운영자는 기본 상태에서 큐/로그를 확인해야 하며 모든 거부 이벤트가 DLQ에 들어가는 것은 아니다.
 
-로그·증적은 필요한 ID/상태/시각만 기록하며 raw event, secret 값, 인증 token, 외부 명령의 민감 출력은 남기지 않는다. S3 증적·배포 runtime JSON을 함께 보존한다. 현재 승인 범위의 남은 순서는 IAM 권한 보완 → inventory와 실제 plan 재확인 → apply → controller/ECR/EKS 검증 → Config·EventBridge·Lambda SG 복구 측정 → 증적 보존 → 이번 신규 자원 정리다. 생성·SG 시험·검증 후 신규 자원 정리에 같은 승인을 다시 요구하지 않는다. 실제 Inspector/외부 CodeBuild 확장은 별도 범위이며 아직 실행하지 않는다. 정리는 [COST_AND_CLEANUP](COST_AND_CLEANUP.md)의 소유권·계획 대조 절차를 따른다.
+자동복구 증적은 필요한 ID/상태/시각을 기록하며 secret 값·인증 token을 포함하지 않는다. S3 증적·배포 runtime JSON·ECR OCI blob과 운영 로그 백업을 Git에서 제외한 로컬에 보존한다. 승인된 실검증은 통과했으며 최종 신규 자원 정리 상태는 [COST_AND_CLEANUP](COST_AND_CLEANUP.md)과 실제 삭제 후 조회 증거를 따른다. Inspector/외부 CodeBuild 확장은 별도 범위로 남긴다.

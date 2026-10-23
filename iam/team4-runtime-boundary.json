@@ -2,6 +2,18 @@
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "ConfigEvaluationResultsOnly",
+      "Effect": "Allow",
+      "Action": "config:PutEvaluations",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-config-recorder",
+          "aws:RequestedRegion": "ap-northeast-2"
+        }
+      }
+    },
+    {
       "Sid": "AWSMetadataAndSDKIdentity",
       "Effect": "Allow",
       "Action": [
