@@ -1,5 +1,7 @@
 # Self-Healing 구현 및 검증 보고서
 
+**2026-10-23 재개 점검:** 현재 `team4` 세션은 만료됐다. 과거 조회 성공 기록은 `evidence/aws/preflight-*.json`으로 보존했고 `preflight.json`에는 최신 인증 실패를 기록했다. AWS 현재 상태는 [남은 작업](REMAINING_TASKS.md)을 따른다. 이번 재개에서 실제 AWS 생성·복구는 실행하지 않았다.
+
 복구 코드와 로컬 테스트는 구현했으며, **AWS에서 실제 탐지·복구·EKS 교체를 검증한 결과는 아직 없다.** WSL에서 IAM 브라우저 로그인(`aws login --remote --profile team4 --region ap-northeast-2`) 후 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`의 STS 인증은 확인했다. SSO 로그인은 사용하지 않았다. 처음 거부된 EKS/EC2/Config/ECR/IAM 사전 조회 5개는 2026-10-18 10:01 UTC 재검증에서 모두 통과했으며 증적은 `evidence/aws/preflight.json`이다. 사용자 제공 관리 PC IPv4의 `/32`를 반영한 실제 plan도 **67 add / 0 change / 0 destroy**로 통과했다([계획 검토](docs/AWS_PLAN_REVIEW.md)). apply·취약 규칙 주입·실제 Inspector finding 수집은 수행하지 않았으며 클라우드 리소스를 만들지 않았다.
 
 총예산은 180,000원이며 신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리가 승인됐다. 현재 실제 VPC 생성 DryRun이 권한 부족으로 거부됐고 runtime boundary가 없어 관리자 IAM 준비를 기다린다. `automation/fixtures/*.simulated.json`과 fake AWS client 테스트는 명시적인 모의 자료이며 실제 CVE나 클라우드 증적으로 취급하지 않는다. 인증 성공, 권한 확인, 복구 성공은 서로 다른 검증 단계다.
@@ -13,7 +15,7 @@
 | CodeBuild worker | 실제 대상 digest/소유 관계 검사 로직, cosign/scan 실패, 동시 수정, rollout 실패, Pod digest 검증 분기 | 실제 서명/취약점 DB, EKS admission/rollout, 새 digest 실행 |
 | 일반 배포 검증 | template뿐 아니라 소유 ReplicaSet/ready Pod runtime digest 검증 로직 | AWS 배포 artifact와 애플리케이션 응답 |
 
-저장소 전체 Python 단위 테스트의 최근 로컬 결과는 **70개 통과**이며 원본은 `evidence/local/unit-tests.txt`에 있다. [GitHub CI run 39116090770](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770)도 commit `dd13627053f4b76af4ec151894946f5b6509f37f`에서 모든 job이 통과했고, artifact에서 Python 70개·Terraform mock 6개·Checkov 111 passed/0 failed/23 skipped를 확인했다. 증적 디렉터리는 Git에서 제외한다. 자동 복구 관련 테스트는 `tests/test_healing*.py`, `tests/test_inspector*.py`에서 확인할 수 있다. 아래 명령은 AWS 호출 없이 실행된다.
+저장소 전체 Python 단위 테스트는 2026-10-23 로컬 재검증에서 **95개 통과**했으며 원본은 `evidence/local/unit-tests.txt`에 있다. 여기에는 세션 만료·잘못된 계정·조회 거부를 과거 성공으로 오인하지 않는 회귀 검사 6개가 포함된다. 과거 [GitHub CI run 39116090770](https://github.com/realthoroughbred/capstone_1/actions/runs/39116090770)은 commit `dd13627053f4b76af4ec151894946f5b6509f37f`에서 Python 70개·Terraform mock 6개·Checkov 111 passed/0 failed/23 skipped였으며, 최신 CI 결과와 구분한다. 증적 디렉터리는 Git에서 제외한다. 자동 복구 관련 테스트는 `tests/test_healing*.py`, `tests/test_inspector*.py`에서 확인할 수 있다. 아래 명령은 AWS 호출 없이 실행된다.
 
 후속 SNS 옵션 검증을 포함한 [CI run 39116901979](https://github.com/realthoroughbred/capstone_1/actions/runs/39116901979)도 통과했고 Terraform mock은 **8개**로 늘었다. 위 6개 수치는 앞선 commit artifact의 기록이다.
 

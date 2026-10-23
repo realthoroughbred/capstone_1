@@ -1,5 +1,7 @@
 # AWS 배포 및 실환경 검증 절차
 
+**2026-10-23 재개 확인:** `team4` 로그인 세션이 만료되어 현재 AWS 조회가 차단됐다. 먼저 Ubuntu에서 `aws login --remote --profile team4 --region ap-northeast-2`로 갱신하고 관리자 IAM 준비 상태·기존 자원·최신 plan을 다시 확인한다. 아래의 10월 18일 결과는 과거 관측이며, 현재 상태는 [남은 작업](REMAINING_TASKS.md)을 따른다. 이전 승인 범위는 유지한다.
+
 AWS 인증은 WSL의 IAM 콘솔 브라우저 로그인으로 확인했다. STS 결과는 계정 `852093844554`, 사용자 `arn:aws:iam::852093844554:user/team4-operator`이며 profile은 `team4`이다. 초기 AccessDenied였던 EKS/EC2/Config/ECR/IAM 사전 조회 5개는 2026-10-18 10:01 UTC 재검증에서 모두 통과했다. 증적은 `evidence/aws/preflight.json`이다. 사용자 제공 public IPv4 `/32`를 반영한 실제 Terraform plan은 **67 add / 0 change / 0 destroy**이다. [생성 계획 검토](docs/AWS_PLAN_REVIEW.md)와 `evidence/aws/demo-plan.*`에 기록했다. AWS apply, EKS 배포, Config/Inspector 복구 실험은 실행하지 않았고 클라우드 리소스를 만들지 않았다.
 
 사용자가 정한 **총예산은 180,000원**이다. 실제 67개 생성 plan의 기본 1노드·최대 8시간 실검증, ECR/EKS 배포, ENI 미연결 DemoOnly SG의 TCP22 임시 공개·자동복구 시험 및 검증 후 신규 자원 정리는 **이미 승인됐다**. 승인 기록은 `evidence/aws/authorization.json`에 보관했다. 현재 차단 원인은 관리자 IAM 준비다. 실제 `ec2:CreateVpc --dry-run`이 `UnauthorizedOperation`으로 거부됐고 runtime boundary와 배포 정책이 없는 것을 확인했다. 기존 자원 변경이나 Inspector/CodeBuild 확장은 이 승인에 포함하지 않는다.

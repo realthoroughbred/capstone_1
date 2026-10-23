@@ -144,11 +144,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "자동복구 단위·통합 테스트",
   "scope": "simulated",
   "result": "PASS",
-  "details": "89개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.",
+  "details": "95개 fake-client/로컬 테스트. 실제 Config/Inspector 이벤트 아님.",
   "evidence": [
     {
       "path": "evidence/local/unit-tests.txt",
-      "sha256": "63d20b0f4251148504687ca2ca89781376b5ed2be96225539f846dd66bb12439"
+      "sha256": "9eb2ec3e583ae2dd1db24f28860ad59fe8cb5959cd20374f20895e16ac790b63"
     }
   ],
   "policy_name": "공개 SSH 접근 금지",
@@ -630,11 +630,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "GitHub Actions CI",
   "scope": "github",
   "result": "PASS",
-  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `956fd527ef16003e81781ebb322e80e7c281862e` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39118168887).",
+  "details": "실제 원격 커밋의 실행 결과. 로컬 스크립트 실행을 CI 성공으로 대체하지 않음. 커밋 `0a494dbf833b2e1dfbeafd632d48366c0e862204` · [실행](https://github.com/realthoroughbred/capstone_1/actions/runs/39122958977).",
   "evidence": [
     {
-      "path": "evidence/github/runs-956fd527ef16003e81781ebb322e80e7c281862e.json",
-      "sha256": "29bba86d650d66d5860219be31c05ab1cff1a5cf750283fe157e069ecc63036c"
+      "path": "evidence/github/runs-0a494dbf833b2e1dfbeafd632d48366c0e862204.json",
+      "sha256": "6af6f5ac828ad2655a68b558853efd4c1c30d250b9295d4befd36589f94f0d95"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -660,7 +660,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
 
 ## OPS-001 — 로그 및 변경 증적 보존
 
-결과: **PASS** · 검증 범위: **aws**
+결과: **BLOCKED** · 검증 범위: **aws**
 
 통제: 2.9.1 변경관리, 2.9.4 로그 및 접속기록 관리
 
@@ -670,12 +670,12 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "target": "AWS 신원·기존 자원 조회",
   "tool": "AWS 신원·기존 자원 조회",
   "scope": "aws",
-  "result": "PASS",
-  "details": "team4 프로필, 계정 852093844554. STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회.",
+  "result": "BLOCKED",
+  "details": "현재 AWS 인증 확인 실패. 최신 조회·권한 확인을 수행하지 못함. 마지막 확인: 2026-10-23T06:05:59.253581+00:00.",
   "evidence": [
     {
       "path": "evidence/aws/preflight.json",
-      "sha256": "03eed9e13be78f4d2c75542c1292c2b79ac44c42c528b1e1ea643a527dbd3be8"
+      "sha256": "41aff44bbd0b21cb297da1f62c18b905adb37ac382e1cf89b5555325fa70ed28"
     }
   ],
   "policy_name": "로그 및 변경 증적 보존",
@@ -712,7 +712,7 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "AWS Terraform plan",
   "scope": "aws",
   "result": "PASS",
-  "details": "실제 AWS provider 계획: {'add': 67, 'change': 0, 'destroy': 0}. apply 미실행. docs/AWS_PLAN_REVIEW.md 참고.",
+  "details": "보관된 실제 AWS provider 계획: {'add': 67, 'change': 0, 'destroy': 0}. apply 미실행. 현재 입력·자원 상태로 새 plan을 확인한 뒤 실행해야 함. docs/AWS_PLAN_REVIEW.md 참고.",
   "evidence": [
     {
       "path": "evidence/aws/plan-summary.json",
@@ -757,11 +757,11 @@ Technical evidence mapping only; not an ISMS-P certification determination.
   "tool": "AWS plan/ECR/EKS/Config/Inspector",
   "scope": "aws",
   "result": "BLOCKED",
-  "details": "신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리 승인 완료. 실제 VPC 생성 DryRun 거부와 runtime boundary 부재로 관리자 배포 IAM 준비 대기.",
+  "details": "team4 AWS 로그인 세션 만료. aws login으로 재인증 후 IAM·기존 자원·최신 plan을 재확인해야 함. AWS 작업은 실행하지 않음.",
   "evidence": [
     {
       "path": "evidence/aws/preflight.json",
-      "sha256": "03eed9e13be78f4d2c75542c1292c2b79ac44c42c528b1e1ea643a527dbd3be8"
+      "sha256": "41aff44bbd0b21cb297da1f62c18b905adb37ac382e1cf89b5555325fa70ed28"
     },
     {
       "path": "evidence/aws/deployment-permissions.json",
@@ -781,6 +781,47 @@ Technical evidence mapping only; not an ISMS-P certification determination.
     {
       "id": "2.10.2",
       "name": "클라우드 보안"
+    },
+    {
+      "id": "2.9.4",
+      "name": "로그 및 접속기록 관리"
+    }
+  ],
+  "violations": [],
+  "remediation_executed": false,
+  "remediation_method": null,
+  "before": null,
+  "after": null,
+  "revalidation": "NOT_TESTED",
+  "duration_seconds": null
+}
+```
+
+## OPS-001 — 로그 및 변경 증적 보존
+
+결과: **BLOCKED** · 검증 범위: **github**
+
+통제: 2.9.1 변경관리, 2.9.4 로그 및 접속기록 관리
+
+```json
+{
+  "policy_id": "OPS-001",
+  "target": "GitHub AWS 배포 준비",
+  "tool": "GitHub AWS 배포 준비",
+  "scope": "github",
+  "result": "BLOCKED",
+  "details": "확인 2026-10-23T06:07:24.777708+00:00: aws-demo 환경 조회 미확인, 사용 가능한 전용 runner 0개. main에 검토한 배포 workflow 반영·환경 보호 설정·AWS 역할 연결 후 실검증 필요.",
+  "evidence": [
+    {
+      "path": "evidence/github/deployment-readiness.json",
+      "sha256": "e160cc0d6e748a41d0557c7b8517ed76f4500870acbbe88a487be2c2a8ce9749"
+    }
+  ],
+  "policy_name": "로그 및 변경 증적 보존",
+  "isms_p": [
+    {
+      "id": "2.9.1",
+      "name": "변경관리"
     },
     {
       "id": "2.9.4",

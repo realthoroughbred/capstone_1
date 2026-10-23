@@ -1,10 +1,17 @@
 """Derive project status from retained command results; missing proof never becomes PASS."""
+import argparse
 import importlib.util
 import json
 import re
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--as-of', type=date.fromisoformat,
+                    default=datetime.now(timezone(timedelta(hours=9))).date(),
+                    help='Report review date in Asia/Seoul; does not change evidence timestamps.')
+args = parser.parse_args()
 
 
 def read(path):
@@ -98,23 +105,46 @@ record('GitHub Actions CI', 'OPS-001', 'github', ci_pass,
        ci_paths, ci_detail,
        failed=isinstance(runs, list) and any(r.get('conclusion') in {'failure', 'timed_out', 'action_required'} for r in runs))
 preflight = data('evidence/aws/preflight.json')
-inventory_ready = bool(preflight.get('checks')) and all(c.get('result') == 'PASS' for c in preflight['checks'])
+auth_blocked = preflight.get('authentication', {}).get('result') == 'BLOCKED'
+inventory_checks = preflight.get('checks', [])
+inventory_ready = (not auth_blocked and
+                   {c.get('name') for c in inventory_checks} ==
+                   {'eks', 'project_vpcs', 'config_recorders', 'ecr', 'oidc_providers'} and
+                   all(c.get('result') == 'PASS' for c in inventory_checks))
+inventory_detail = ('현재 AWS 인증 확인 실패. 최신 조회·권한 확인을 수행하지 못함.' if auth_blocked else
+                    'STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회.')
+inventory_detail += f" 마지막 확인: {preflight.get('timestamp', '기록 없음')}."
 record('AWS 신원·기존 자원 조회', 'OPS-001', 'aws', inventory_ready,
-       ['evidence/aws/preflight.json'], 'team4 프로필, 계정 852093844554. STS 및 EKS·VPC·ECR·Config·OIDC 읽기 전용 조회.',
+       ['evidence/aws/preflight.json'], inventory_detail,
        blocked=not inventory_ready)
 aws_plan = data('evidence/aws/plan-summary.json')
 plan_ready = aws_plan.get('result') == 'PASS' and aws_plan.get('read_only') is True
 record('AWS Terraform plan', 'IAC-001', 'aws', plan_ready,
        ['evidence/aws/plan-summary.json', 'evidence/aws/demo-plan.txt'],
-       f"실제 AWS provider 계획: {aws_plan.get('actions', {})}. apply 미실행. docs/AWS_PLAN_REVIEW.md 참고.")
+       f"보관된 실제 AWS provider 계획: {aws_plan.get('actions', {})}. apply 미실행. 현재 입력·자원 상태로 새 plan을 확인한 뒤 실행해야 함. docs/AWS_PLAN_REVIEW.md 참고.")
 authorization = data('evidence/aws/authorization.json')
 authorized = authorization.get('resource_creation') is True and authorization.get('cleanup_after_validation_new_resources_only') is True
-reason = ('신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리 승인 완료. 실제 VPC 생성 DryRun 거부와 runtime boundary 부재로 관리자 배포 IAM 준비 대기.' if authorized and plan_ready else
+reason = ('team4 AWS 로그인 세션 만료. aws login으로 재인증 후 IAM·기존 자원·최신 plan을 재확인해야 함. AWS 작업은 실행하지 않음.'
+          if auth_blocked and preflight['authentication'].get('reason') == 'SessionExpired' else
+          'AWS 인증/계정 확인 실패. 승인 계정의 로그인 복구 후 권한·기존 자원을 다시 확인해야 함.' if auth_blocked else
+          '신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리 승인 완료. 마지막 권한 검사에서 VPC 생성 DryRun 거부와 runtime boundary 부재가 확인됐으므로 관리자 IAM 준비 상태를 다시 확인해야 함.' if authorized and plan_ready else
           '실제 plan 완료. 정확한 범위의 배포 IAM 준비 및 유료 생성 승인 대기.' if plan_ready else
           '사전 조회 완료. 실제 plan·정확한 범위의 배포 IAM 준비 및 유료 생성 승인이 필요함.' if inventory_ready else
           'team4 프로필 인증됨. 자원 조회 IAM 권한 부족 및 유료 생성 승인 전.' if preflight else 'AWS 계정 사전 점검 필요.')
 record('AWS plan/ECR/EKS/Config/Inspector', 'NET-001', 'aws', False,
        ['evidence/aws/preflight.json', 'evidence/aws/deployment-permissions.json', 'evidence/aws/authorization.json'], reason, blocked=True)
+github_readiness = data('evidence/github/deployment-readiness.json')
+if github_readiness:
+    readiness_checks = github_readiness.get('checks', {})
+    environment = readiness_checks.get('deployment_environment', {}).get('summary', {})
+    runners = readiness_checks.get('runners', {}).get('summary', {})
+    # Prerequisite observations are not proof of deployment or permission readiness.
+    ready_detail = (f"확인 {github_readiness.get('timestamp')}: aws-demo 환경 조회 "
+                    f"{'성공' if environment.get('exists') else '미확인'}, "
+                    f"사용 가능한 전용 runner {runners.get('eligible_online_count', '미확인')}개. "
+                    'main에 검토한 배포 workflow 반영·환경 보호 설정·AWS 역할 연결 후 실검증 필요.')
+    record('GitHub AWS 배포 준비', 'OPS-001', 'github', False,
+           ['evidence/github/deployment-readiness.json'], ready_detail, blocked=True)
 
 mapping = data('policies/isms-p.json')
 spec = importlib.util.spec_from_file_location('report', ROOT / 'scripts/evidence_report.py')
@@ -129,10 +159,11 @@ report = reporter.generate(mapping, observations, ROOT)
 table = '| 기능 | 결과 | 검증 범위 | 증거/제한 |\n|---|---|---|---|\n'
 for row in rows:
     table += f"| {row['feature']} | {row['result']} | {row['scope']} | {row['detail']} |\n"
-intro = '기준일 2026-10-18 (Asia/Seoul). `scripts/generate-project-reports.py`가 실제 증적에서 생성합니다.\n\n'
+intro = (f'작성 기준일 {args.as_of.isoformat()} (Asia/Seoul). `scripts/generate-project-reports.py`가 보관된 증적에서 생성합니다. '
+         '작성일이 모든 항목의 재검증일을 뜻하지 않으며, 과거 로컬·모의·plan 성공은 현재 AWS 배포 성공과 구분합니다.\n\n')
 status_table = '| 기능 | 구현 상태 | 검증 결과/범위 |\n|---|---|---|\n'
 for row in rows:
-    state = 'VERIFIED' if row['result'] == 'PASS' else ('BLOCKED' if row['result'] == 'BLOCKED' else 'IMPLEMENTED')
+    state = {'PASS': 'VERIFIED', 'BLOCKED': 'BLOCKED', 'FAIL': 'FAILED'}.get(row['result'], 'UNVERIFIED')
     status_table += f"| {row['feature']} | {state} | {row['result']} / {row['scope']} |\n"
 (ROOT / 'IMPLEMENTATION_STATUS.md').write_text('# 구현 및 실검증 현황\n\n' + intro + status_table + '\nVERIFIED는 표의 범위만 의미합니다. 모의 API 테스트를 AWS 검증으로 계산하지 않습니다.\n\n' +
     '원본 GitHub main `98850606f7294d4885d97e2891e5535461dbb548`, Checkov feature `9950466a91f773fea1dba8c58b2c5b65b0fe8481`을 비교했습니다. 원래 압축 해제 폴더에 원본 이력을 연결하고 `codex/devsecops-self-healing`에서 작업합니다. Terraform state·인증정보는 업로드하지 않습니다.\n', encoding='utf-8')
@@ -146,7 +177,7 @@ remaining = '# 남은 작업\n\n' + intro
 for row in rows:
     if row['result'] != 'PASS':
         remaining += f"- **{row['feature']} — {row['result']}**: {row['detail']}\n"
-remaining += ('\nAWS 실행 순서: IAM 사전조회 권한 → 기존 state/자원 확인 → 실제 Terraform plan → 자원·예상 비용·유지시간 승인 → apply → ECR 서명·EKS 배포 → SM rotation/서명 정책 → Config 실복구. Inspector는 별도 승인된 안전 digest와 연결 가능한 CodeBuild가 준비되어야 합니다.\n\n'
+remaining += ('\nAWS 실행 순서: 로그인 갱신 → 관리자 배포 IAM 준비 확인 → 기존 state/자원 확인 → 최신 Terraform plan·비용을 기존 승인 범위와 대조 → apply → ECR 서명·EKS 배포 → SM rotation/서명 정책 → Config 실복구 → 증적 보존 → 이번 신규 자원 정리. Inspector는 별도 범위이며 안전 digest와 연결 가능한 CodeBuild가 준비되어야 합니다.\n\n'
     '총예산 상한은 사용자 지정 **180,000원**입니다. 예산은 자원 생성 승인과 별개이며 자동 종료를 보장하지 않습니다. 자세한 절차는 `AWS_DEPLOYMENT_GUIDE.md`, `COST_AND_CLEANUP.md`, `docs/TEAM4_IAM_PERMISSIONS.md`를 참고합니다.\n')
 if authorized:
     remaining += '\n현재 사용자는 신규 생성·최대 8시간 검증·DemoOnly SG 시험·검증 후 신규 자원 정리를 승인했습니다. 같은 범위의 재승인 대신 관리자 IAM 준비 후 실행하며 기존 자원은 변경하지 않습니다.\n'
@@ -217,5 +248,5 @@ CI는 PR에서 실행되고 AWS 배포는 보호된 `aws-demo` 환경의 main �
 
 기술 점검만으로 ISMS-P 전체 인증 충족 여부를 판단하지 않습니다. 로그·state·비밀키·AWS 자격증명을 Git에 올리지 않습니다.
 '''
-(ROOT / 'README.md').write_text(readme, encoding='utf-8')
+(ROOT / 'README.md').write_text(readme.replace('## AWS 배포\n\n', '## AWS 배포\n\n현재 실행 조건: ' + reason + '\n\n'), encoding='utf-8')
 print(table)

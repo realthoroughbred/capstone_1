@@ -1,6 +1,6 @@
 # 구현 및 실검증 현황
 
-기준일 2026-10-18 (Asia/Seoul). `scripts/generate-project-reports.py`가 실제 증적에서 생성합니다.
+작성 기준일 2026-10-23 (Asia/Seoul). `scripts/generate-project-reports.py`가 보관된 증적에서 생성합니다. 작성일이 모든 항목의 재검증일을 뜻하지 않으며, 과거 로컬·모의·plan 성공은 현재 AWS 배포 성공과 구분합니다.
 
 | 기능 | 구현 상태 | 검증 결과/범위 |
 |---|---|---|
@@ -18,9 +18,10 @@
 | Kyverno admission | VERIFIED | PASS / local |
 | Argo CD GitOps 복구 | VERIFIED | PASS / local |
 | GitHub Actions CI | VERIFIED | PASS / github |
-| AWS 신원·기존 자원 조회 | VERIFIED | PASS / aws |
+| AWS 신원·기존 자원 조회 | BLOCKED | BLOCKED / aws |
 | AWS Terraform plan | VERIFIED | PASS / aws |
 | AWS plan/ECR/EKS/Config/Inspector | BLOCKED | BLOCKED / aws |
+| GitHub AWS 배포 준비 | BLOCKED | BLOCKED / github |
 
 VERIFIED는 표의 범위만 의미합니다. 모의 API 테스트를 AWS 검증으로 계산하지 않습니다.
 
