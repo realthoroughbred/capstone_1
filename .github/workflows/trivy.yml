@@ -1,0 +1,45 @@
+cat > .github/workflows/trivy.yml <<'YAML'
+name: Trivy Image Security Gate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-image-gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg BASE_IMAGE=alpine:3.22 \
+            -t team4-test:ci \
+            ./containers/test
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: team4-test:ci
+          version: v0.76.1
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          format: table
+          output: trivy-report.txt
+          exit-code: '1'
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.txt
+          if-no-files-found: warn
+YAML
