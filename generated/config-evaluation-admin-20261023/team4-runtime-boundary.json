@@ -1,0 +1,274 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sts:GetCallerIdentity",
+        "ec2:Describe*",
+        "ecr:GetAuthorizationToken",
+        "inspector2:ListFindings",
+        "xray:PutTraceSegments",
+        "xray:PutTelemetryRecords"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RevokeSecurityGroupIngress"
+      ],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:security-group/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/Project": "team4",
+          "ec2:ResourceTag/DemoOnly": "true"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "eks:DescribeCluster"
+      ],
+      "Resource": "arn:aws:eks:ap-northeast-2:852093844554:cluster/team4-eks"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:DescribeImages",
+        "ecr:DescribeImageScanFindings",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:PutImage"
+      ],
+      "Resource": "arn:aws:ecr:ap-northeast-2:852093844554:repository/team4-test"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+      ],
+      "Resource": [
+        "arn:aws:ecr:ap-northeast-2:602401143452:repository/amazon-k8s-cni",
+        "arn:aws:ecr:ap-northeast-2:602401143452:repository/amazon-k8s-cni-init",
+        "arn:aws:ecr:ap-northeast-2:602401143452:repository/amazon/aws-network-policy-agent",
+        "arn:aws:ecr:ap-northeast-2:602401143452:repository/eks/kube-proxy",
+        "arn:aws:ecr:ap-northeast-2:602401143452:repository/eks/coredns"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": "arn:aws:secretsmanager:ap-northeast-2:852093844554:secret:team4/demo/token-*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:DescribeKey"
+      ],
+      "Resource": "arn:aws:kms:ap-northeast-2:852093844554:key/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/Project": "team4"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogStreams"
+      ],
+      "Resource": [
+        "arn:aws:logs:ap-northeast-2:852093844554:log-group:/aws/*/team4*:*",
+        "arn:aws:logs:ap-northeast-2:852093844554:log-group:/aws/vpc/team4/*:*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::team4-852093844554-ap-northeast-2-evidence/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketAcl",
+        "s3:GetBucketLocation",
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::team4-852093844554-ap-northeast-2-evidence"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter"
+      ],
+      "Resource": "arn:aws:ssm:ap-northeast-2:852093844554:parameter/team4/security/approved-image"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem"
+      ],
+      "Resource": "arn:aws:dynamodb:ap-northeast-2:852093844554:table/team4-image-remediation"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "codebuild:StartBuild",
+        "codebuild:BatchGetProjects"
+      ],
+      "Resource": "arn:aws:codebuild:ap-northeast-2:852093844554:project/team4-*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "sqs:SendMessage"
+      ],
+      "Resource": "arn:aws:sqs:ap-northeast-2:852093844554:team4-automation-failures"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "codeconnections:UseConnection"
+      ],
+      "Resource": "arn:aws:codeconnections:ap-northeast-2:852093844554:connection/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/Project": "team4"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:instance/*",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-eks-cluster"
+        },
+        "StringEquals": {
+          "ec2:ResourceTag/Project": "team4"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "kubernetes.io/cluster/team4-eks"
+          ]
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:CreateNetworkInterface",
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:network-interface/*",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-vpc-cni"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateNetworkInterface",
+        "ec2:ModifyNetworkInterfaceAttribute"
+      ],
+      "Resource": [
+        "arn:aws:ec2:ap-northeast-2:852093844554:subnet/subnet-0e8f1f9f97ad96788",
+        "arn:aws:ec2:ap-northeast-2:852093844554:subnet/subnet-0f23c6f61a000b682",
+        "arn:aws:ec2:ap-northeast-2:852093844554:security-group/sg-04fe8a3250461fe31"
+      ],
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-vpc-cni",
+          "ec2:Vpc": "arn:aws:ec2:ap-northeast-2:852093844554:vpc/vpc-0918a8d0df5d66b77"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteNetworkInterface",
+        "ec2:AttachNetworkInterface",
+        "ec2:DetachNetworkInterface",
+        "ec2:ModifyNetworkInterfaceAttribute",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses",
+        "ec2:CreateTags"
+      ],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:network-interface/*",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-vpc-cni",
+          "ec2:Vpc": "arn:aws:ec2:ap-northeast-2:852093844554:vpc/vpc-0918a8d0df5d66b77",
+          "ec2:Subnet": [
+            "arn:aws:ec2:ap-northeast-2:852093844554:subnet/subnet-0e8f1f9f97ad96788",
+            "arn:aws:ec2:ap-northeast-2:852093844554:subnet/subnet-0f23c6f61a000b682"
+          ]
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AttachNetworkInterface",
+        "ec2:DetachNetworkInterface",
+        "ec2:ModifyNetworkInterfaceAttribute"
+      ],
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:instance/*",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-vpc-cni"
+        },
+        "StringEquals": {
+          "aws:ResourceTag/Project": "team4",
+          "aws:ResourceTag/kubernetes.io/cluster/team4-eks": "owned"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": "ec2:CreateTags",
+      "Resource": "arn:aws:ec2:ap-northeast-2:852093844554:network-interface/*",
+      "Condition": {
+        "ArnEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-vpc-cni"
+        },
+        "StringEquals": {
+          "ec2:CreateAction": "CreateNetworkInterface"
+        }
+      }
+    },
+    {
+      "Sid": "ConfigEvaluationResultsOnly",
+      "Effect": "Allow",
+      "Action": "config:PutEvaluations",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:PrincipalArn": "arn:aws:iam::852093844554:role/team4-config-recorder",
+          "aws:RequestedRegion": "ap-northeast-2"
+        }
+      }
+    }
+  ]
+}
