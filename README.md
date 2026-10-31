@@ -1,5 +1,3 @@
-Checkov 자동 분석 코드 업로드
-
 ## Gatekeeper를 이용한 Root 사용자 실행 차단
 
 Kubernetes의 Pod 생성 요청에서 실행 사용자 ID를 검사합니다.
