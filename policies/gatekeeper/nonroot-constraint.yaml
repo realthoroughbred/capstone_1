@@ -8,6 +8,9 @@ spec:
     scope: Namespaced
     namespaces:
       - son-policy-test
+      - son-policy-exception
+    excludedNamespaces:
+      - son-policy-exception
     kinds:
       - apiGroups: [""]
         kinds: ["Pod"]

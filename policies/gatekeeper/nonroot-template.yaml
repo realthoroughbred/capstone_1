@@ -26,12 +26,26 @@ spec:
 
                 pod_context := object.get(spec, "securityContext", {})
                 container_context := object.get(container, "securityContext", {})
-                pod_uid := object.get(pod_context, "runAsUser", 0)
+                pod_uid := object.get(pod_context, "runAsUser", null)
                 uid := object.get(container_context, "runAsUser", pod_uid)
 
-                uid < 1
+                pod_flag := object.get(pod_context, "runAsNonRoot", false)
+                flag := object.get(container_context, "runAsNonRoot", pod_flag)
+
+                not allowed_nonroot(uid, flag)
+
                 msg := sprintf(
-                  "Container %v must set runAsUser >= 1 at Pod or container level",
+                  "Container %v must use non-root UID or runAsNonRoot=true",
                   [container.name]
                 )
+              }
+
+              allowed_nonroot(uid, flag) if {
+                uid != null
+                uid >= 1
+              }
+
+              allowed_nonroot(uid, flag) if {
+                uid == null
+                flag == true
               }

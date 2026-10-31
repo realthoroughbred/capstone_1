@@ -1,4 +1,3 @@
-cat > .github/workflows/trivy.yml <<'YAML'
 name: Trivy Image Security Gate
 
 on:
@@ -42,4 +41,3 @@ jobs:
           name: trivy-report
           path: trivy-report.txt
           if-no-files-found: warn
-YAML
