@@ -179,3 +179,60 @@ cosign 기반의 로컬 이미지 서명 절차를 구현했습니다.
 현재 결과는 로컬 환경에서 검증된 내용이며,
 AWS EKS 실제 운영환경의 검증 결과는 포함하지 않습니다.
 <!-- son-security-status:end -->
+
+---
+
+## Trivy 이미지 취약점 스캔 게이트웨이
+
+### 1. 구현 목적
+컨테이너 이미지에 포함된 보안 취약점을 배포 전에 탐지하기 위해 Trivy를 도입하였다.
+
+GitHub Actions와 연동하여 이미지 빌드 후 HIGH 및 CRITICAL 등급의 취약점을 자동 검사하고, 취약점 발견 시 CI 작업이 실패하도록 구성하였다.
+
+### 2. 사용 기술
+- Docker: 컨테이너 이미지 빌드
+- Trivy: 이미지 취약점 검사
+- GitHub Actions: 자동화된 CI 보안 검사
+- Alpine Linux: 테스트용 기본 이미지
+
+### 3. 구현 내용
+1. GitHub Actions에서 Docker 이미지 자동 빌드
+2. Trivy를 활용한 이미지 취약점 검사
+3. HIGH 및 CRITICAL 취약점 검출 시 종료 코드 1 반환
+4. 검사 결과를 GitHub Actions Artifact로 저장
+5. CI 검사 성공 여부를 통해 이미지의 보안 상태 확인
+
+### 4. 주요 구현 파일
+- `.github/workflows/trivy.yml`: Trivy 자동 검사 워크플로
+- `containers/test/Dockerfile`: 테스트 이미지 생성
+- `containers/test/serve.sh`: 컨테이너 실행 스크립트
+
+### 5. 로컬 검사 명령어
+
+```bash
+docker build \
+  --build-arg BASE_IMAGE=alpine:3.22 \
+  -t team4-test:ci \
+  ./containers/test
+
+trivy image --scanners vuln \
+  --severity HIGH,CRITICAL \
+  --exit-code 1 \
+  team4-test:ci
+```
+
+### 6. ISMS-P 통제항목 연계
+
+| 통제번호 | 인증기준 | 구현 내용 |
+|---|---|---|
+| 2.8.1 | 보안 요구사항 정의 | HIGH/CRITICAL 취약점 차단 기준 정의 |
+| 2.8.2 | 보안 테스트 및 환경 분리 | GitHub Actions 기반 이미지 자동 검사 |
+| 2.11.2 | 취약점 점검 및 조치 | 이미지 취약점 탐지 및 검사 결과 저장 |
+
+### 7. 검증 현황
+- Trivy 0.76.1 설치 완료
+- Alpine 3.22 기반 로컬 이미지 취약점 검사 통과
+- GitHub Actions 워크플로 작성 완료
+- 로컬 테스트 이미지 빌드 및 Trivy 검사 완료 (HIGH/CRITICAL 0건)
+- GitHub Actions 실제 실행 및 취약 이미지 차단 테스트는 추가 확인 필요
+- 실제 EKS 배포 차단 연동은 향후 진행 예정

@@ -3,7 +3,7 @@ name: Terraform Checkov
 on:
   push:
     branches:
-      - feature/son-checkov-config
+      - feature/son-eks-security-automation
   pull_request:
 
 permissions:
