@@ -60,124 +60,138 @@ Root 설정의 요청에서는 다음 차단 메시지를 확인했습니다.
 - 기존 Pod를 자동 수정하거나 이전 상태로 복구하는 기능은 아닙니다.
 
 <!-- son-security-status:start -->
-## 로컬 EKS 보안 자동화 구현 및 검증 현황
+## 담당 보안 자동화: 구현 내용 및 로컬 검증 현황
 
-> 기준일: 2026-11-01
->
-> AWS EKS 생성 비용을 고려하여 로컬 Kubernetes(kind) 환경에서
-> 보안 기능을 먼저 구현·검증한 후 EKS에 최종 적용할 예정입니다.
+> **기준일:** 2026-11-01 · **작업 브랜치:** `feature/son-eks-security-automation`
+> **검증 범위:** WSL Ubuntu + Docker Desktop + kind(`team4`)
+> **배포 방침:** AWS 비용을 피하기 위해 로컬에서 먼저 검증하고 EKS 적용은 마지막에 별도로 진행합니다. **현재 EKS에 적용·검증한 결과가 아닙니다.**
 
-### 1. 개발 및 검증 환경
+### 처음 읽는 팀원을 위한 요약
 
-- OS: WSL Ubuntu
-- 컨테이너 환경: Docker Desktop
-- Kubernetes: kind (team4)
-- Checkov: 3.3.29
-- Trivy: 0.76.1
-- Sigstore/cosign: v3.1.4
-- OPA Gatekeeper: 로컬 kind 클러스터에 설치
+이 프로젝트는 인프라 코드 작성부터 컨테이너 배포까지 서로 다른 위험을 단계별로 확인합니다. **Checkov**는 Terraform 설정을, **Trivy**는 이미지의 알려진 취약점을, **Gatekeeper**는 Kubernetes의 실행 정책을 검사합니다. **cosign**은 신뢰하는 키로 서명된 이미지인지 검증합니다. **ISMS-P 보고서**는 검사 결과를 통제항목·위험도·조치 방안과 연결합니다.
 
-### 2. ISMS-P 위험도 평가 자동화
+| 단계 | 무엇을 확인하나? | 도구/결과물 | 현재 상태 |
+|---|---|---|---|
+| 인프라 코드 검토 | AWS 보안 설정 오류 | Checkov | 로컬 실행 완료, 실패 12건 검토 중 |
+| 이미지 취약점 검사 | HIGH/CRITICAL 취약점 | Trivy | 로컬 테스트 이미지 0건, Trivy CI 실행 성공 확인 |
+| 배포 정책 검사 | Root 실행 등 정책 위반 | OPA Gatekeeper | 로컬 kind 입장 제어 검증 완료 |
+| 이미지 출처·무결성 검증 | 지정 공개키로 서명을 검증할 수 있는가? | Sigstore/cosign | 로컬 서명·검증 자동화 성공 |
+| 결과 관리 | 어떤 위험을 우선 조치할 것인가? | ISMS-P 위험도 보고서 | 자동 생성 및 조치 검토 문서 작성 완료 |
 
-Terraform IaC 보안 검사 결과와 컨테이너 이미지 취약점
-검사 결과를 활용하여 위험도 보고서를 자동 생성합니다.
+### 1. ISMS-P 매핑 확정 및 Checkov 룰셋 설정
 
-**구현 내용**
-- Checkov 검사 결과 JSON 분석
-- Trivy HIGH/CRITICAL 취약점 결과 연동
-- ISMS-P 통제항목 자동 매핑
-- 발생 가능성과 영향도 기반 위험점수 계산
-- 위험등급 상·중·하 분류
-- Markdown 위험도 평가 보고서 자동 생성
+- **목적:** 기술적 보안 요구사항을 프로젝트의 ISMS-P 통제항목에 연결하고, Terraform 코드에 일관된 검사 기준을 적용합니다.
+- **구현:** `.checkov.yaml`에서 `infra/` 경로와 Terraform 프레임워크를 지정하고 `soft-fail: false`로 위반 발견 시 검사가 실패하도록 설정했습니다.
+- **주요 매핑 예:** 보안 요구사항(2.8.1), 보안 테스트(2.8.2), 취약점 점검·조치(2.11.2), 권한·암호화·네트워크 등 관련 통제항목.
+- **파일:** `.checkov.yaml`, `docs/isms-p-checkov-report.md`, `docs/isms-p-risk-report.md`.
+- **주의:** 통제번호 매핑은 프로젝트 내부 기준이며, 이것만으로 ISMS-P 인증 요건 전체를 충족했다는 의미는 아닙니다. 초기 Checkov 보고서의 이전 수치 대신 아래 최신 로컬 검사 수치를 확인하세요.
 
-**로컬 검증 결과**
+### 2. Terraform IaC 정적 취약점 스캔 자동화
 
-| 항목 | 결과 |
+- **목적:** AWS에 자원을 생성하기 전에 잘못된 Terraform 보안 설정을 발견합니다.
+- **구현:** `.github/workflows/checkov.yml`에서 GitHub Actions의 Checkov 검사를 설정했고, 현재 통합 작업 브랜치의 Push 및 PR에 맞게 구성했습니다.
+- **로컬 결과:** Checkov `3.3.29`, 총 49건 중 **통과 37건 / 실패 12건**(검사 규칙 11종).
+- **주요 검토 대상:** 퍼블릭 서브넷, EKS 퍼블릭 API, CloudWatch 보존·암호화, EKS 로그, VPC Flow Logs, 기본 보안 그룹 등.
+- **CI 해석:** 위반 12건이 남아 있어 보안 게이트가 실패할 수 있습니다. **Checkov 실행 성공**과 **모든 보안 규칙 통과**는 다릅니다. CI를 초록색으로 만들기 위해 규칙 전체를 무력화하지 않습니다.
+- **관련 파일:** `.github/workflows/checkov.yml`, `docs/checkov-findings-review.md`.
+
+### 3. OPA Gatekeeper 설치 및 제약 조건 정의
+
+- **목적:** Kubernetes API가 Pod 생성 요청을 받아들이기 전에 보안 정책을 검사합니다.
+- **로컬 환경:** kind 클러스터 `team4`에 Gatekeeper Controller/Audit가 실행 중인 것을 확인했습니다. **설치 재현 자동화나 EKS 설치까지 완료했다는 뜻은 아닙니다.**
+- **정책 구성:** `ConstraintTemplate` `team4nonroot`는 검사 로직(Rego)을, `Constraint` `son-require-nonroot`는 `deny` 모드와 대상 Namespace·Pod를 정의합니다.
+- **파일:** `policies/gatekeeper/nonroot-template.yaml`, `policies/gatekeeper/nonroot-constraint.yaml`.
+- **상태 확인:** `kubectl --context kind-team4 get pods -n gatekeeper-system` 및 `kubectl --context kind-team4 get team4nonroot son-require-nonroot`.
+
+### 4. Root 권한 실행 방지 Rego 정책 적용
+
+- **목적:** 명시적인 UID 0 또는 필요한 NonRoot 설정이 없는 Pod의 생성을 차단합니다.
+- **구현:** Pod·컨테이너 수준의 `securityContext`에서 `runAsUser`와 `runAsNonRoot`를 평가합니다. 일반 컨테이너뿐 아니라 init/ephemeral 컨테이너도 검사하도록 작성했습니다.
+- **로컬 검증 (서버 측 Dry Run):** `runAsUser: 0` 차단, `runAsUser: 1000` 허용, 보안 설정 없음 차단.
+- **주의:** Kubernetes 입장 허용은 실제 컨테이너 실행 성공을 보장하지 않습니다. 이미지의 실제 실행 UID와 런타임 정책도 별도로 확인해야 합니다.
+
+### 5. ISMS-P 위험도 평가 자동화 리포트 작성
+
+- **목적:** Checkov와 Trivy의 검사 결과를 통합해 ISMS-P 통제항목, 위험도, 개선 방안을 기록합니다.
+- **구현:** `scripts/07-isms-p-risk-report.py`가 `reports/checkov.json`을 읽어 실패 항목별 통제번호와 초기 위험점수(발생 가능성 1~5 × 영향도 1~5)를 계산하고, `reports/trivy.json`의 HIGH/CRITICAL 결과를 함께 기록합니다.
+- **위험등급 기준(프로젝트 내부 초기값):** 상 15~25점, 중 8~14점, 하 1~7점.
+- **현재 결과:** Checkov 실패 **12건** → 위험도 **상 4건 / 중 6건 / 하 2건**. Alpine 3.22 기반 로컬 테스트 이미지의 Trivy HIGH/CRITICAL **0건**.
+- **파일:** `scripts/07-isms-p-risk-report.py`, `docs/isms-p-risk-report.md`, `docs/checkov-findings-review.md`.
+- **한계:** 점수는 검토용 초기 가정이며 Checkov 공식 심각도가 아닙니다. 실패 12건의 예외 승인은 아직 이뤄지지 않았고, 실환경 위험도는 추가 평가가 필요합니다.
+
+### 6. OPA Gatekeeper 오탐지 분석 및 예외 정책 튜닝
+
+- **발견한 사례:** 기존 Rego 정책은 `runAsUser`가 없는 Pod를 UID 0으로 간주하여 `runAsNonRoot: true`만 설정된 Pod도 차단했습니다.
+- **개선:** 명시적인 Root UID 차단은 유지하면서, UID 미설정 시 `runAsNonRoot: true`를 인정하도록 정책을 수정했습니다.
+- **검증 결과(서버 측 Dry Run):** Root 차단 / UID 1000 허용 / `runAsNonRoot: true` 허용 / 설정 없음 차단.
+- **예외 실습:** `son-policy-test`에서는 Root 요청을 차단하고, `son-policy-exception`은 해당 **NonRoot Constraint만** 적용 대상에서 제외되는 것을 확인했습니다.
+- **주의:** Namespace 전체 예외는 실습용입니다. 다른 보안 정책까지 비활성화하는 것은 아니며, 운영 적용 시에는 승인 절차와 최소 예외 범위가 필요합니다.
+- **후속 점검:** Gatekeeper Audit에 나타난 `K8sNativeValidation engine is missing` 상태 원인을 추가 확인해야 합니다.
+- **파일:** `policies/gatekeeper/`, `docs/gatekeeper-nonroot-validation.md`.
+
+### 7. Sigstore/cosign 이미지 서명(Signing) 프로세스 도입
+
+- **목적:** 컨테이너 이미지가 지정한 서명 키로 서명되었고, 서명 대상 이미지 Digest와 일치하는지 검증합니다. 서명은 취약점 제거를 대신하지 않습니다.
+- **구현:** 로컬 Docker Registry(`127.0.0.1:5000`)에 테스트 이미지를 Push하고, **cosign v3.1.4** 개인키로 Digest에 서명한 다음 공개키로 검증했습니다.
+- **자동화:** `scripts/08-local-cosign-sign.sh`가 **Trivy HIGH/CRITICAL 검사 → Registry Push → cosign 서명 → 공개키 검증**을 실행합니다. Trivy 검사에서 위반이 발견되면 서명 단계로 진행하지 않습니다.
+- **검증 결과:** 서명된 이미지는 공개키 검증에 성공했고, 별도의 미서명 이미지는 `no signatures found`로 검증에 실패했습니다. 자동화 스크립트도 로컬에서 성공했습니다.
+- **키 관리:** 개인키는 저장소 밖의 `~/.config/team4-cosign/cosign.key`에 보관하며 Git에 커밋하지 않습니다.
+- **한계:** 로컬 HTTP Registry와 투명성 로그 검증 생략 옵션은 실습 전용입니다. **Kyverno를 통한 Kubernetes 배포 차단과 실제 EKS 적용은 아직 하지 않았습니다.**
+- **파일:** `scripts/08-local-cosign-sign.sh`, `docs/cosign-signing-validation.md`.
+
+### 팀원용 로컬 재현 순서
+
+아래 명령어는 **WSL Ubuntu의 `~/projects/team4-startup`**에서 실행합니다. AWS 자원을 생성하는 명령어(`terraform apply`)는 포함하지 않습니다.
+
+**A. Checkov 검사 및 JSON 저장** (12건 위반으로 종료 코드가 1일 수 있음)
+
+```bash
+cd ~/projects/team4-startup
+source .venv/bin/activate
+mkdir -p reports
+checkov --config-file .checkov.yaml --var-file infra/terraform.tfvars.example -o json > reports/checkov.json
+```
+
+**B. Docker 테스트 이미지 Trivy 검사** (보고서 생성을 위한 `--exit-code 0`; CI 게이트는 실패 코드 사용)
+
+```bash
+docker build --build-arg BASE_IMAGE=alpine:3.22 -t team4-test:ci ./containers/test
+trivy image --scanners vuln --severity HIGH,CRITICAL --exit-code 0 --format json --output reports/trivy.json team4-test:ci
+```
+
+**C. 위험도 보고서 자동 생성**
+
+```bash
+python3 scripts/07-isms-p-risk-report.py
+```
+
+자동 보고서는 `reports/isms-p-risk-report.md`에 생성됩니다. GitHub에 보존하는 검증 시점의 사본은 `docs/isms-p-risk-report.md`입니다.
+
+**D. Gatekeeper 적용 상태 확인** (기존 로컬 kind 환경 필요)
+
+```bash
+kubectl --context kind-team4 get pods -n gatekeeper-system
+kubectl --context kind-team4 get team4nonroot son-require-nonroot -o yaml
+```
+
+**E. cosign 서명 자동화** (사전 준비: 로컬 Registry 실행, 테스트 이미지 빌드, cosign 설치, 외부 경로에 개인키·공개키·서명 설정 생성)
+
+```bash
+docker ps --filter name=team4-registry
+./scripts/08-local-cosign-sign.sh
+```
+
+### 검증 자료와 남은 작업
+
+| 자료 | 위치 |
 |---|---|
-| Checkov 전체 검사 | 49건 |
-| Checkov 통과 | 37건 |
-| Checkov 실패 | 12건 |
-| 위험도 상 | 4건 |
-| 위험도 중 | 6건 |
-| 위험도 하 | 2건 |
-| Trivy HIGH/CRITICAL | 0건 |
+| 초기 ISMS-P/Checkov 매핑 | [`docs/isms-p-checkov-report.md`](docs/isms-p-checkov-report.md) |
+| Checkov+Trivy 자동 위험도 보고서 | [`docs/isms-p-risk-report.md`](docs/isms-p-risk-report.md) |
+| Checkov 실패 12건 조치·예외 검토 | [`docs/checkov-findings-review.md`](docs/checkov-findings-review.md) |
+| Gatekeeper 오탐·예외 검증 | [`docs/gatekeeper-nonroot-validation.md`](docs/gatekeeper-nonroot-validation.md) |
+| cosign 서명·검증 결과 | [`docs/cosign-signing-validation.md`](docs/cosign-signing-validation.md) |
 
-위험도는 프로젝트 내부 초기 평가 기준으로 산정했으며,
-실제 운영환경의 위험도는 추가 검토가 필요합니다.
-
-- 자동화 코드: `scripts/07-isms-p-risk-report.py`
-- 결과 보고서: [ISMS-P 위험도 보고서](docs/isms-p-risk-report.md)
-
-### 3. OPA Gatekeeper 오탐지 분석 및 예외 정책
-
-Root 권한 컨테이너 실행을 제한하는 Rego 정책을 개선하고,
-정상 요청의 오탐지와 Namespace 예외 적용을 검증했습니다.
-
-**구현 내용**
-- Root UID 0 컨테이너 차단
-- NonRoot UID 1000 컨테이너 허용
-- runAsNonRoot: true 오탐지 개선
-- 보안 설정이 없는 Pod 차단
-- 특정 Namespace 예외 정책 적용
-- Kubernetes 서버 측 Dry Run 검증
-
-**로컬 검증 결과**
-
-| 테스트 | 결과 |
-|---|---|
-| Root UID 0 | 차단 성공 |
-| NonRoot UID 1000 | 허용 성공 |
-| runAsNonRoot: true | 허용 성공 |
-| 보안 설정 없음 | 차단 성공 |
-| 일반 Namespace Root 요청 | 차단 성공 |
-| 예외 Namespace Root 요청 | 정책 검사 제외 확인 |
-
-Namespace 전체 예외는 로컬 실습 목적으로만 적용했습니다.
-Gatekeeper 감사의 K8sNativeValidation 오류는 추가 점검이 필요합니다.
-
-- 정책: `policies/gatekeeper/`
-- 검증 보고서: [Gatekeeper 검증 결과](docs/gatekeeper-nonroot-validation.md)
-
-### 4. Sigstore/cosign 이미지 서명 프로세스
-
-컨테이너 이미지의 서명과 무결성을 검증하기 위해
-cosign 기반의 로컬 이미지 서명 절차를 구현했습니다.
-
-**구현 내용**
-- 로컬 Docker Registry 구성
-- cosign 서명 키 생성
-- 이미지 Digest 기반 전자서명
-- 공개키를 이용한 서명 검증
-- 미서명 이미지 검증 실패 확인
-- Trivy 검사 → 이미지 Push → 서명 → 검증 자동화
-
-**로컬 검증 결과**
-
-| 테스트 | 결과 |
-|---|---|
-| Docker 이미지 Push | 성공 |
-| cosign 이미지 서명 | 성공 |
-| 서명된 이미지 검증 | 성공 |
-| 미서명 이미지 검증 | 예상대로 실패 |
-| 로컬 자동화 스크립트 | 실행 성공 |
-
-개인키는 Git 저장소 외부에 보관합니다.
-현재 HTTP Registry와 투명성 로그 검증 생략 옵션은
-로컬 실습 환경에서만 사용합니다.
-
-- 자동화 코드: `scripts/08-local-cosign-sign.sh`
-- 검증 보고서: [cosign 서명 검증 결과](docs/cosign-signing-validation.md)
-
-### 5. 후속 작업
-
-- 보안 검사 및 위험도 평가 자동화 최종 점검
-- Gatekeeper 감사 오류 확인
-- GitHub Actions 실제 실행 검증
-- Kyverno 이미지 서명 검증 정책 연동
-- AWS EKS 실제 배포 및 보안 정책 검증
-
-현재 결과는 로컬 환경에서 검증된 내용이며,
-AWS EKS 실제 운영환경의 검증 결과는 포함하지 않습니다.
+**남은 검증:** Checkov 실패 12건에 대한 팀 협의 및 조치·예외 승인, GitHub Actions의 Checkov 정책 위반 해결 여부 확인, Gatekeeper Audit 오류 분석, Kyverno 서명 검증 및 배포 차단 통합, 최종 EKS 검증. **현재 로컬 실습 결과를 실제 AWS 운영환경 검증 결과로 표현하지 않습니다.**
 <!-- son-security-status:end -->
 
 ---
