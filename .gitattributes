@@ -8,3 +8,5 @@
 *.template text eol=lf
 *.lock.hcl text eol=lf
 Dockerfile text eol=lf
+# Preserve historical source blobs byte-for-byte, including their line endings.
+docs/history/** -text

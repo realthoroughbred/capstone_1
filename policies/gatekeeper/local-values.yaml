@@ -1,0 +1,13 @@
+# Helm values for the local demonstration; policy enforcement remains fail-closed.
+# Limit the new webhook to its actual contract, avoiding CNI bootstrap deadlocks.
+replicas: 1
+validatingWebhookFailurePolicy: Fail
+validatingWebhookCustomRules:
+  - apiGroups: [""]
+    apiVersions: ["v1"]
+    operations: [CREATE, UPDATE]
+    resources: [pods, pods/ephemeralcontainers]
+    scope: Namespaced
+validatingWebhookMatchConditions:
+  - name: son-policy-namespace
+    expression: request.namespace == 'son-policy-test'

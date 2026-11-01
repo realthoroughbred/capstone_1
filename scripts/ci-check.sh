@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-mkdir -p evidence/ci
-python3 -m unittest discover -s tests -v 2>&1 | tee evidence/ci/unit-tests.txt
+out="${CI_EVIDENCE_DIR:-evidence/ci}"
+mkdir -p "$out"
+python3 -m unittest discover -s tests -v 2>&1 | tee "$out/unit-tests.txt"
 find scripts automation infra -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
 terraform -chdir=infra fmt -check -recursive
 terraform -chdir=infra init -backend=false -input=false -lockfile=readonly
-terraform -chdir=infra validate -json | tee evidence/ci/terraform-validate.json
-bash infra/test-isolated.sh | tee evidence/ci/terraform-mock-tests.txt
+terraform -chdir=infra validate -json | tee "$out/terraform-validate.json"
+bash infra/test-isolated.sh | tee "$out/terraform-mock-tests.txt"
 set +e
-checkov --config-file .checkov.yaml --output json > evidence/ci/checkov.json
+python3 scripts/security_scan.py --tool checkov --output "$out/checkov.json" --target infra --stdout-json -- \
+  checkov --config-file .checkov.yaml --output json
 rc=$?
 set -e
-python3 - "$rc" <<'PY'
+python3 - "$rc" "$out/checkov.json" <<'PY'
 import json, sys
 from pathlib import Path
-data = json.loads(Path('evidence/ci/checkov.json').read_text())
+data = json.loads(Path(sys.argv[2]).read_text())
 reports = data if isinstance(data, list) else [data]
 for report in reports:
     print(json.dumps(report.get('summary', {})))

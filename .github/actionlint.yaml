@@ -1,0 +1,4 @@
+# This is the existing deployment workflow's reviewed self-hosted runner label.
+self-hosted-runner:
+  labels:
+    - team4-deploy

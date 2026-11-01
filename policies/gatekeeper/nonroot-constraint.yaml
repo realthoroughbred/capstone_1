@@ -1,0 +1,22 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: Team4NonRoot
+metadata:
+  name: son-require-nonroot
+spec:
+  # Rego supports webhook, audit and gator. Native VAP requires a CEL source,
+  # which this template does not contain; do not request a nonexistent engine.
+  enforcementAction: scoped
+  scopedEnforcementActions:
+    - action: deny
+      enforcementPoints:
+        - name: validation.gatekeeper.sh
+        - name: audit.gatekeeper.sh
+        - name: gator.gatekeeper.sh
+  match:
+    scope: Namespaced
+    # Kyverno continues to enforce restricted PSS and read-only rootfs in demo.
+    # No namespace-wide exemption is installed by this integration.
+    namespaces: [son-policy-test]
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]

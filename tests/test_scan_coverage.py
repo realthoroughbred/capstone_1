@@ -18,3 +18,13 @@ class ScanCoverageTests(unittest.TestCase):
 
     def test_supported_inventory(self):
         self.assertEqual(module.validate({'Metadata': {'OS': {'Family': 'alpine'}}, 'Results': [{'Packages': [{'Name': 'busybox'}]}]}), 1)
+
+    def test_json_gate_rejects_high_and_critical(self):
+        for severity, expected in [('HIGH', 1), ('CRITICAL', 1), ('MEDIUM', 0)]:
+            report = {'Metadata': {'OS': {'Family': 'alpine'}}, 'Results': [
+                {'Packages': [{'Name': 'busybox'}], 'Vulnerabilities': [{'Severity': severity}]}]}
+            self.assertEqual(module.enforce(report), expected)
+
+    def test_json_gate_still_rejects_absent_inventory(self):
+        with self.assertRaises(ValueError):
+            module.enforce({'Results': []})

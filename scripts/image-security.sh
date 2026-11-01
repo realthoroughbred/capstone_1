@@ -26,9 +26,13 @@ docker save "$(cat "$out/image-store-id.txt")" -o "$out/image.tar"
 python3 scripts/archive-config-digest.py "$out/image.tar" > "$out/image-config-digest.txt"
 sha256sum "$out/image.tar" > "$out/image-tar.sha256"
 # Always retain a complete report before enforcing severity. Operational errors fail closed.
-trivy image --input "$out/image.tar" --scanners vuln --list-all-pkgs --quiet --format json --output "$out/trivy.json"
+db_args=()
+if [[ -n "${TRIVY_DB_REPOSITORY:-}" ]]; then db_args+=(--db-repository "$TRIVY_DB_REPOSITORY"); fi
+python3 scripts/security_scan.py --tool trivy --output "$out/trivy.json" --target team4-test:v1 \
+  --image-id-file "$out/image-config-digest.txt" -- \
+  trivy image --input "$out/image.tar" --scanners vuln --list-all-pkgs --quiet "${db_args[@]}" --format json --output "$out/trivy.json"
 python3 scripts/check-image-report.py "$out/trivy.json"
 syft "docker-archive:$out/image.tar" -o "cyclonedx-json=$out/sbom.cdx.json"
 python3 scripts/validate-sbom.py "$out/sbom.cdx.json" "$out/image-config-digest.txt" "$out/sbom-link.json"
-trivy image --input "$out/image.tar" --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --format table > "$out/trivy-gate.txt"
+python3 scripts/check-image-report.py "$out/trivy.json" --enforce-high-critical > "$out/trivy-gate.txt"
 printf 'PASS: build, HTTP, vulnerability gate and SBOM. Registry signature is a separate stage.\n'

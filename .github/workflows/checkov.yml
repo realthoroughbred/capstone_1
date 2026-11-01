@@ -34,6 +34,46 @@ jobs:
           name: static-and-unit-evidence
           path: evidence/ci/
           retention-days: 14
+  risk-report:
+    # Reuse these jobs' artifacts even if a security gate failed. Never rebuild.
+    needs: [validate, image]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Download static evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        continue-on-error: true # Only retrieval; missing input makes the report incomplete.
+        with:
+          name: static-and-unit-evidence
+          path: evidence/ci
+      - name: Download image evidence
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        continue-on-error: true
+        with:
+          name: image-security-evidence
+          path: evidence
+      - name: Generate risk report from this run only
+        if: always()
+        run: >-
+          python scripts/07-isms-p-risk-report.py
+          --checkov evidence/ci/checkov.json
+          --trivy evidence/image/trivy.json
+          --output-dir evidence/risk-report
+          --commit "${{ github.sha }}"
+          --run-id "${{ github.run_id }}"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: isms-p-risk-report
+          path: evidence/risk-report/
+          retention-days: 14
   image:
     runs-on: ubuntu-24.04
     timeout-minutes: 25

@@ -1,0 +1,45 @@
+{
+  "ref": "origin/feature/son-eks-security-automation",
+  "commit": "edb7f4a11b70812e65a2fb7a41e9914905c197fa",
+  "commit_time": "2026-11-01T02:32:18+09:00",
+  "environment": "As stated in original reports; not revalidated. WSL Ubuntu / Docker Desktop / kind; base also contains historical AWS observations.",
+  "raw_evidence": "Not bundled with these historical documents; never used as current evidence.",
+  "files": [
+    {
+      "original_path": "README.md",
+      "sha256": "99823ba6a34d1e4d5f3d2bcc3ae824e456a3381cfc055c53825de80d91189377"
+    },
+    {
+      "original_path": "docs/checkov-findings-review.md",
+      "sha256": "5f1e8e7a6398264c70197ece965f0c26f32f54565bf8ac52623d1da9ac5f702b"
+    },
+    {
+      "original_path": "docs/cosign-signing-validation.md",
+      "sha256": "7bfac5ff477bb6a6765c6c6fe437b135dcab923094973eccd1e38fda5500ee6e"
+    },
+    {
+      "original_path": "docs/gatekeeper-nonroot-validation.md",
+      "sha256": "ef7759b9e7410a1e8bb45778c42e8bee015f6c4f3d1db1b583653c638c5ab95c"
+    },
+    {
+      "original_path": "docs/isms-p-checkov-report.md",
+      "sha256": "ebe37b07b2b969a5ad9fcf2347c28c02bdbc8f7ebd804a02ad57deabf5189251"
+    },
+    {
+      "original_path": "docs/isms-p-risk-report.md",
+      "sha256": "aa6c5ac0062db13df1cc6cfd9a96ff54116f14ef04a19e1f47f53e2da3e04505"
+    },
+    {
+      "original_path": "scripts/07-isms-p-risk-report.py",
+      "sha256": "dcbd6d125ad8663414232f1bbedadd65f4e820eea315e3215518fc4c0d217f24"
+    },
+    {
+      "original_path": "policies/gatekeeper/nonroot-template.yaml",
+      "sha256": "f6be17b7a9b76eca6bdd1c2ac84739dc41c10186ee8c7d4f1109c8a5aa445ff6"
+    },
+    {
+      "original_path": "policies/gatekeeper/nonroot-constraint.yaml",
+      "sha256": "5dddcde552d0cea39df634ef6a881ceeb4c4a8297e9b06f1996623861aad747b"
+    }
+  ]
+}

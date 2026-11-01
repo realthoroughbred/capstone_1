@@ -1,0 +1,16 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: Team4NonRoot
+metadata:
+  name: son-require-nonroot
+spec:
+  enforcementAction: deny
+  match:
+    scope: Namespaced
+    namespaces:
+      - son-policy-test
+      - son-policy-exception
+    excludedNamespaces:
+      - son-policy-exception
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
