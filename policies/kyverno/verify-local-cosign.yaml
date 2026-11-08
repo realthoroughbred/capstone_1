@@ -1,0 +1,36 @@
+apiVersion: policies.kyverno.io/v1
+kind: NamespacedImageValidatingPolicy
+metadata:
+  name: require-team4-cosign
+  namespace: son-kyverno-sign-test
+spec:
+  validationActions: [Deny]
+  failurePolicy: Fail
+  evaluation:
+    background:
+      enabled: false
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE"]
+        resources: ["pods"]
+  matchImageReferences:
+    - glob: "team4-registry:5000/team4-*"
+  credentials:
+    allowInsecureRegistry: true
+  attestors:
+    - name: cosign
+      cosign:
+        key:
+          data: |
+            -----BEGIN PUBLIC KEY-----
+            MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFuJMBc4QBM53OmSobqlUIh3OKJa3
+            svlEcVswm6/6FSCsBicYwYdW34WErvFv2CEkYIVfGWc2DQ0Fc4lX1T90rQ==
+            -----END PUBLIC KEY-----
+        ctlog:
+          insecureIgnoreTlog: true
+  validations:
+    - expression: >-
+        images.containers.map(image, verifyImageSignatures(image, [attestors.cosign])).all(e, e > 0)
+      message: "Image must have a valid Team4 cosign signature"
