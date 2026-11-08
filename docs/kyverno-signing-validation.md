@@ -44,7 +44,7 @@ Kyverno의 정상 서명 이미지 검증에 성공했다.
 
 ## 6. 검증 범위 및 한계
 - Kubernetes 서버 측 Dry Run으로 검증했다.
-- 실제 Pod 실행 검증은 아직 수행하지 않았다.
+- 서명된 이미지의 실제 Pod 실행까지 검증했다.
 - 정책은 테스트 Namespace에만 적용했다.
 - 정책의 이미지 참조 패턴에 일치하는 이미지만 검사한다.
 - HTTP Registry 및 투명성 로그 검증 생략은 로컬 실습 전용이다.
@@ -54,3 +54,44 @@ Kyverno의 정상 서명 이미지 검증에 성공했다.
 - policies/kyverno/verify-local-cosign.yaml
 - scripts/08-local-cosign-sign.sh
 - docs/cosign-signing-validation.md
+
+
+## 8. 실제 Pod 실행 검증
+
+### 검증 환경
+- 검증일: 2026-11-08
+- Kubernetes: kind-team4
+- Namespace: son-kyverno-sign-test
+- Pod: signed-runtime-test-v2
+- 이미지: team4-registry:5000/team4-test:ci
+
+### 검증 결과
+
+| 항목 | 결과 |
+|---|---|
+| Kyverno 서명 검증 | 성공 |
+| 서명된 이미지 생성 | 허용 |
+| 미서명 이미지 생성 | 차단 |
+| 이미지 다운로드 | 성공 |
+| 실제 Pod 실행 | 1/1 Running |
+
+### 발생한 문제 및 해결
+
+초기 실행에서 ImagePullBackOff 오류가 발생했다.
+
+원인은 로컬 Registry가 HTTP 방식인데
+kind 노드의 containerd가 HTTPS로 접속했기 때문이다.
+
+kind의 control-plane과 worker 노드에
+HTTP Registry 접속용 hosts.toml 설정을 추가했다.
+
+이후 이미지 다운로드에 성공했으며,
+서명된 이미지를 사용한 Pod가 정상 실행됐다.
+
+### 검증 범위
+
+로컬 Kubernetes 환경에서 서명 검증,
+미서명 이미지 차단 및 실제 Pod 실행까지 확인했다.
+
+AWS EKS 환경 적용 및 검증은 아직 수행하지 않았다.
+로컬 HTTP Registry 설정은 운영환경에 그대로 적용하지 않는다.
