@@ -41,3 +41,5 @@
 현재 AWS 계정/자원/원격 state/실제 Terraform plan, EKS Gatekeeper, ECR OIDC 서명 및 배포, 실제 Secret/KMS 순환, 실제 Config SG 복구, S3/IAM 주기 탐지·복구, 실제 Inspector→외부 CodeBuild→승인 이미지→Pod, CloudWatch 화면, 실제 Slack 전송, GitHub App 직접 GitOps와 workload sync, 전체 CI cold/warm 비교, 전체 복구 1초 목표는 NOT_TESTED다. 인증·외부 연결·승인 이미지·사용자 승인·실제 이벤트가 필요하다.
 
 로컬 원본 evidence는 Git ignore 대상이다. 새 clone에는 자동 포함되지 않는다. 이 PC의 원본 경로/해시와 [실습서](docs/LAB_BOOK.md)를 기준으로 재현하거나 별도 증적 묶음을 전달한다. Secret/state는 묶음에서도 제외한다.
+
+최종 코드 commit의 원격 CI: **image 성공, Checkov 131/3/23으로 validate 실패, 위험 보고서 INCOMPLETE exit 2**. [실제 run과 원본 결과](docs/FINAL_CI_RESULT.md)를 참고한다.

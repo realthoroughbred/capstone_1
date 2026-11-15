@@ -13,3 +13,5 @@
 - [과거 보고서 원본 이력](docs/history/README.md)
 
 WSL Ubuntu의 이 저장소에서 `source .venv-ci/bin/activate` 후 `python -m unittest discover -s tests -v`로 API mock/회귀 시험을 시작할 수 있다. 실제 로컬 Kubernetes 시험 및 AWS 승인 이후 명령은 실습서 순서를 따른다. 원래 통합본·팀원 branch의 Terraform/CI를 통째로 덮어쓰지 않았고 main에는 합치지 않았다.
+
+최종 코드 commit의 원격 CI: **image 성공, Checkov 131/3/23으로 validate 실패, 위험 보고서 INCOMPLETE exit 2**. [실제 run과 원본 결과](docs/FINAL_CI_RESULT.md)를 참고한다.

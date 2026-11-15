@@ -46,13 +46,14 @@
       "files": [
         ".github/workflows/checkov.yml"
       ],
-      "tests": "기존 원격 CI 이력 재조회; 현재 workflow 정적 검증",
+      "tests": "최종 코드 CI 43763799295: image 성공; validate Checkov 131/3/23 실패, risk INCOMPLETE 2",
       "evidence": [
-        "evidence/finalization-20261116/run-41291034469-jobs.json"
+        "evidence/finalization-20261116/run-41291034469-jobs.json",
+        "evidence/finalization-20261116/github-43763799295/static-and-unit-evidence/ci/checkov.json"
       ],
-      "remaining": "최종 commit의 원격 CI 결과 확인",
+      "remaining": "미해결 Checkov 처리 및 실제 승인 AWS 배포 연결",
       "status": "진행중",
-      "basis": "2026-11-16 확인 범위: 기존 원격 CI 이력 재조회; 현재 workflow 정적 검증. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도.",
+      "basis": "2026-11-16 실제 원격 artifact 확인: 최종 코드 CI 43763799295: image 성공; validate Checkov 131/3/23 실패, risk INCOMPLETE 2. 숫자 진행률은 원본 유지.",
       "role_review": "작업 담당 김송희와 역할표의 보안 검사/Argo·인프라 업무 범위 차이: 팀 협의 필요, 담당 변경하지 않음"
     },
     {
@@ -233,13 +234,14 @@
         ".checkov.yaml",
         "scripts/security_scan.py"
       ],
-      "tests": "이번 실제 Checkov 184통과·3실패·23생략",
+      "tests": "최종 원격 Checkov 131통과·3실패·23생략. 로컬 184/3/23과 구분",
       "evidence": [
-        "evidence/finalization-20261116/candidate-checkov/checkov.json"
+        "evidence/finalization-20261116/candidate-checkov/checkov.json",
+        "evidence/finalization-20261116/github-43763799295/static-and-unit-evidence/ci/checkov.json"
       ],
       "remaining": "새 S3 실패 3개 처리·생략 검토",
       "status": "진행중",
-      "basis": "2026-11-16 확인 범위: 이번 실제 Checkov 184통과·3실패·23생략. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+      "basis": "2026-11-16 실제 원격 artifact 확인: 최종 원격 Checkov 131통과·3실패·23생략. 로컬 184/3/23과 구분. 숫자 진행률은 원본 유지."
     },
     {
       "id": "2.3.2",
@@ -289,14 +291,15 @@
         "scripts/07-isms-p-risk-report.py",
         "automation/scan_contract.py"
       ],
-      "tests": "누락 ImageID/잘못된 자료형 차단; INCOMPLETE 정상 보고서 종료 2",
+      "tests": "최종 CI의 동일 commit/run/tree hash 입력으로 보고서 정상 작성, INCOMPLETE/종료 2",
       "evidence": [
         "evidence/finalization-20261116/baseline-report-command/command.json",
-        "evidence/finalization-20261116/baseline-risk-report/isms-p-risk-report.json"
+        "evidence/finalization-20261116/baseline-risk-report/isms-p-risk-report.json",
+        "evidence/finalization-20261116/github-43763799295/isms-p-risk-report/isms-p-risk-report.json"
       ],
       "remaining": "최종 CI 원본 결합·담당자 위험도 검토",
       "status": "진행중",
-      "basis": "2026-11-16 확인 범위: 누락 ImageID/잘못된 자료형 차단; INCOMPLETE 정상 보고서 종료 2. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+      "basis": "2026-11-16 실제 원격 artifact 확인: 최종 CI의 동일 commit/run/tree hash 입력으로 보고서 정상 작성, INCOMPLETE/종료 2. 숫자 진행률은 원본 유지."
     },
     {
       "id": "2.6.2",

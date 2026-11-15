@@ -15,3 +15,5 @@
 | 문서/WBS | 실습서 본문·AWS 실행안·40행 연결·집계/역할 조회 수정 | 원래 진행률/담당/일정 보존. PPT·리허설·AWS 증거 남음 |
 
 [실제 검증 표](VALIDATION.md), [전체 파일-작업 연결](docs/wbs/task-evidence.json), [후속 우선순위](REMAINING_TASKS.md)를 함께 본다. 코드가 있다는 이유로 WBS를 100%로 올리지 않았다.
+
+최종 코드 commit의 원격 CI: **image 성공, Checkov 131/3/23으로 validate 실패, 위험 보고서 INCOMPLETE exit 2**. [실제 run과 원본 결과](docs/FINAL_CI_RESULT.md)를 참고한다.
