@@ -1,0 +1,12 @@
+# AWS scope is explicit; no HTTP registry or signature relaxation is present.
+replicas: 2
+validatingWebhookFailurePolicy: Fail
+validatingWebhookCustomRules:
+  - apiGroups: [""]
+    apiVersions: ["v1"]
+    operations: [CREATE, UPDATE]
+    resources: [pods, pods/ephemeralcontainers]
+    scope: Namespaced
+validatingWebhookMatchConditions:
+  - name: son-policy-namespace
+    expression: request.namespace == 'son-policy-test'

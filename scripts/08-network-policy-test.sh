@@ -3,10 +3,12 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/lib-k8s.sh
 require_demo_context "${1:?Usage: bash scripts/08-network-policy-test.sh CONTEXT [--verify-only]}"
-mkdir -p evidence
+out="${EVIDENCE_DIR:-evidence/network-$(date -u +%Y%m%dT%H%M%SZ)}"
+mkdir -p "$out"
 log_suffix=""
 if [[ "${2:-}" == --verify-only ]]; then log_suffix=-verify-only; fi
-exec > >(tee "evidence/network-${context}${log_suffix}.log") 2>&1
+[[ ! -e "$out/network-${context}${log_suffix}.log" ]] || { echo 'Use a fresh evidence directory'; exit 1; }
+exec > >(tee "$out/network-${context}${log_suffix}.log") 2>&1
 printf 'Started UTC: %s\n' "$(date -u +%FT%TZ)"
 for app in server client unauthorized; do
   "${k[@]}" -n demo rollout status "deployment/$app" --timeout=180s
@@ -66,5 +68,5 @@ echo 'PASS: Ingress independently blocks unauthorized traffic while egress permi
 cleanup
 trap - EXIT
 expect_blocked unauthorized "$url"
-"${k[@]}" -n demo get networkpolicy -o json > "evidence/network-${context}.json"
+"${k[@]}" -n demo get networkpolicy -o json > "$out/network-${context}.json"
 printf 'PASS: NetworkPolicy enforcement; completed UTC: %s\n' "$(date -u +%FT%TZ)"

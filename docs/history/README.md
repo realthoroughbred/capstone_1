@@ -13,5 +13,11 @@
 원본 내부의 상대 링크가 가리키는 모든 소스까지 복제한 것은 아니다. 필요한 소스는 manifest에 적힌 커밋에서 확인한다.
 
 과거 `evidence/`를 이 이력과 함께 배포하지 않으며, 원본 증거가 없는 보고서를 재생성하지 않는다.
-루트의 기존 보고서도 덮어쓰지 않았다. [기존 생성기](../../scripts/generate-project-reports.py)는 이번 통합 작업에서 실행하지 않았다.
+2026-11-16에는 루트 보고서 원본을 먼저 아래 이력으로 보존한 뒤 현재 상태 안내로 갱신했다. [기존 생성기](../../scripts/generate-project-reports.py)는 이번 작업에서 실행하지 않았다.
 현재 검증과 실행 방법은 [통합 시연 안내](../INTEGRATION_DEMO.md)를 사용한다.
+
+## 2026-11-16 추가 보관
+
+[통합 직전 원본](20261116-pre-finalization/)은 `codex/integrate-son-security`의 `4d4a1955d6d2abf168172ed8ee9372ba464632d1`에서 바이트 그대로 보존했다. README·상태·시험 보고서와 과거 AWS 승인/비용 문서를 포함한다. 환경은 과거 로컬 kind/WSL과 별도 AWS 실습이 섞여 있으며 이번 결과로 재검증한 것이 아니다. [manifest](20261116-pre-finalization/manifest.json)에 파일별 해시가 있다.
+
+[Son 최신 원본](20261116-pre-finalization/son-d2426a5/)은 11월 8일 commit `d2426a5`의 README·로컬 Kyverno 서명 정책·검증 문서다. 로컬 공개키/HTTP registry 시연을 AWS OIDC 성공으로 해석하지 않는다.

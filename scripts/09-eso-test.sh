@@ -5,8 +5,10 @@ cd "$(dirname "$0")/.."
 source scripts/lib-k8s.sh
 require_demo_context "${1:?Usage: 09-eso-test.sh CONTEXT fake|aws [--rotate-demo]}"
 mode="${2:?fake or aws required}"
-mkdir -p evidence
-exec > >(tee "evidence/eso-${context}.log") 2>&1
+out="${EVIDENCE_DIR:-evidence/eso-$(date -u +%Y%m%dT%H%M%SZ)}"
+mkdir -p "$out"
+[[ ! -e "$out/eso-${context}.log" ]] || { echo 'Use a fresh evidence directory'; exit 1; }
+exec > >(tee "$out/eso-${context}.log") 2>&1
 printf 'Started UTC: %s, provider=%s\n' "$(date -u +%FT%TZ)" "$mode"
 if [[ "$mode" == fake ]]; then
   [[ "$context" == kind-team4 ]] || { echo 'Fake provider is local only'; exit 1; }
@@ -50,7 +52,7 @@ for attempt in {1..90}; do
   after="$(secret_hash)"
   if [[ "$after" != "$before" && "$after" == "$(pod_hash)" ]]; then
     echo 'PASS: Rotation reached Kubernetes Secret AND running Pod volume without restart.'
-    "${k[@]}" -n demo get externalsecret team4-eso-demo -o json > "evidence/eso-${context}.json"
+    "${k[@]}" -n demo get externalsecret team4-eso-demo -o json > "$out/eso-${context}.json"
     exit 0
   fi
   sleep 2

@@ -3,16 +3,15 @@ import json
 import argparse
 import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from automation.scan_contract import validate_inventory
 
 
 def validate(report):
-    results = report.get('Results', [])
-    packages = [p for result in results for p in result.get('Packages', [])]
-    if not report.get('Metadata', {}).get('OS', {}).get('Family') or not packages:
-        raise ValueError('Scanner coverage missing: no supported OS/package inventory')
+    packages = validate_inventory(report)
     if report.get('Metadata', {}).get('OS', {}).get('EOSL'):
         raise ValueError('Unsupported/end-of-support base OS')
-    return len(packages)
+    return packages
 
 
 def enforce(report):

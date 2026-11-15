@@ -13,6 +13,8 @@ jobs:
   validate:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.tools/terraform-plugin-cache
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -26,13 +28,20 @@ jobs:
         with:
           terraform_version: '1.12.2'
           terraform_wrapper: false
+      - run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .tools/terraform-plugin-cache
+          key: terraform-${{ runner.os }}-${{ hashFiles('infra/.terraform.lock.hcl') }}
       - run: python -m pip install -r requirements-dev.txt
-      - run: bash scripts/ci-check.sh
+      - run: python scripts/record-command.py --output-dir evidence/timing/validate -- bash scripts/ci-check.sh
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
           name: static-and-unit-evidence
-          path: evidence/ci/
+          path: |
+            evidence/ci/
+            evidence/timing/validate/
           retention-days: 14
   risk-report:
     # Reuse these jobs' artifacts even if a security gate failed. Never rebuild.
@@ -52,7 +61,7 @@ jobs:
         continue-on-error: true # Only retrieval; missing input makes the report incomplete.
         with:
           name: static-and-unit-evidence
-          path: evidence/ci
+          path: evidence
       - name: Download image evidence
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         continue-on-error: true
@@ -84,8 +93,14 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
       - run: python -m pip install jsonschema==4.25.1
-      - run: bash scripts/install-security-tools.sh
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: downloads/security
+          key: security-archives-${{ runner.os }}-${{ hashFiles('config/security-tools.env') }}
+      - run: python scripts/record-command.py --output-dir evidence/timing/install-tools -- bash scripts/install-security-tools.sh
       - run: bash scripts/image-security.sh
       - run: bash scripts/local-signature-test.sh
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
@@ -98,4 +113,5 @@ jobs:
             evidence/image/*.sha256
             evidence/local-signature/verify.json
             evidence/local-signature/wrong-key.txt
+            evidence/timing/install-tools/
           retention-days: 14

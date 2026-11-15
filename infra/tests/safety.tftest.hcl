@@ -24,6 +24,10 @@ variables {
 run "default_cost_and_mutation_guards" {
   command = plan
   assert {
+    condition     = length(aws_lambda_function.sandbox_healer) == 0 && length(aws_lambda_function.notifications) == 0 && length(aws_cloudwatch_dashboard.security) == 0
+    error_message = "New lab resources and notifications must be explicitly enabled."
+  }
+  assert {
     condition     = length(aws_lambda_function.healing) == 0 && length(aws_lambda_function.inspector) == 0 && length(aws_ecr_registry_scanning_configuration.enhanced) == 0
     error_message = "Config/Inspector automation and enhanced scanning must remain opt-in."
   }
@@ -38,6 +42,23 @@ run "default_cost_and_mutation_guards" {
   assert {
     condition     = aws_ecr_repository.test.image_tag_mutability == "IMMUTABLE_WITH_EXCLUSION" && toset([for filter in aws_ecr_repository.test.image_tag_mutability_exclusion_filter : filter.filter]) == toset(["sha256-*.sig", "sha256-*.att"])
     error_message = "Only Cosign signature/attestation artifact tags may be mutable; application tags remain immutable."
+  }
+}
+
+run "finalization_features_keep_mutations_disabled" {
+  command = plan
+  variables {
+    enable_resource_healing    = true
+    enable_slack_notifications = true
+    enable_observability       = true
+  }
+  assert {
+    condition     = aws_lambda_function.sandbox_healer[0].environment[0].variables.DRY_RUN == "true" && aws_lambda_function.notifications[0].environment[0].variables.SLACK_ENABLED == "false"
+    error_message = "Provisioning lab features must not enable repair writes or Slack sends."
+  }
+  assert {
+    condition     = alltrue([for s in jsondecode(aws_iam_role.sandbox_target[0].assume_role_policy).Statement : s.Effect == "Deny"]) && aws_s3_bucket.sandbox[0].force_destroy == false
+    error_message = "The IAM target must be unassumable and sandbox objects must not be force-deleted."
   }
 }
 

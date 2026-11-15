@@ -1,39 +1,17 @@
-# 구현 및 실검증 현황
+# 구현 현황 — 2026-11-16
 
-작성 기준일 2026-10-23 (Asia/Seoul). `scripts/generate-project-reports.py`가 보관된 증적에서 생성합니다. 작성일이 모든 항목의 재검증일을 뜻하지 않으며, 과거 로컬·모의·plan 성공은 현재 AWS 배포 성공과 구분합니다.
+기준 `origin/codex/integrate-son-security` 4d4a195에서 `codex/finalize-isms-p-20261116`을 만들었다. 시작 시 미커밋 변경은 없었다. 원격 main de11306, Son d2426a5를 다시 조회했다. Son의 최근 변경인 로컬 Kyverno 공개키 정책만 용도를 분리해 반영하고 원본 문서는 이력에 보존했다.
 
-| 기능 | 구현 상태 | 검증 결과/범위 |
+| 구분 | 현재 구현 | 검증 한계 |
 |---|---|---|
-| Terraform validate | VERIFIED | PASS / static |
-| Terraform 안전 조건 | VERIFIED | PASS / simulated |
-| Checkov | VERIFIED | PASS / static |
-| 자동복구 단위·통합 테스트 | VERIFIED | PASS / simulated |
-| Docker HTTP | VERIFIED | PASS / local |
-| Trivy 정상 이미지 | VERIFIED | PASS / local |
-| Trivy 취약 이미지 거부 | VERIFIED | PASS / local |
-| CycloneDX SBOM | VERIFIED | PASS / local |
-| cosign 로컬 서명 | VERIFIED | PASS / local |
-| NetworkPolicy | VERIFIED | PASS / local |
-| ESO Fake/rotation | VERIFIED | PASS / local |
-| Kyverno admission | VERIFIED | PASS / local |
-| Argo CD GitOps 복구 | VERIFIED | PASS / local |
-| GitHub Actions CI | VERIFIED | PASS / github |
-| AWS 신원·기존 자원 조회 | VERIFIED | PASS / aws |
-| AWS Terraform plan | VERIFIED | PASS / aws |
-| AWS 초기 IAM·KMS 대조 | VERIFIED | PASS / aws |
-| AWS EKS 제어 영역 | VERIFIED | PASS / aws |
-| AWS EKS 노드·애드온 | VERIFIED | PASS / aws |
-| AWS ECR 서명·EKS 앱 배포 | VERIFIED | PASS / aws |
-| AWS NetworkPolicy | VERIFIED | PASS / aws |
-| AWS ESO·비밀값 교체 | VERIFIED | PASS / aws |
-| AWS Kyverno 보안 컨텍스트·이미지 제한 | VERIFIED | PASS / aws |
-| AWS Kyverno 미서명 이미지 거부 | VERIFIED | PASS / aws |
-| AWS Argo CD 정책 복구 | VERIFIED | PASS / aws |
-| AWS Config→EventBridge→Lambda SG 복구 | VERIFIED | PASS / aws |
-| AWS 신규 유료 자원 정리 | VERIFIED | PASS / aws |
-| AWS Inspector→CodeBuild 이미지 교체 | UNVERIFIED | NOT_TESTED / aws |
-| Argo CD GitHub 직접 인증 | UNVERIFIED | NOT_TESTED / aws |
+| 기존 기능 | Terraform, CI, Checkov/Trivy, SBOM/서명, Kyverno, ESO, NetworkPolicy, Argo, SG/Inspector boto3 기능 보존 | 실제 AWS 재검증은 미실행 |
+| 보고서 | ImageID/자료형 엄격 검사, 중앙 ISMS 매핑, 출처/생략/종료 상태 분리, 예외 처리표 | 검토 대상은 실제 결과이며 인증 전체 판정 아님 |
+| Gatekeeper | controller/Pod 조회 실패 시 fail, CRD 생성/준비 대기, EKS 설치·권한 검사 | 로컬 22개·신규 CRD 성공, EKS 미실행 |
+| 이미지 | APK 수정 버전 갱신; worker fresh scan/ECR config/digest/HTTP 검증 | 새 로컬 이미지 성공, AWS safe image 미승인 |
+| S3/IAM | 전용 대상·dry-run·최소 권한·전후 조회·DDB 중복/실패 lease | mock 성공; S3 Checkov 3개 실패와 AWS 실제 시험 잔여 |
+| 관측/Slack | EKS audit·복구 dashboard, log subscription, 전송 off·필드 허용·중복 처리 | Terraform/mock만 성공, 실제 화면/메시지 없음 |
+| 정기 SBOM | 기존 배포 artifact/digest 결합·CVE 대조·새/반복/해결 장부·후속 조사 | 실제 로컬 SBOM 대조 성공; 승인 target/예약 활성화 남음 |
+| GitOps | 읽기 전용 GitHub App 설정, 별도 workload template와 네트워크 | 기존 mirror 복원 성공; 직접 인증/새 workload는 NOT_TESTED |
+| 문서/WBS | 실습서 본문·AWS 실행안·40행 연결·집계/역할 조회 수정 | 원래 진행률/담당/일정 보존. PPT·리허설·AWS 증거 남음 |
 
-VERIFIED는 표의 범위만 의미합니다. 모의 API 테스트를 AWS 검증으로 계산하지 않습니다.
-
-원본 GitHub main `98850606f7294d4885d97e2891e5535461dbb548`, Checkov feature `9950466a91f773fea1dba8c58b2c5b65b0fe8481`을 비교했습니다. 원래 압축 해제 폴더에 원본 이력을 연결하고 `codex/devsecops-self-healing`에서 작업합니다. Terraform state·인증정보는 업로드하지 않습니다.
+[실제 검증 표](VALIDATION.md), [전체 파일-작업 연결](docs/wbs/task-evidence.json), [후속 우선순위](REMAINING_TASKS.md)를 함께 본다. 코드가 있다는 이유로 WBS를 100%로 올리지 않았다.

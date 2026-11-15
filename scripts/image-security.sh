@@ -11,7 +11,8 @@ docker pull --platform linux/amd64 "$base"
 base_digest="$(docker image inspect "$base" --format '{{index .RepoDigests 0}}')"
 [[ "$base_digest" =~ @sha256:[0-9a-f]{64}$ ]]
 printf '%s\n' "$base_digest" > "$out/base-image.txt"
-docker build --platform linux/amd64 --provenance=false --sbom=false --build-arg "BASE_IMAGE=$base_digest" -t team4-test:v1 containers/test
+# Do not reuse an old APK-update layer against today's vulnerability database.
+docker build --no-cache --platform linux/amd64 --provenance=false --sbom=false --build-arg "BASE_IMAGE=$base_digest" -t team4-test:v1 containers/test
 docker image inspect team4-test:v1 > "$out/image-inspect.json"
 docker image inspect team4-test:v1 --format '{{.Id}}' > "$out/image-store-id.txt"
 cid="$(docker run -d --read-only --cap-drop ALL --security-opt no-new-privileges team4-test:v1)"

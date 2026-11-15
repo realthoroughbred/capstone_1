@@ -6,26 +6,34 @@ No scanners, builds, AWS calls or legacy report generators are invoked here.
 import argparse
 import hashlib
 import json
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from automation.scan_contract import validate_inventory
 
 
 # Retained from Son's report. These are review hypotheses, not tool severities.
-RULES = {
-    'CKV_AWS_394': ('2.8.1', 2, 2, '가용영역 식별자 고정 검토'),
-    'CKV_AWS_130': ('2.6.1', 3, 4, '퍼블릭 IP 자동 할당 필요성 검토'),
-    'CKV_AWS_338': ('2.9.4', 3, 4, '로그 보존기간 검토'),
-    'CKV_AWS_158': ('2.7.2', 3, 4, 'CloudWatch KMS 암호화 적용'),
-    'CKV_AWS_39': ('2.6.1', 3, 5, 'EKS 엔드포인트 접근 범위 제한 검증'),
-    'CKV_AWS_58': ('2.7.2', 3, 5, 'EKS Secrets 암호화 설정'),
-    'CKV_AWS_37': ('2.9.4', 4, 4, 'EKS Control Plane 로그 활성화'),
-    'CKV_AWS_136': ('2.7.2', 3, 4, 'ECR KMS 암호화 적용 검토'),
-    'CKV2_AWS_12': ('2.6.1', 4, 5, '기본 보안 그룹 트래픽 제한 검증'),
-    'CKV2_AWS_11': ('2.10.2', 3, 4, 'VPC Flow Logs 활성화 검토'),
-    'CKV2_AWS_5': ('2.8.1', 2, 2, '보안 그룹 연결 여부 확인'),
-}
+MAPPING_PATH = Path(__file__).resolve().parents[1] / 'policies/isms-p.json'
+MAPPING_ERROR = None
+try:
+    MAPPING = json.loads(MAPPING_PATH.read_text(encoding='utf-8'))
+    RULES = MAPPING['checkov_rules']
+    if any(rule[0] not in MAPPING['controls'] for rule in RULES.values()):
+        raise ValueError('Unknown ISMS-P control in Checkov mapping')
+except (OSError, ValueError, KeyError, TypeError, IndexError) as exc:
+    MAPPING, RULES = {}, {}
+    MAPPING_ERROR = type(exc).__name__
 SEVERITY_RISK = {'CRITICAL': (4, 5), 'HIGH': (3, 4), 'MEDIUM': (2, 3), 'LOW': (1, 2)}
+REGISTER_PATH = MAPPING_PATH.with_name('exception-register.json')
+
+
+def disposition(tool, identifier, target):
+    register = read_json(REGISTER_PATH)
+    match = [item for item in register['items'] if (item['tool'], item['id'], item['target']) == (tool, identifier, target)]
+    return ({k: match[0].get(k) for k in ['category', 'approval_status', 'next_action']} if len(match) == 1
+            else {'category': 'UNRESOLVED', 'approval_status': 'NOT_APPROVED_FOR_THIS_RUN', 'next_action': '담당자 검토 필요'})
 
 
 def risk(likelihood=None, impact=None, basis='미평가: 담당자 검토 필요'):
@@ -59,6 +67,7 @@ def checkov_findings(data):
             if not isinstance(checks, list) or len(checks) != summary[key]:
                 raise ValueError(f'Checkov {key} summary/details mismatch')
         skipped.extend({'id': x['check_id'], 'resource': x.get('resource'),
+                        'disposition': disposition('checkov', x['check_id'], x.get('resource')),
                         'reason': x.get('check_result', {}).get('suppress_comment', '미확보')}
                        for x in results['skipped_checks'])
         for check in results['failed_checks']:
@@ -72,6 +81,7 @@ def checkov_findings(data):
                              'target': check.get('resource'), 'file': check.get('file_path'),
                              'lines': check.get('file_line_range'), 'tool_severity': check.get('severity') or 'NOT_PROVIDED',
                              'controls': controls, 'internal_risk': assessment, 'action': action,
+                             'disposition': disposition('checkov', check['check_id'], check.get('resource')),
                              'exception_approved': False})
     if counts['passed'] + counts['failed'] + counts['skipped'] == 0:
         raise ValueError('Checkov has no evaluated checks')
@@ -79,6 +89,7 @@ def checkov_findings(data):
 
 
 def trivy_findings(data):
+    packages = validate_inventory(data, require_identity=True)
     if data.get('SchemaVersion') != 2 or data.get('ArtifactType') != 'container_image':
         raise ValueError('expected Trivy schema 2 container_image report')
     results = data['Results']
@@ -87,7 +98,6 @@ def trivy_findings(data):
     os_info = data['Metadata']['OS']
     if not os_info.get('Family'):
         raise ValueError('Trivy OS coverage missing')
-    packages = sum(len(result.get('Packages') or []) for result in results)
     if not packages:
         raise ValueError('Trivy package inventory missing; use --list-all-pkgs')
     counts, findings = Counter(), []
@@ -104,6 +114,7 @@ def trivy_findings(data):
                              'installed_version': item.get('InstalledVersion'), 'fixed_version': item.get('FixedVersion'),
                              'tool_severity': severity, 'severity_source': item.get('SeveritySource'),
                              'controls': ['2.10.8', '2.11.2'], 'internal_risk': assessment,
+                             'disposition': disposition('trivy', item['VulnerabilityID'], item.get('PkgName')),
                              'action': '수정 버전 및 애플리케이션 호환성 검토'})
     return {'packages': packages, 'findings': len(findings), 'by_severity': dict(counts),
             'high_critical': counts['HIGH'] + counts['CRITICAL'], 'os_eosl': os_info.get('EOSL', False)}, findings, []
@@ -169,6 +180,8 @@ def analyze(tool, path, metadata_path=None, expected_commit=None, expected_run=N
             record['issues'].append(key + ': 미확보')
     if meta.get('tool') != tool or meta.get('status') != 'FINISHED':
         record['issues'].append('도구 또는 실행 완료 상태 불일치')
+    if meta.get('source_changed_during_scan'):
+        record['issues'].append('검사 도중 소스가 변경됨: 단일 소스 상태로 검증할 수 없음')
     if meta.get('output_sha256') != record['sha256']:
         record['issues'].append('JSON 해시와 검사 메타데이터 불일치')
     if expected_commit and meta.get('commit') != expected_commit:
@@ -215,7 +228,8 @@ def build_report(checkov, trivy, commit=None, run_id=None):
             else 'FINDINGS' if any(s['findings'] or s['gate'] == 'FAILED' for s in scans) else 'NO_FINDINGS_IN_SCANNED_SCOPE',
             'scope': '기술적 검사 증거와 팀 내부 위험도 가정. ISMS-P 인증 전체 충족 판정이 아님.',
             'scoring': '가능성(1~5) × 영향도(1~5); 상 15~25 / 중 8~14 / 하 1~7. 도구 심각도와 별개.',
-            'mapping_basis': '팀원 규칙별 매핑과 policies/isms-p.json의 기술 통제 매핑; 담당자 적합성 검토 필요.',
+            'mapping_basis': 'policies/isms-p.json 단일 매핑; 담당자 적합성 검토 필요.',
+            'mapping_sha256': hashlib.sha256(MAPPING_PATH.read_bytes()).hexdigest(),
             'issues': issues, 'scans': scans}
 
 
@@ -246,7 +260,7 @@ def markdown(report):
             target = f"{finding.get('target')} {finding.get('file', '')} {finding.get('lines', '')} {finding.get('package', '')} {finding.get('installed_version', '')} → {finding.get('fixed_version', '')}"
             lines.append('| ' + ' | '.join(map(escape, [finding['id'] + ': ' + (finding.get('name') or ''), target,
                 finding['tool_severity'], f"{r['likelihood']}×{r['impact']}={r['score']} / {r['grade']}",
-                ', '.join(finding['controls']), r['basis'] + '; ' + finding['action']])) + ' |')
+                ', '.join(finding['controls']), r['basis'] + '; ' + finding['action'] + '; ' + json.dumps(finding['disposition'], ensure_ascii=False)])) + ' |')
         if scan['skipped_checks']:
             lines += ['', '생략 항목 (통과로 계산하지 않음):', '']
             lines.extend('- ' + escape(json.dumps(item, ensure_ascii=False)) for item in scan['skipped_checks'])
@@ -254,6 +268,8 @@ def markdown(report):
 
 
 def main():
+    if MAPPING_ERROR:
+        raise ValueError('Central mapping could not be loaded: ' + MAPPING_ERROR)
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--checkov', type=Path, default=Path('evidence/ci/checkov.json'))
     p.add_argument('--trivy', type=Path, default=Path('evidence/image/trivy.json'))
@@ -269,12 +285,20 @@ def main():
     scans = [analyze('checkov', a.checkov, a.checkov_meta, a.commit, a.run_id),
              analyze('trivy', a.trivy, a.trivy_meta, a.commit, a.run_id)]
     report = build_report(*scans, a.commit, a.run_id)
+    report['execution_status'] = 'REPORT_GENERATED'
+    report['exit_class'] = 'ASSESSMENT_INCOMPLETE' if report['status'] == 'INCOMPLETE' else 'FINDINGS' if report['status'] == 'FINDINGS' else 'COMPLETE'
     a.output_dir.mkdir(parents=True, exist_ok=True)
     outputs[0].write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     outputs[1].write_text(markdown(report), encoding='utf-8')
     print(json.dumps({'status': report['status'], 'scans': {s['tool']: s['state'] for s in scans}, 'output': str(a.output_dir)}))
+    # Exit 2 is a valid incomplete assessment, not a Python exception.
     return 2 if report['status'] == 'INCOMPLETE' else 1 if report['status'] == 'FINDINGS' else 0
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    try:
+        exit_code = main()
+    except Exception as exc:
+        print(json.dumps({'execution_status': 'PROGRAM_ERROR', 'error_type': type(exc).__name__}), file=sys.stderr)
+        exit_code = 3
+    raise SystemExit(exit_code)

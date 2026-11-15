@@ -1,0 +1,9 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {"Sid":"SandboxS3Only","Effect":"Allow","Action":["s3:GetBucketTagging","s3:ListBucketVersions","s3:GetBucketPublicAccessBlock","s3:PutBucketPublicAccessBlock"],"Resource":"arn:aws:s3:::team4-${EXPECTED_ACCOUNT_ID}-${AWS_REGION}-healing-sandbox"},
+    {"Sid":"UnassumableSandboxRoleOnly","Effect":"Allow","Action":["iam:GetRole","iam:GetRolePolicy","iam:ListRolePolicies","iam:ListAttachedRolePolicies","iam:PutRolePolicy"],"Resource":"arn:aws:iam::${EXPECTED_ACCOUNT_ID}:role/team4-sandbox/team4-healing-sandbox"},
+    {"Sid":"ReceiptsOnly","Effect":"Allow","Action":["dynamodb:PutItem","dynamodb:UpdateItem"],"Resource":"arn:aws:dynamodb:${AWS_REGION}:${EXPECTED_ACCOUNT_ID}:table/team4-security-ops-receipts"},
+    {"Sid":"ApprovedSlackSecretOnly","Effect":"Allow","Action":"secretsmanager:GetSecretValue","Resource":"${SLACK_SECRET_ARN}"}
+  ]
+}

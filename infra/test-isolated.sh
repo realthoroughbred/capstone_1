@@ -16,7 +16,7 @@ trap cleanup EXIT
 while IFS= read -r -d '' relative_path; do
   mkdir -p "$scratch_dir/$(dirname "$relative_path")"
   cp -- "$repo_dir/$relative_path" "$scratch_dir/$relative_path"
-done < <(git -c safe.directory="$repo_dir" -C "$repo_dir" ls-files -z -- \
+done < <(git -c safe.directory="$repo_dir" -C "$repo_dir" ls-files -z --cached --others --exclude-standard -- \
   'infra/*.tf' 'infra/.terraform.lock.hcl' 'infra/tests/*.tftest.hcl')
 test -f "$scratch_dir/infra/variables.tf"
 test -f "$scratch_dir/infra/.terraform.lock.hcl"
@@ -24,7 +24,7 @@ test -f "$scratch_dir/infra/tests/safety.tftest.hcl"
 
 # Preserve archive_file's relative source layout with an explicit code allowlist.
 mkdir -p "$scratch_dir/automation"
-for source_file in common.py sg_healing.py inspector_response.py; do
+for source_file in common.py sg_healing.py inspector_response.py idempotency.py resource_healing.py slack_notify.py; do
   cp -- "$repo_dir/automation/$source_file" "$scratch_dir/automation/$source_file"
 done
 

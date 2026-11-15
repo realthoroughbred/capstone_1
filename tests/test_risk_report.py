@@ -22,7 +22,7 @@ def checkov():
 
 def trivy():
     return {'SchemaVersion': 2, 'ArtifactType': 'container_image', 'ArtifactName': 'synthetic:test',
-            'Metadata': {'OS': {'Family': 'alpine'}, 'ImageID': 'sha256:synthetic'},
+            'Metadata': {'OS': {'Family': 'alpine'}, 'ImageID': 'sha256:' + 'a' * 64},
             'Results': [{'Target': 'synthetic', 'Packages': [{'Name': 'busybox'}], 'Vulnerabilities': []}]}
 
 
@@ -118,6 +118,10 @@ class RiskReportTests(unittest.TestCase):
         for kwargs in [{'expected_commit': 'b' * 40}, {'expected_run': 'other-run'}]:
             self.assertEqual(report.analyze('checkov', path, **kwargs)['state'], 'UNVERIFIED')
 
+    def test_source_changed_during_scan_is_not_complete(self):
+        path = self.save('trivy', trivy(), source_changed_during_scan=True)
+        self.assertEqual(report.analyze('trivy', path)['state'], 'UNVERIFIED')
+
     def test_no_empty_or_malformed_checkov_success(self):
         bad = checkov()
         bad['summary']['failed'] = 1
@@ -155,6 +159,28 @@ class RiskReportTests(unittest.TestCase):
     def test_image_digest_mismatch_is_unverified(self):
         path = self.save('trivy', trivy(), image_config_digest='sha256:different')
         self.assertEqual(report.analyze('trivy', path)['state'], 'UNVERIFIED')
+
+    def test_missing_image_identity_cannot_be_complete(self):
+        data = trivy()
+        data['Metadata'].pop('ImageID')
+        scan = report.analyze('trivy', self.save('trivy', data))
+        self.assertNotEqual(scan['state'], 'COMPLETE')
+        self.assertEqual(scan['gate'], 'UNKNOWN')
+
+    def test_malformed_inventory_and_vulnerabilities_are_errors(self):
+        for field in ['Packages', 'Vulnerabilities']:
+            for value in [{}, '', False, 0, {'fake': 'entry'}, ['not-an-object']]:
+                with self.subTest(field=field, value=value):
+                    data = trivy()
+                    data['Results'][0][field] = value
+                    scan = report.analyze('trivy', self.save('trivy', data))
+                    self.assertEqual(scan['state'], 'ERROR')
+                    self.assertIsNone(scan['counts'])
+
+    def test_mapping_covers_every_rule_control(self):
+        mapping = json.loads((SCRIPT.parents[1] / 'policies/isms-p.json').read_text(encoding='utf-8'))
+        for rule in report.RULES.values():
+            self.assertIn(rule[0], mapping['controls'])
 
     def test_cross_run_provenance_not_combined(self):
         c = report.analyze('checkov', self.save('checkov', checkov()))

@@ -16,9 +16,11 @@ from pathlib import Path
 try:
     from .common import audit, digest, dry_run, identity, require, required
     from .inspector_response import approved_image, _verify_safe_ecr
+    from .scan_contract import validate_inventory
 except ImportError:
     from common import audit, digest, dry_run, identity, require, required
     from inspector_response import approved_image, _verify_safe_ecr
+    from scan_contract import validate_inventory
 
 
 def execute(args, *, env, timeout=60):
@@ -145,7 +147,8 @@ def work(env, run=execute, now=None):
             and row.get("safe_digest", {}).get("S") == safe, "build_reservation_mismatch")
     result = {"status": "FAILED", "remediation_id": key, "build_id": build_id,
               "dry_run": dry, "bad_digest": bad, "safe_digest": safe,
-              "verification": "NOT_EXECUTED", "evidence_kind": "AWS_CODEBUILD_EXECUTION"}
+              "verification": "NOT_EXECUTED", "evidence_kind": "AWS_CODEBUILD_EXECUTION",
+              "source_commit": env.get("CODEBUILD_RESOLVED_SOURCE_VERSION", "UNAVAILABLE")}
     origin = row.get("event_origin", {}).get("S")
     result["event_origin"] = origin if origin in ("SIMULATED_EVENT", "INSPECTOR_EVENT") else "UNSPECIFIED"
     stage = "identity"
@@ -191,9 +194,22 @@ def work(env, run=execute, now=None):
                 run(["cosign", "verify", "--certificate-identity", signing_identity,
                      "--certificate-oidc-issuer", signing_issuer, safe_image], env=env, timeout=120)
                 scan_path = str(Path(temp) / "trivy.json")
-                run(["trivy", "image", "--quiet", "--scanners", "vuln", "--severity", "HIGH,CRITICAL",
+                run(["trivy", "image", "--quiet", "--scanners", "vuln", "--list-all-pkgs", "--severity", "HIGH,CRITICAL",
                      "--exit-code", "1", "--format", "json", "--output", scan_path,
                      safe_image], env=env, timeout=300)
+                scan = json.loads(Path(scan_path).read_text(encoding="utf-8"))
+                validate_inventory(scan, require_identity=True)
+                require(not scan['Metadata']['OS'].get('EOSL'), 'approved_image_os_unsupported')
+                require(not any(v.get('Severity') in ('HIGH', 'CRITICAL') for r in scan['Results']
+                                for v in (r.get('Vulnerabilities') or [])), 'approved_image_scan_gate_failed')
+                manifest_response = AwsService('ecr', env, run).batch_get_image(
+                    registryId=account, repositoryName=repository, imageIds=[{'imageDigest': safe}])
+                images = manifest_response.get('images', [])
+                require(len(images) == 1 and not manifest_response.get('failures')
+                        and images[0].get('imageId', {}).get('imageDigest') == safe, 'approved_manifest_missing')
+                config_digest = json.loads(images[0]['imageManifest'])['config']['digest']
+                require(scan['Metadata']['ImageID'] == digest(config_digest), 'approved_scan_image_mismatch')
+                result['image_config_digest'] = config_digest
                 # Approval can expire while downloading the vulnerability DB.
                 approval = AwsService("ssm", env, run).get_parameter(
                     Name=env["APPROVED_IMAGE_PARAMETER"], WithDecryption=False)
@@ -221,6 +237,11 @@ def work(env, run=execute, now=None):
                     require(updated["metadata"]["uid"] == deployment["metadata"]["uid"], "deployment_recreated")
                     verify_running_pods(updated, get("replicasets")["items"], get("pods")["items"],
                                         container, safe_image, after=True)
+                    stage = 'http_verification'
+                    # Exact service proxy permission; the worker does not get arbitrary Pod exec.
+                    body = run([*kube, 'get', '--raw', f'/api/v1/namespaces/{namespace}/services/http:server:8080/proxy/'], env=env, timeout=15)
+                    require(body.strip() == 'team4 server ok', 'replacement_http_mismatch')
+                    result['http_verification'] = 'PASS'
                     result.update(status="VERIFIED", verification="PASS")
     except Exception:
         # A rollout failure stops here. There is no rollback to an unverified image.

@@ -56,6 +56,8 @@ class Runner:
         self.race = False
         self.deployment_gets = 0
         self.verification_bad_digest = False
+        self.empty_scan = False
+        self.bad_http = False
 
     def __call__(self, args, **kwargs):
         self.calls.append(args)
@@ -82,8 +84,13 @@ class Runner:
                     "imageScanFindings": {"imageScanCompletedAt": NOW.isoformat(), "findingSeverityCounts": {}}})
             if (service, command) == ("ecr", "get-login-password"):
                 return "SECRET_NEVER_LOG"
+            if (service, command) == ('ecr', 'batch-get-image'):
+                return json.dumps({'images': [{'imageId': {'imageDigest': SAFE},
+                    'imageManifest': json.dumps({'config': {'digest': 'sha256:' + 'e' * 64}})}]})
             return "{}"
         if args[0] == "kubectl":
+            if '--raw' in args:
+                return 'unhealthy' if self.bad_http else 'team4 server ok'
             if "patch" in args:
                 self.changed = True
                 return "{}"
@@ -104,11 +111,27 @@ class Runner:
                     current = REPO + "@" + BAD
                 return json.dumps({"items": [pod(current)]})
         if args[0] == "trivy":
-            Path(args[args.index("--output") + 1]).write_text('{"Results": []}')
+            scan = {'SchemaVersion': 2, 'ArtifactType': 'container_image',
+                    'Metadata': {'OS': {'Family': 'alpine'}, 'ImageID': 'sha256:' + 'e' * 64},
+                    'Results': [] if self.empty_scan else [{'Packages': [{'Name': 'busybox'}], 'Vulnerabilities': []}]}
+            Path(args[args.index("--output") + 1]).write_text(json.dumps(scan))
         return "{}"
 
 
 class WorkerTests(unittest.TestCase):
+    def test_empty_scanner_report_never_mutates(self):
+        self.runner.empty_scan = True
+        self.env['DRY_RUN'] = 'false'
+        self.assertEqual('FAILED', self.run_worker()['status'])
+        self.assertEqual([], self.mutations())
+
+    def test_http_failure_cannot_be_verified(self):
+        self.runner.bad_http = True
+        self.env['DRY_RUN'] = 'false'
+        result = self.run_worker()
+        self.assertEqual('FAILED', result['status'])
+        self.assertEqual('http_verification', result['failed_stage'])
+
     def setUp(self):
         self.runner = Runner()
         self.env = dict(ENV)

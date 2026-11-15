@@ -1,5 +1,6 @@
 """Prove real Argo CD comparison/reconciliation; never repair NetworkPolicy directly."""
 import json
+import os
 import subprocess
 import sys
 import time
@@ -10,7 +11,10 @@ context, revision = sys.argv[1:]
 if context not in ('kind-team4', 'team4-eks'):
     raise SystemExit('Unexpected context')
 cmd = ['kubectl', '--context', context]
-out = Path(f'evidence/gitops-{context}.json')
+out = Path(os.environ.get('EVIDENCE_DIR', 'evidence')) / f'gitops-{context}.json'
+if out.exists():
+    raise SystemExit('Use a fresh EVIDENCE_DIR; historical evidence is immutable')
+out.parent.mkdir(parents=True, exist_ok=True)
 evidence = {'context': context, 'revision': revision, 'result': 'FAIL', 'events': []}
 def run(*args, check=True):
     return subprocess.run(cmd + list(args), text=True, capture_output=True, check=check)

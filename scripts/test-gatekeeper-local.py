@@ -1,4 +1,4 @@
-"""Live local admission cases and separate runtime proof; never contacts EKS.
+"""Admission cases and separate runtime proof; local by default, exact AWS opt-in.
 
 Each command/exit code/stdout/stderr is retained under a new evidence directory.
 Only this run's generated Pods are removed. Existing workloads are untouched.
@@ -11,6 +11,37 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
+
+
+def controller_result(response, kind):
+    """A failed query or incomplete controller status is a failed test."""
+    result = {'test': 'controller-status-' + kind, 'phase': 'controller-status', 'result': 'FAIL'}
+    if response.returncode:
+        return {**result, 'reason': 'controller_query_failed', 'exit_code': response.returncode}
+    try:
+        doc = json.loads(response.stdout)
+        status = doc.get('status', {})
+        by_pod = status.get('byPod')
+        if not isinstance(by_pod, list) or not by_pod:
+            return {**result, 'reason': 'controller_status_missing'}
+        errors = [p.get('errors') for p in by_pod if p.get('errors')]
+        errors += [s for p in by_pod for s in p.get('enforcementPointsStatus', []) if s.get('state') == 'error']
+        ready = status.get('created') is True if kind == 'constrainttemplate' else all(p.get('enforced') is True for p in by_pod)
+        if any(p.get('observedGeneration', 0) < doc.get('metadata', {}).get('generation', 1) for p in by_pod):
+            ready = False
+        return {**result, 'result': 'PASS' if ready and not errors else 'FAIL', 'errors': errors}
+    except (ValueError, TypeError, AttributeError):
+        return {**result, 'reason': 'invalid_controller_response'}
+
+
+def pod_absent(response, name):
+    if response.returncode:
+        return False
+    try:
+        items = json.loads(response.stdout)['items']
+        return isinstance(items, list) and all(p['metadata']['name'] != name for p in items)
+    except (ValueError, KeyError, TypeError):
+        return False
 
 
 def pod(name, image, namespace='son-policy-test'):
@@ -79,9 +110,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir', required=True, type=Path)
     parser.add_argument('--image', required=True, help='Already built and loaded into kind; immutable tag or digest')
+    parser.add_argument('--context', default='kind-team4')
+    parser.add_argument('--approved-aws-test', action='store_true')
+    parser.add_argument('--expected-api-server', help='Exact endpoint obtained from an approved EKS describe-cluster')
     a = parser.parse_args()
     a.output_dir.mkdir(parents=True, exist_ok=False)
-    cmd = ['kubectl', '--context', 'kind-team4', '--request-timeout=30s']
+    cmd = ['kubectl', '--context', a.context, '--request-timeout=30s']
     results, created = [], []
     counter = 0
 
@@ -115,8 +149,11 @@ def main():
 
     try:
         config = run(['config', 'view', '--minify', '-o', 'jsonpath={.clusters[0].cluster.server}'])
-        if config.returncode or urlparse(config.stdout).hostname not in {'localhost', '127.0.0.1', '::1'}:
-            raise RuntimeError('Refusing non-local Kubernetes endpoint')
+        local = a.context == 'kind-team4' and urlparse(config.stdout).hostname in {'localhost', '127.0.0.1', '::1'}
+        approved_aws = (a.approved_aws_test and a.context == 'team4-eks' and a.expected_api_server
+                        and config.stdout.strip() == a.expected_api_server and urlparse(config.stdout).scheme == 'https')
+        if config.returncode or not (local or approved_aws):
+            raise RuntimeError('Refusing unverified Kubernetes endpoint')
         for args in [['get', 'constrainttemplate', 'team4nonroot', '-o', 'json'],
                      ['get', 'team4nonroot', 'son-require-nonroot', '-o', 'json'],
                      ['get', 'clusterpolicy', 'team4-restricted', '-o', 'json']]:
@@ -165,30 +202,21 @@ def main():
         if response.returncode == 0:
             created.append(bad['metadata']['name'])
         snapshot = run(['-n', 'son-policy-test', 'get', 'pods', '-o', 'json'])
-        if snapshot.returncode == 0 and any(x['metadata']['name'] == bad['metadata']['name'] for x in json.loads(snapshot.stdout)['items']):
-            results[-1]['result'] = 'FAIL'
+        results.append({'test': 'rejected-pod-absence', 'phase': 'actual-create',
+                        'result': 'PASS' if pod_absent(snapshot, bad['metadata']['name']) else 'FAIL',
+                        'command_record': f'{counter:03d}-command.json'})
         for args in [['get', 'constrainttemplate', 'team4nonroot', '-o', 'json'],
                      ['get', 'team4nonroot', 'son-require-nonroot', '-o', 'json']]:
             response = run(args)
-            if response.returncode == 0:
-                statuses = json.loads(response.stdout).get('status', {})
-                errors = [item.get('errors') for item in statuses.get('byPod', []) if item.get('errors')]
-                errors += [point for item in statuses.get('byPod', []) for point in item.get('enforcementPointsStatus', [])
-                           if point.get('state') == 'error']
-                ready = bool(statuses.get('byPod'))
-                if args[1] == 'constrainttemplate':
-                    ready = ready and statuses.get('created') is True
-                else:
-                    ready = ready and all(p.get('enforced') is True for p in statuses['byPod'])
-                results.append({'test': 'controller-status-' + args[1], 'phase': 'controller-status',
-                                'result': 'PASS' if ready and not errors else 'FAIL', 'errors': errors,
-                                'command_record': f'{counter:03d}-command.json'})
-    except (RuntimeError, subprocess.TimeoutExpired, ValueError) as exc:
+            results.append({**controller_result(response, args[1]), 'command_record': f'{counter:03d}-command.json'})
+    except (OSError, KeyError, TypeError, RuntimeError, subprocess.TimeoutExpired, ValueError) as exc:
         results.append({'test': 'execution', 'phase': 'setup-or-runtime', 'result': 'FAIL', 'reason': str(exc)})
         print(str(exc), flush=True)
     finally:
         for name in created:
-            run(['-n', 'son-policy-test', 'delete', 'pod', name, '--wait=false'])
+            response = run(['-n', 'son-policy-test', 'delete', 'pod', name, '--wait=false'])
+            if response.returncode:
+                results.append({'test': 'cleanup-' + name, 'phase': 'cleanup', 'result': 'FAIL'})
         (a.output_dir / 'results.json').write_text(json.dumps(results, indent=2) + '\n', encoding='utf-8')
     return 1 if not results or any(item['result'] != 'PASS' for item in results) else 0
 

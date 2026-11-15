@@ -1,0 +1,48 @@
+{
+  "commit": "4d4a1955d6d2abf168172ed8ee9372ba464632d1",
+  "branch": "codex/integrate-son-security",
+  "archived_at": "2026-11-16",
+  "environment": "Historical mixed local/AWS results; not revalidated in this run.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "189407d95f9862e888ca827f134fe1cbbcfc4df920db84133449857587a5682b"
+    },
+    {
+      "path": "IMPLEMENTATION_STATUS.md",
+      "sha256": "b468e7dd78e7c9afdb7db11e1d5884620f408cfce678fa3d12058bca4d4f73fe"
+    },
+    {
+      "path": "REMAINING_TASKS.md",
+      "sha256": "05300b60da8a18be8cf47eece307dac5955c792863a4a8aa9c9be20eb76a7b14"
+    },
+    {
+      "path": "VALIDATION.md",
+      "sha256": "82f911e004217a16d9a4564637a19c4abf7767fabd32feb0955dea8f93332272"
+    },
+    {
+      "path": "SECURITY_TEST_REPORT.md",
+      "sha256": "b1ca1293252a36203a00e6ae69a90ec681009a26bb96ffa8e89eb3632ca1b22f"
+    },
+    {
+      "path": "SELF_HEALING_REPORT.md",
+      "sha256": "50d3ea2cbe9af3bdb575bdd528f15a20ddce411762c1ea34f613113620bbc0c3"
+    },
+    {
+      "path": "ISMSP_MAPPING_REPORT.md",
+      "sha256": "a8bc7e8616bf9cbd5219133f90399784cb46573da463249f97fcf42a33974fe2"
+    },
+    {
+      "path": "docs/AWS_PLAN_REVIEW.md",
+      "sha256": "99ce5aecae4cf249df1f01d2c7c7589877e3e0a4f05f5a4f8b367aae9e12e56e"
+    },
+    {
+      "path": "COST_AND_CLEANUP.md",
+      "sha256": "294e71d12010d3aac2d9942fa90e08bd04046fe623dc3f308bb8d207ba328937"
+    },
+    {
+      "path": "docs/INTEGRATION_DEMO.md",
+      "sha256": "013950c567353b52e50395ee073f1463b4ddb9af0db24e3e4b9bde6d347a48d7"
+    }
+  ]
+}

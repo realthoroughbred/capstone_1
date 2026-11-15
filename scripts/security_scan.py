@@ -12,13 +12,15 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+ROOT = Path(__file__).absolute().parents[1]
+
 
 def now():
     return datetime.now(timezone.utc).isoformat()
 
 
 def git(*args):
-    return subprocess.check_output(['git', *args], text=True).strip()
+    return subprocess.check_output(['git', *args], cwd=ROOT, text=True).strip()
 
 
 def source_identity():
@@ -72,6 +74,8 @@ def main():
         meta['status'] = 'ERROR'
     finally:
         meta.update(exit_code=rc, finished_at=now())
+        meta['source_after'] = source_identity()
+        meta['source_changed_during_scan'] = meta['source_after']['source_tree_sha256'] != meta['source_tree_sha256']
         if a.output.is_file():
             meta['output_sha256'] = hashlib.sha256(a.output.read_bytes()).hexdigest()
         if a.tool == 'checkov' and a.output.is_file():

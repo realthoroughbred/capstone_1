@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "enabled": false,
+  "reason": "No current published image/artifact has been approved for scheduled AWS-demo tracking. Configure immutable run ID, commit and digest after approval.",
+  "targets": []
+}

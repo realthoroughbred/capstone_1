@@ -1,7 +1,7 @@
 locals {
   account_root       = "arn:aws:iam::${var.aws_account_id}:root"
   oidc_issuer        = replace(aws_eks_cluster.demo.identity[0].oidc[0].issuer, "https://", "")
-  automation_enabled = var.enable_self_healing || var.enable_inspector_response
+  automation_enabled = var.enable_self_healing || var.enable_inspector_response || var.enable_resource_healing || var.enable_slack_notifications
 }
 
 # One customer-managed key bounds cost while protecting this dedicated lab's data.

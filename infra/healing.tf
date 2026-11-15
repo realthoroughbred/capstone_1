@@ -136,7 +136,7 @@ data "archive_file" "automation" {
   type        = "zip"
   output_path = "${path.module}/automation.zip"
   dynamic "source" {
-    for_each = toset(["common.py", "sg_healing.py", "inspector_response.py"])
+    for_each = toset(["common.py", "sg_healing.py", "inspector_response.py", "idempotency.py", "resource_healing.py", "slack_notify.py"])
     content {
       filename = source.value
       content  = file("${path.module}/../automation/${source.value}")

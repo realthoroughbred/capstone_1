@@ -208,13 +208,14 @@ resource "aws_cloudwatch_event_target" "build_failure" {
   arn   = aws_sqs_queue.failures[0].arn
 }
 resource "aws_sqs_queue_policy" "failures" {
-  count     = local.automation_enabled ? 1 : 0
+  count     = var.enable_self_healing || var.enable_inspector_response || var.enable_resource_healing ? 1 : 0
   queue_url = aws_sqs_queue.failures[0].id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{ Effect = "Allow", Principal = { Service = "events.amazonaws.com" }, Action = "sqs:SendMessage", Resource = aws_sqs_queue.failures[0].arn,
       Condition = { ArnEquals = { "aws:SourceArn" = concat(
         var.enable_self_healing ? [aws_cloudwatch_event_rule.restricted_ssh[0].arn] : [],
+        var.enable_resource_healing ? [aws_cloudwatch_event_rule.sandbox[0].arn] : [],
         var.enable_inspector_response ? [aws_cloudwatch_event_rule.inspector[0].arn, aws_cloudwatch_event_rule.build_failure[0].arn] : []
       ) } }
     }]

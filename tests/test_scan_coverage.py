@@ -28,3 +28,13 @@ class ScanCoverageTests(unittest.TestCase):
     def test_json_gate_still_rejects_absent_inventory(self):
         with self.assertRaises(ValueError):
             module.enforce({'Results': []})
+
+    def test_bad_types_cannot_bypass_the_gate(self):
+        for field in ['Packages', 'Vulnerabilities']:
+            for value in [{}, '', False, 0, ['not-an-object']]:
+                with self.subTest(field=field, value=value):
+                    report = {'Metadata': {'OS': {'Family': 'alpine'}}, 'Results': [
+                        {'Packages': [{'Name': 'busybox'}], 'Vulnerabilities': []}]}
+                    report['Results'][0][field] = value
+                    with self.assertRaises(ValueError):
+                        module.enforce(report)

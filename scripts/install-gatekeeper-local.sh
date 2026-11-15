@@ -17,7 +17,9 @@ helm upgrade --install gatekeeper gatekeeper/gatekeeper --kube-context "$context
   --namespace gatekeeper-system --create-namespace --version 3.23.1 \
   --values policies/gatekeeper/local-values.yaml --wait --timeout 5m
 kubectl --context "$context" apply -f policies/gatekeeper/nonroot-template.yaml
+kubectl --context "$context" wait --for=create crd/team4nonroot.constraints.gatekeeper.sh --timeout=120s
 kubectl --context "$context" wait --for=condition=Established crd/team4nonroot.constraints.gatekeeper.sh --timeout=120s
+kubectl --context "$context" wait --for=jsonpath='{.status.created}'=true constrainttemplate/team4nonroot --timeout=120s
 kubectl --context "$context" apply -f policies/gatekeeper/nonroot-constraint.yaml
 kubectl --context "$context" get constrainttemplate team4nonroot -o yaml > "$out/template.yaml"
 kubectl --context "$context" get team4nonroot son-require-nonroot -o yaml > "$out/constraint.yaml"

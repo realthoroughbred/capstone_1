@@ -1,0 +1,739 @@
+{
+  "review_date": "2026-11-16",
+  "numeric_progress_policy": "PRESERVE_ORIGINAL",
+  "tasks": [
+    {
+      "id": "1.2",
+      "row": 17,
+      "task": "공급망 보안 위협 모델링 및 아키텍처 설계",
+      "owner": "김송희",
+      "original_progress": "0.1",
+      "files": [
+        "docs/LAB_BOOK.md"
+      ],
+      "tests": "구성도·기술 범위 본문 작성",
+      "evidence": [
+        "evidence/finalization-20261116/initial-status.txt"
+      ],
+      "remaining": "팀 위협 모델·설계 승인",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 구성도·기술 범위 본문 작성. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.1.1",
+      "row": 18,
+      "task": "Terraform 기반 AWS VPC·EKS 인프라 구축",
+      "owner": "이지민",
+      "original_progress": "0.4",
+      "files": [
+        "infra/main.tf",
+        "infra/tests/safety.tftest.hcl"
+      ],
+      "tests": "Terraform validate 및 mock 10개 통과",
+      "evidence": [
+        "evidence/finalization-20261116/terraform-mocks/output.txt"
+      ],
+      "remaining": "AWS 신규 plan·인프라 실검증",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: Terraform validate 및 mock 10개 통과. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.2.1",
+      "row": 19,
+      "task": "- GitHub Actions 기반 CI/CD 파이프라인 구축",
+      "owner": "김송희",
+      "original_progress": "0.3",
+      "files": [
+        ".github/workflows/checkov.yml"
+      ],
+      "tests": "기존 원격 CI 이력 재조회; 현재 workflow 정적 검증",
+      "evidence": [
+        "evidence/finalization-20261116/run-41291034469-jobs.json"
+      ],
+      "remaining": "최종 commit의 원격 CI 결과 확인",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 기존 원격 CI 이력 재조회; 현재 workflow 정적 검증. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도.",
+      "role_review": "작업 담당 김송희와 역할표의 보안 검사/Argo·인프라 업무 범위 차이: 팀 협의 필요, 담당 변경하지 않음"
+    },
+    {
+      "id": "2.3.1",
+      "row": 20,
+      "task": "- ArgoCD 기반 GitOps 배포 파이프라인 구축",
+      "owner": "김송희",
+      "original_progress": "0.0",
+      "files": [
+        "scripts/configure-gitops-app-auth.py",
+        "k8s/gitops/workloads-application.yaml.template"
+      ],
+      "tests": "Deploy Key 등록 HTTP 422; GitHub App 권한 검사 mock",
+      "evidence": [
+        "evidence/finalization-20261116/gitops-auth-setup/output.txt"
+      ],
+      "remaining": "관리자 App 설치·직접 연결·GitOps workload 배포",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: Deploy Key 등록 HTTP 422; GitHub App 권한 검사 mock. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도.",
+      "role_review": "작업 담당 김송희와 역할표의 보안 검사/Argo·인프라 업무 범위 차이: 팀 협의 필요, 담당 변경하지 않음"
+    },
+    {
+      "id": "2.4.1",
+      "row": 21,
+      "task": "- Trivy 이미지 취약점 스캔 게이트웨이 강제화",
+      "owner": "김송희",
+      "original_progress": "0.0",
+      "files": [
+        "scripts/image-security.sh",
+        "scripts/check-image-report.py"
+      ],
+      "tests": "실제 HIGH 3건 이미지 종료 1 차단; 패키지 수정 후 HIGH/CRITICAL 0",
+      "evidence": [
+        "evidence/finalization-20261116/candidate-image/trivy-gate.txt",
+        "evidence/finalization-20261116/fixed-image/trivy-gate.txt"
+      ],
+      "remaining": "AWS 승인 이미지·실제 배포와 연결",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 실제 HIGH 3건 이미지 종료 1 차단; 패키지 수정 후 HIGH/CRITICAL 0. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도.",
+      "role_review": "작업 담당 김송희와 역할표의 보안 검사/Argo·인프라 업무 범위 차이: 팀 협의 필요, 담당 변경하지 않음"
+    },
+    {
+      "id": "2.5.1",
+      "row": 22,
+      "task": "- 빌드 아티팩트 관리 및 캐시 최적화",
+      "owner": "김송희",
+      "original_progress": "0.0",
+      "files": [
+        "scripts/install-security-tools.sh",
+        ".github/workflows/checkov.yml"
+      ],
+      "tests": "다운로드 캐시 무결성 확인 및 반복 artifact 활용",
+      "evidence": [
+        "evidence/finalization-20261116/tool-install-verified-cache/output.txt"
+      ],
+      "remaining": "원격 artifact 보존 기간·용량 검토",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 다운로드 캐시 무결성 확인 및 반복 artifact 활용. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.6.1",
+      "row": 23,
+      "task": "- SBOM(Syft) 자동 생성 파이프라인 기초 연동",
+      "owner": "김송희",
+      "original_progress": "0.0",
+      "files": [
+        "scripts/validate-sbom.py",
+        "scripts/verify_sbom_binding.py"
+      ],
+      "tests": "실제 Syft SBOM schema·config digest 결합 검증 통과",
+      "evidence": [
+        "evidence/finalization-20261116/fixed-image/sbom-link.json"
+      ],
+      "remaining": "ECR manifest digest와 승인 배포 연결",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 실제 Syft SBOM schema·config digest 결합 검증 통과. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.7.1",
+      "row": 24,
+      "task": "- CI/CD 파이프라인 보안 스테이지 속도 최적화",
+      "owner": "김송희",
+      "original_progress": "0.0",
+      "files": [
+        "scripts/install-security-tools.sh",
+        ".github/workflows/checkov.yml"
+      ],
+      "tests": "같은 로컬 환경 도구 설치 63.48초→26.38초",
+      "evidence": [
+        "evidence/finalization-20261116/tool-install-no-cache/command.json",
+        "evidence/finalization-20261116/tool-install-verified-cache/command.json"
+      ],
+      "remaining": "같은 commit의 전체 GitHub CI cold/warm 측정",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 같은 로컬 환경 도구 설치 63.48초→26.38초. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도.",
+      "role_review": "작업 담당 김송희와 역할표의 보안 검사/Argo·인프라 업무 범위 차이: 팀 협의 필요, 담당 변경하지 않음"
+    },
+    {
+      "id": "2.8.1",
+      "row": 25,
+      "task": "- ArgoCD GitOps 자동 동기화 상태 검증",
+      "owner": "김송희",
+      "original_progress": "0.0",
+      "files": [
+        "scripts/test-gitops-drift.py"
+      ],
+      "tests": "실제 local mirror OutOfSync→자동 복원→통신 정상",
+      "evidence": [
+        "evidence/finalization-20261116/gitops-mirror/gitops-kind-team4.json"
+      ],
+      "remaining": "GitHub 직접 인증·최종 commit·AWS GitOps 재검증",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 실제 local mirror OutOfSync→자동 복원→통신 정상. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도.",
+      "role_review": "작업 담당 김송희와 역할표의 보안 검사/Argo·인프라 업무 범위 차이: 팀 협의 필요, 담당 변경하지 않음"
+    },
+    {
+      "id": "3.1",
+      "row": 26,
+      "task": "[Week 9] 보안 정책 통합 테스트 및 모의 해킹 검증",
+      "owner": "김송희",
+      "original_progress": "0.0",
+      "files": [
+        "scripts/ci-check.sh",
+        "docs/LAB_BOOK.md"
+      ],
+      "tests": "로컬 검사·정책·통신·ESO·GitOps 수행",
+      "evidence": [
+        "evidence/finalization-20261116/admission/results.json",
+        "evidence/finalization-20261116/network/network-kind-team4.log"
+      ],
+      "remaining": "통합 AWS 정상/실패 시나리오",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 로컬 검사·정책·통신·ESO·GitOps 수행. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "1.1",
+      "row": 27,
+      "task": "ISMS-P 통제항목 조사 및 보안 요구사항 정의",
+      "owner": "손초애",
+      "original_progress": "1.0",
+      "files": [
+        "policies/isms-p.json",
+        "docs/LAB_BOOK.md"
+      ],
+      "tests": "원본 완료 상태 유지; 이번 인증 전체 충족 판정은 하지 않음",
+      "evidence": [
+        "evidence/finalization-20261116/baseline-risk-report/isms-p-risk-report.json"
+      ],
+      "remaining": "팀의 통제 범위·매핑 적합성 재검토",
+      "status": "완료",
+      "basis": "2026-11-16 확인 범위: 원본 완료 상태 유지; 이번 인증 전체 충족 판정은 하지 않음. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.1.2",
+      "row": 28,
+      "task": "- ISMS-P 매핑 확정 및 Checkov 룰셋 설정",
+      "owner": "손초애",
+      "original_progress": "0.85",
+      "files": [
+        "policies/isms-p.json",
+        "scripts/07-isms-p-risk-report.py"
+      ],
+      "tests": "내부 중복 매핑 제거·중앙 매핑/해시 사용; 회귀 시험",
+      "evidence": [
+        "evidence/finalization-20261116/report-regressions-after/output.txt"
+      ],
+      "remaining": "통제 담당자의 의미 적합성 검토",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 내부 중복 매핑 제거·중앙 매핑/해시 사용; 회귀 시험. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.2.2",
+      "row": 29,
+      "task": "- Terraform IaC 정적 취약점 스캔 자동화",
+      "owner": "손초애",
+      "original_progress": "0.75",
+      "files": [
+        ".checkov.yaml",
+        "scripts/security_scan.py"
+      ],
+      "tests": "이번 실제 Checkov 184통과·3실패·23생략",
+      "evidence": [
+        "evidence/finalization-20261116/candidate-checkov/checkov.json"
+      ],
+      "remaining": "새 S3 실패 3개 처리·생략 검토",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 이번 실제 Checkov 184통과·3실패·23생략. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.3.2",
+      "row": 30,
+      "task": "- OPA Gatekeeper 설치 및 제약 조건 정의",
+      "owner": "손초애",
+      "original_progress": "0.8",
+      "files": [
+        "scripts/install-gatekeeper-local.sh",
+        "scripts/install-gatekeeper-eks.sh",
+        "policies/gatekeeper/eks-values.yaml"
+      ],
+      "tests": "로컬 허용/거부 및 신규 CRD readiness 통과",
+      "evidence": [
+        "evidence/finalization-20261116/admission/results.json",
+        "evidence/finalization-20261116/fresh-crd/created.json"
+      ],
+      "remaining": "AWS 설치·RBAC·실제 webhook 검증",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 로컬 허용/거부 및 신규 CRD readiness 통과. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.4.2",
+      "row": 31,
+      "task": "- Root 권한 실행 방지 Rego 정책 적용",
+      "owner": "손초애",
+      "original_progress": "0.9",
+      "files": [
+        "policies/gatekeeper/nonroot-template.yaml",
+        "scripts/test-gatekeeper-local.py"
+      ],
+      "tests": "root/init/ephemeral 거부·정상 실제 Pod 실행; 조회 오류 회귀",
+      "evidence": [
+        "evidence/finalization-20261116/admission/results.json"
+      ],
+      "remaining": "AWS 정상·위반 Pod 대조군",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: root/init/ephemeral 거부·정상 실제 Pod 실행; 조회 오류 회귀. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.5.2",
+      "row": 32,
+      "task": "- ISMS-P 위험도 평가 자동화 리포트 작성",
+      "owner": "손초애",
+      "original_progress": "0.9",
+      "files": [
+        "scripts/07-isms-p-risk-report.py",
+        "automation/scan_contract.py"
+      ],
+      "tests": "누락 ImageID/잘못된 자료형 차단; INCOMPLETE 정상 보고서 종료 2",
+      "evidence": [
+        "evidence/finalization-20261116/baseline-report-command/command.json",
+        "evidence/finalization-20261116/baseline-risk-report/isms-p-risk-report.json"
+      ],
+      "remaining": "최종 CI 원본 결합·담당자 위험도 검토",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 누락 ImageID/잘못된 자료형 차단; INCOMPLETE 정상 보고서 종료 2. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.6.2",
+      "row": 33,
+      "task": "- OPA Gatekeeper 오탐지 분석 및 예외 정책 튜닝",
+      "owner": "손초애",
+      "original_progress": "0.85",
+      "files": [
+        "policies/exception-register.json",
+        "docs/SECURITY_DISPOSITION.md"
+      ],
+      "tests": "23개 생략과 3개 실패 분류; 통과/승인으로 바꾸지 않음",
+      "evidence": [
+        "evidence/finalization-20261116/candidate-checkov/checkov.json"
+      ],
+      "remaining": "검토된 예외도 이번 소유자 승인·AWS 근거 확보",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 23개 생략과 3개 실패 분류; 통과/승인으로 바꾸지 않음. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.7.2",
+      "row": 34,
+      "task": "- Sigstore/cosign 이미지 서명(Signing) 프로세스 도입",
+      "owner": "손초애",
+      "original_progress": "0.8",
+      "files": [
+        "scripts/test-local-image-policy.py",
+        "scripts/publish-signed-image.sh"
+      ],
+      "tests": "실제 로컬 서명·다른 키 거부 통과",
+      "evidence": [
+        "evidence/finalization-20261116/signature-ready/results.json"
+      ],
+      "remaining": "AWS ECR/OIDC 서명·Rekor 증거",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 실제 로컬 서명·다른 키 거부 통과. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.8.2",
+      "row": 35,
+      "task": "- Kyverno 서명 검증 배포 정책 연동 구현",
+      "owner": "손초애",
+      "original_progress": "0.9",
+      "files": [
+        "policies/kyverno/local/verify-local-cosign.yaml",
+        "policies/kyverno/ecr-signatures.yaml.template"
+      ],
+      "tests": "로컬 서명 정책 6개: dry-run 3, 실제 실행 1·거부/부재 2",
+      "evidence": [
+        "evidence/finalization-20261116/signature-ready/results.json"
+      ],
+      "remaining": "AWS용 OIDC 정책 별도 재검증",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 로컬 서명 정책 6개: dry-run 3, 실제 실행 1·거부/부재 2. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "3.2",
+      "row": 36,
+      "task": "[Week 9] 네트워크 격리 및 시크릿 동적 주입 통합 테스트",
+      "owner": "손초애",
+      "original_progress": "0.0",
+      "files": [
+        "scripts/08-network-policy-test.sh",
+        "scripts/09-eso-test.sh"
+      ],
+      "tests": "로컬 통신 대조군·Secret volume 갱신 통과",
+      "evidence": [
+        "evidence/finalization-20261116/network/network-kind-team4.log",
+        "evidence/finalization-20261116/eso/eso-kind-team4.log"
+      ],
+      "remaining": "AWS 실제 Secrets Manager 및 CNI 통합",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 로컬 통신 대조군·Secret volume 갱신 통과. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.1.3",
+      "row": 37,
+      "task": "AWS Secrets Manager 연동 설계 및 kind·Calico 환경 구축",
+      "owner": "이지민",
+      "original_progress": "0.8",
+      "files": [
+        "k8s/eso/fake.yaml",
+        "scripts/02-local-cluster.sh"
+      ],
+      "tests": "기존 kind·Calico 환경과 fake provider 실제 확인",
+      "evidence": [
+        "evidence/finalization-20261116/kind-state/output.txt",
+        "evidence/finalization-20261116/eso/eso-kind-team4.log"
+      ],
+      "remaining": "새 AWS 설계·권한 검토",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 기존 kind·Calico 환경과 fake provider 실제 확인. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.2.3",
+      "row": 38,
+      "task": "ESO 설치 및 테스트 시크릿 동기화 검증",
+      "owner": "이지민",
+      "original_progress": "0.9",
+      "files": [
+        "k8s/eso/aws.yaml.template",
+        "scripts/09-eso-test.sh"
+      ],
+      "tests": "로컬 ESO Ready·Secret/Pod 해시 일치",
+      "evidence": [
+        "evidence/finalization-20261116/eso/eso-kind-team4.log"
+      ],
+      "remaining": "AWS IRSA 및 Secret ARN 검증",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 로컬 ESO Ready·Secret/Pod 해시 일치. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.3.3",
+      "row": 39,
+      "task": "NetworkPolicy 기반 Pod 접근통제 정책 구현",
+      "owner": "이지민",
+      "original_progress": "0.8",
+      "files": [
+        "policies/network/",
+        "scripts/08-network-policy-test.sh"
+      ],
+      "tests": "실제 ingress/egress 독립 차단 및 허용 대조군 통과",
+      "evidence": [
+        "evidence/finalization-20261116/network/network-kind-team4.log"
+      ],
+      "remaining": "AWS CNI 지원·통신 검증",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 실제 ingress/egress 독립 차단 및 허용 대조군 통과. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.4.3",
+      "row": 40,
+      "task": "- ESO를 통한 동적 시크릿 주입 (2.5.4/2.7.2)",
+      "owner": "이지민",
+      "original_progress": "0.7",
+      "files": [
+        "scripts/09-eso-test.sh",
+        "k8s/eso/consumer.yaml.template"
+      ],
+      "tests": "실제 실행 중 Pod volume에 값 갱신 확인(원문 미기록)",
+      "evidence": [
+        "evidence/finalization-20261116/eso/eso-kind-team4.log"
+      ],
+      "remaining": "AWS Secret version→Pod hash 연결",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 실제 실행 중 Pod volume에 값 갱신 확인(원문 미기록). 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.5.3",
+      "row": 41,
+      "task": "- 네트워크 격리 환경 서비스 간 통신 예외 검증",
+      "owner": "이지민",
+      "original_progress": "0.8",
+      "files": [
+        "scripts/lib-k8s.sh",
+        "scripts/08-network-policy-test.sh"
+      ],
+      "tests": "DNS/exec 정상 대조군과 임시 양방향 허용/복원 확인",
+      "evidence": [
+        "evidence/finalization-20261116/network/network-kind-team4.log"
+      ],
+      "remaining": "AWS 통신 예외·운영 범위 승인",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: DNS/exec 정상 대조군과 임시 양방향 허용/복원 확인. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.6.3",
+      "row": 42,
+      "task": "AWS EKS 실배포 및 Secrets Manager·NetworkPolicy 연동 검증",
+      "owner": "이지민",
+      "original_progress": "0.0",
+      "files": [
+        "scripts/12-configure-eks-security.sh",
+        "docs/LAB_BOOK.md"
+      ],
+      "tests": "NOT_TESTED: AWS 인증 만료·변경 미승인",
+      "evidence": [
+        "evidence/finalization-20261116/aws-team4-region/output.txt"
+      ],
+      "remaining": "승인 후 EKS 실제 통합 시험",
+      "status": "보류",
+      "basis": "2026-11-16 확인 범위: NOT_TESTED: AWS 인증 만료·변경 미승인. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.7.3",
+      "row": 43,
+      "task": "- SBOM(CycloneDX) 산출물 생성 및 표준화 검증",
+      "owner": "이지민",
+      "original_progress": "0.0",
+      "files": [
+        "scripts/validate-sbom.py",
+        "scripts/verify_sbom_binding.py"
+      ],
+      "tests": "실제 CycloneDX 검증·image config binding",
+      "evidence": [
+        "evidence/finalization-20261116/fixed-image/sbom-link.json"
+      ],
+      "remaining": "역할표 공급망 담당과 분담 협의·ECR 결합",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 실제 CycloneDX 검증·image config binding. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도.",
+      "role_review": "작업 담당 이지민과 역할표 SBOM 담당 김송희의 업무 범위 차이: 팀 협의 필요, 담당 변경하지 않음"
+    },
+    {
+      "id": "2.8.3",
+      "row": 44,
+      "task": "Secrets Manager 시크릿 갱신 및 키 순환 절차 검증",
+      "owner": "이지민",
+      "original_progress": "0.0",
+      "files": [
+        "infra/security.tf",
+        "scripts/09-eso-test.sh",
+        "docs/LAB_BOOK.md"
+      ],
+      "tests": "로컬 값 갱신 통과; KMS 실제 순환 NOT_TESTED",
+      "evidence": [
+        "evidence/finalization-20261116/eso/eso-kind-team4.log",
+        "evidence/finalization-20261116/aws-team4-region/output.txt"
+      ],
+      "remaining": "KMS 설정/이력 조회 및 승인 후 별도 순환",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 로컬 값 갱신 통과; KMS 실제 순환 NOT_TESTED. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "3.3",
+      "row": 45,
+      "task": "보안 검사 오탐 분석 및 CI/CD 파이프라인 최적화",
+      "owner": "이지민",
+      "original_progress": "0.0",
+      "files": [
+        ".github/workflows/checkov.yml",
+        "policies/exception-register.json"
+      ],
+      "tests": "불완전 보고서와 프로그램 오류 구분·캐시 비교",
+      "evidence": [
+        "evidence/finalization-20261116/baseline-risk-report/isms-p-risk-report.json",
+        "evidence/finalization-20261116/tool-install-verified-cache/command.json"
+      ],
+      "remaining": "전체 CI 시간·검사 false positive 담당 검토",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 불완전 보고서와 프로그램 오류 구분·캐시 비교. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.1.4",
+      "row": 46,
+      "task": "- AWS Config 기본 보안 감시 규칙 활성화",
+      "owner": "이효은",
+      "original_progress": "0.8",
+      "files": [
+        "infra/healing.tf",
+        "automation/sg_healing.py"
+      ],
+      "tests": "기존 Config 구성 보존·SG API mock 검사",
+      "evidence": [
+        "evidence/finalization-20261116/full-unit-01/output.txt"
+      ],
+      "remaining": "현재 recorder/권한/실제 평가 확인",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 기존 Config 구성 보존·SG API mock 검사. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.2.4",
+      "row": 47,
+      "task": "- CloudWatch 기반 EKS Audit Log 대시보드",
+      "owner": "이효은",
+      "original_progress": "0.0",
+      "files": [
+        "infra/observability.tf"
+      ],
+      "tests": "대시보드·EKS audit 및 복구 query 구현·Terraform mock 통과",
+      "evidence": [
+        "evidence/finalization-20261116/terraform-mocks/output.txt"
+      ],
+      "remaining": "실제 AWS 로그·대시보드 화면 NOT_TESTED",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 대시보드·EKS audit 및 복구 query 구현·Terraform mock 통과. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.3.4",
+      "row": 48,
+      "task": "- AWS Config + EventBridge 위협 감지 트리거",
+      "owner": "이효은",
+      "original_progress": "0.9",
+      "files": [
+        "infra/healing.tf",
+        "automation/sg_healing.py"
+      ],
+      "tests": "기존 Config/EventBridge 조건·이벤트 검증 mock",
+      "evidence": [
+        "evidence/finalization-20261116/full-unit-01/output.txt"
+      ],
+      "remaining": "실제 AWS event ID→Lambda 연결",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 기존 Config/EventBridge 조건·이벤트 검증 mock. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.4.4",
+      "row": 49,
+      "task": "- 보안 그룹 무단 변경 시 자동 원복(Lambda) 연동",
+      "owner": "이효은",
+      "original_progress": "0.9",
+      "files": [
+        "automation/sg_healing.py",
+        "automation/sg_demo.py"
+      ],
+      "tests": "기존 SG 보호 조건·실패·중복/정리 mock 보존",
+      "evidence": [
+        "evidence/finalization-20261116/full-unit-01/output.txt"
+      ],
+      "remaining": "이번 실제 SG 주입·복구·재평가",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 기존 SG 보호 조건·실패·중복/정리 mock 보존. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.5.4",
+      "row": 50,
+      "task": "- Self-Healing 작동 시 Slack 실시간 알림 구현",
+      "owner": "이효은",
+      "original_progress": "0.0",
+      "files": [
+        "automation/slack_notify.py",
+        "infra/observability.tf"
+      ],
+      "tests": "성공/실패·중복·전송 off/비밀 제외 mock 구현",
+      "evidence": [
+        "evidence/finalization-20261116/slack-tests/output.txt"
+      ],
+      "remaining": "시험 채널·Secret ARN 지정과 실제 전송 승인",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 성공/실패·중복·전송 off/비밀 제외 mock 구현. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.6.4",
+      "row": 51,
+      "task": "- Lambda 자동 복구 시나리오 다변화 (S3/IAM)",
+      "owner": "이효은",
+      "original_progress": "0.0",
+      "files": [
+        "automation/resource_healing.py",
+        "infra/finalization.tf"
+      ],
+      "tests": "allowlist·dry-run·전후 조회·권한 부족·실패·중복 mock",
+      "evidence": [
+        "evidence/finalization-20261116/resource-healing-tests/output.txt"
+      ],
+      "remaining": "S3 실패 3개 처리·승인 후 AWS 주기 탐지·복구",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: allowlist·dry-run·전후 조회·권한 부족·실패·중복 mock. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.7.4",
+      "row": 52,
+      "task": "- SBOM 취약점(CVE) 상시 대조 자동화 스크립트",
+      "owner": "이효은",
+      "original_progress": "0.4",
+      "files": [
+        "automation/sbom_watch.py",
+        "scripts/sbom-watch-batch.py",
+        ".github/workflows/sbom-watch.yml"
+      ],
+      "tests": "실제 fixed-image SBOM CVE 대조 COMPLETE; 중복/실패 mock",
+      "evidence": [
+        "evidence/finalization-20261116/sbom-rescan/result.json"
+      ],
+      "remaining": "배포 성공 artifact target 등록·예약 실행 활성화 승인",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 실제 fixed-image SBOM CVE 대조 COMPLETE; 중복/실패 mock. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "2.8.4",
+      "row": 53,
+      "task": "- CVE 검출 결과에 따른 Self-Healing 트리거 완료",
+      "owner": "이효은",
+      "original_progress": "0.0",
+      "files": [
+        "automation/inspector_response.py",
+        "automation/inspector_worker.py"
+      ],
+      "tests": "검사/manifest/config/승인/Pod/HTTP 등 worker 18개 mock 통과",
+      "evidence": [
+        "evidence/finalization-20261116/worker-tests/output.txt"
+      ],
+      "remaining": "실제 finding·외부 CodeBuild·승인 safe image·EKS",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 검사/manifest/config/승인/Pod/HTTP 등 worker 18개 mock 통과. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "3.4",
+      "row": 54,
+      "task": "[Week 10] Self-Healing 복구 소요 시간(RTO) 1초 이내 최적화",
+      "owner": "이효은",
+      "original_progress": "0.0",
+      "files": [
+        "scripts/recovery-timing.py",
+        "automation/sg_demo.py"
+      ],
+      "tests": "전체 외부 시각 평가 구현; AWS 1초 달성 NOT_TESTED",
+      "evidence": [
+        "evidence/finalization-20261116/aws-team4-region/output.txt"
+      ],
+      "remaining": "실제 탐지→재검증 시간 측정; 목표 변경은 제안만",
+      "status": "보류",
+      "basis": "2026-11-16 확인 범위: 전체 외부 시각 평가 구현; AWS 1초 달성 NOT_TESTED. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "4.1",
+      "row": 55,
+      "task": "[Week 11] 아키텍처 문서화 및 ISMS-P 매핑 보고서 작성",
+      "owner": "팀 전체",
+      "original_progress": "0.0",
+      "files": [
+        "docs/LAB_BOOK.md",
+        "docs/AWS_EXECUTION_PLAN.md"
+      ],
+      "tests": "실습서 본문·구성도·명령·실패·정리 안내 작성",
+      "evidence": [
+        "evidence/finalization-20261116/initial-commit.txt"
+      ],
+      "remaining": "팀 검토·실제 AWS 원본과 본문 갱신",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 실습서 본문·구성도·명령·실패·정리 안내 작성. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    },
+    {
+      "id": "4.2",
+      "row": 56,
+      "task": "[Week 12] 최종 발표 자료(PPT) 제작 및 시연 리허설",
+      "owner": "팀 전체",
+      "original_progress": "0.0",
+      "files": [
+        "docs/LAB_BOOK.md"
+      ],
+      "tests": "팀 역할별 설명과 15분 시연 대본 작성",
+      "evidence": [
+        "evidence/finalization-20261116/initial-commit.txt"
+      ],
+      "remaining": "PPT 파일 제작·팀 리허설·AWS 실연 미수행",
+      "status": "진행중",
+      "basis": "2026-11-16 확인 범위: 팀 역할별 설명과 15분 시연 대본 작성. 코드 작성만으로 진행률을 올리지 않음. AWS 실검증은 별도."
+    }
+  ]
+}

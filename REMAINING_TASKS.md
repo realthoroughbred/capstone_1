@@ -1,12 +1,16 @@
-# 남은 작업
+# 남은 작업 — 이번 실행 기준
 
-작성 기준일 2026-10-23 (Asia/Seoul). `scripts/generate-project-reports.py`가 보관된 증적에서 생성합니다. 작성일이 모든 항목의 재검증일을 뜻하지 않으며, 과거 로컬·모의·plan 성공은 현재 AWS 배포 성공과 구분합니다.
+아래 담당은 제안이며 WBS 원본 배정을 변경하지 않는다. 실제 AWS 시연은 완료되지 않았다.
 
-- **AWS Inspector→CodeBuild 이미지 교체 — NOT_TESTED**: 코드·모의 검증은 구현됨. 이번 승인 계획에서 Inspector 및 외부 CodeBuild는 비활성이므로 실제 finding·이미지 교체는 미검증.
-- **Argo CD GitHub 직접 인증 — NOT_TESTED**: EKS 정책 복구는 고정 commit의 클러스터 내부 읽기 전용 Git 미러로 검증함. private GitHub 직접 인증은 미검증.
+| 순서 | 남은 작업 | 담당 제안·완료 증거 |
+|---|---|---|
+| 1 | Checkov 새 S3 접근 로그·CRR·이벤트 알림 3개 처리, 기존 생략 23개 검토 | 손초애+이지민: 통제 설계·새 검사·예외 소유자 판단. gate 우회 금지 |
+| 2 | AWS 재인증·계정·현재 자원/state 확인·새 실제 plan | 이지민: 계정/리전/plan hash/자원 목록. 로컬 state 0으로 AWS 부재 추정 금지 |
+| 3 | 읽기 전용 GitHub App·Argo 직접 인증·검토 commit workload sync | 원래 작업 담당 김송희와 이지민 협의. 현재 Deploy Key 정책상 차단 |
+| 4 | 외부 CodeBuild/runner 연결망·IAM 경계·승인 safe image/SSM | 김송희+이효은: exact commit, digest, 서명/SBOM, 네트워크·권한 |
+| 5 | 비용·4시간 실행 창·대상 자원·Slack 채널·정리 승인 | 팀 전체/사용자: [구체 실행안](docs/AWS_EXECUTION_PLAN.md) 검토 |
+| 6 | 실제 EKS 정상/차단/네트워크/Secret/GitOps, SG/S3/IAM, Inspector, 관측/알림 | 각 원래 담당: 실제 event·Pod·log·before/after, 실패·정리 증적 |
+| 7 | KMS 순환과 Secret 갱신을 별도 검증, 1초 전체 복구 시간 평가 | 이지민/이효은: 외부 발생~검증 완료 시각. 지연 목표 변경은 제안만 |
+| 8 | 전체 CI cold/warm 측정, WBS 실제 검증 반영, 발표 PPT·리허설 | 김송희+팀 전체: 같은 commit 시간, 실제 발표 자료·리허설 기록 |
 
-재현 순서: 로그인 확인 → 현재 IAM·자원·state 조사 → 새 plan·기간·비용 검토 → 승인된 배포 → 보안·복구 시험 → 증적 보존 → 신규 자원 정리. 위 단계의 이번 실행 결과는 구현 현황을 따릅니다. Inspector는 별도 범위이며 안전 digest와 연결 가능한 CodeBuild가 준비되어야 합니다.
-
-총예산 상한은 사용자 지정 **180,000원**입니다. 예산은 자원 생성 승인과 별개이며 자동 종료를 보장하지 않습니다. 자세한 절차는 `AWS_DEPLOYMENT_GUIDE.md`, `COST_AND_CLEANUP.md`, `docs/TEAM4_IAM_PERMISSIONS.md`를 참고합니다.
-
-이번 승인 범위의 생성·실검증·신규 자원 정리는 완료했습니다. KMS/Secret의 복구 기간을 둔 삭제 예약은 물리적 삭제 완료와 구분합니다. 재배포나 Inspector/CodeBuild 확장에는 새 계획·비용·실행 기간 검토가 필요합니다.
+증적 파일을 생성하거나 스크립트를 추가한 것만으로 완료 처리하지 않는다. [WBS 변경 근거](docs/wbs/change-audit.json)는 숫자 진행률을 모두 유지한다. 일정 경과 작업은 재일정 협의가 필요하며 날짜를 자동 연장하지 않았다.
