@@ -41,6 +41,12 @@
       }
     },
     {
+      "Sid": "SlackWebhookSecretReader",
+      "Effect": "Allow",
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "arn:aws:secretsmanager:ap-northeast-2:852093844554:secret:team4/notifications/slack-webhook-*"
+    },
+    {
       "Sid": "ClusterDescription",
       "Effect": "Allow",
       "Action": [

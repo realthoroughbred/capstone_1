@@ -18,6 +18,48 @@ Terraform's empty ingress configuration is the desired baseline. The temporary t
 
 The script adds one world TCP22 rule with a unique marker, then polls for actual Config evaluation timestamps, exact-rule Lambda remediation logs, removal of the rule and a subsequent Config COMPLIANT evaluation. It never invokes Lambda or sends a fabricated event. Default timeout is 15 minutes; observed timing is limited by the 10 second polling interval. It writes `evidence/aws/sg-healing-demo.json`. Timeout/API failure triggers cleanup of its own rule and is still reported as failure, never as automatic remediation. A `MANUAL_REVIEW_REQUIRED` cleanup outcome means the operator must inspect the unique rule marker before leaving the test environment.
 
+### Slack report (optional)
+
+`sg_healing.handle` reports each result to a Slack Incoming Webhook after the revoke and the S3 evidence write. It reports `REMEDIATED`, `DRY_RUN`, `REJECTED` and `FAILED`; `IGNORED` and `ALREADY_COMPLIANT` (duplicate events) send nothing. The Block Kit message (`common.slack_message`, colour bar per status) shows project, status, target SG ID, action, time, run time and, for `REJECTED`/`FAILED`, the reason code. The run time is `handler_duration_ms` when present, otherwise the time since the handler started.
+
+- **Slack never changes the outcome.** `common.notify_slack` and the handler's `report` catch everything, so a Slack, network or Secrets Manager problem can neither replace a result or exception nor delay the revoke (the report runs last). A retried failure reports once per attempt.
+- **`REMEDIATED` stays `REMEDIATED` when the evidence write fails.** The revoke is already final, so the report carries the real status plus a notice that the S3 evidence was not saved. The invocation still fails with `remediation_or_verification_failed` so Lambda retries and routes to the failure queue, and the log gets the real result (`evidence_saved: false`) and `{"status":"FAILED","reason":"evidence_write_failed"}`. The retry sees `ALREADY_COMPLIANT`, which is silent.
+- **`REJECTED` does not claim the group is unchanged.** Tags, attachments and ownership are rechecked before every revoke and once after the last one, so a refusal can follow earlier revokes (for example the IPv4 rule removed, then an ENI attached before the IPv6 rule). The message says rules may already be gone and asks for a check of the current rules.
+- **Limits.** The secret client makes one attempt (`total_max_attempts=1`, 2 s connect, 3 s read; `max_attempts` would count retries after the first request). The POST has a 3 s per-operation timeout and refuses redirects. DNS lookups are not covered by either timeout. `urllib.request` is imported only when a message is posted, so cold starts without Slack do not load it.
+- **Secret handling.** The environment holds only the secret's ARN. The URL must start with `https://hooks.slack.com/services/`, is read per notification, and is never logged, returned or stored. Only constant codes are logged: `slack_notification: SENT|FAILED` with `slack_secret_unavailable`, `slack_webhook_missing`, `slack_webhook_invalid`, `slack_post_failed` or `slack_notification_error`. A failed report is visible only in the log; there is no alarm on it.
+
+Without `SLACK_WEBHOOK_SECRET_ARN` the feature is off. Nothing in the repository's tests contacts Slack, and the payload has not been posted to a real webhook. Send one test message to a throwaway channel before relying on it.
+
+**Setup.** Nothing below runs automatically, and this repository's tests never run `terraform apply`.
+
+1. In Slack, create an Incoming Webhook for the target channel and keep the URL private.
+2. An IAM administrator publishes the updated `iam/team4-runtime-boundary.json` (statement `SlackWebhookSecretReader`: `secretsmanager:GetSecretValue` on `team4/notifications/slack-webhook-*`) as a new version of the admin-managed `team4-runtime-boundary` policy, and updates `iam/team4-operator-provisioning.json` (the same secret name added to the `Services` resources). `docs/admin-bootstrap/render.py` renders the boundary; it must stay within 6144 characters and is at about 5.9 k with this statement. Without the boundary update the Lambda is denied at run time and logs `slack_secret_unavailable`; without the provisioning update `CreateSecret` is denied at apply.
+3. In the untracked `infra/terraform.tfvars` set both flags, then review a fresh plan and apply it only under the project's cost and permission approval:
+
+   ```hcl
+   enable_self_healing       = true
+   enable_slack_notification = true
+   ```
+
+   The plan should add `aws_secretsmanager_secret.slack_webhook` (`<project>/notifications/slack-webhook`, project KMS key, 7-day recovery window, **no secret value**), set `SLACK_WEBHOOK_SECRET_ARN` on the Lambda and add one IAM statement allowing `secretsmanager:GetSecretValue` on that secret only. `enable_slack_notification` without `enable_self_healing` fails validation. `healing_dry_run` keeps its default, so the first messages are `DRY_RUN`.
+4. Store the URL. The operator policies allow `UpdateSecret` on this secret (with KMS use on project-tagged keys) but not `PutSecretValue` or `GetSecretValue`, so use `update-secret`:
+
+   ```bash
+   export AWS_PROFILE=team4 AWS_REGION=ap-northeast-2 AWS_PAGER=""
+   umask 077
+   webhook_file="$(mktemp)"
+   read -rsp 'Slack Incoming Webhook URL: ' webhook_url; echo
+   printf '%s' "$webhook_url" > "$webhook_file"; unset webhook_url
+   aws secretsmanager update-secret --secret-id team4/notifications/slack-webhook \
+     --secret-string "file://$webhook_file"
+   shred -u "$webhook_file" 2>/dev/null || rm -f "$webhook_file"
+   ```
+
+   The value may be the plain URL or JSON `{"webhook_url": "https://hooks.slack.com/services/..."}`. Until a value exists the Lambda logs `slack_secret_unavailable`.
+5. Check without reading the value: `aws secretsmanager describe-secret --secret-id team4/notifications/slack-webhook --query VersionIdsToStages` must list a version with `AWSCURRENT`. After an event, `/aws/lambda/team4-sg-healing` contains `"slack_notification":"SENT"`.
+
+To rotate, create a new webhook in Slack, repeat step 4 and revoke the old one; nothing is cached. On destroy the secret enters its 7-day recovery window, and the same name cannot be created again until it is restored (`aws secretsmanager restore-secret`) or the window ends.
+
 ## Inspector response and worker
 
 Lambda handler: `inspector_response.lambda_handler`. Required environment:
@@ -75,5 +117,7 @@ python -m unittest discover -s tests -p 'test_inspector*.py' -v
 ```
 
 Coverage includes exact SG scope, tags, attached ENIs and attachment races, IPv4/IPv6 and broader-rule refusal, duplicate events, pagination, permission failures, failed verification, authoritative Inspector checks, approval expiry, unsafe/missing/multi-platform replacements, durable deduplication and uncertain starts, external-project configuration, actual workload ownership/digest checks, signature/scan failure, concurrent Deployment edits, rollout failure without rollback, and post-rollout runtime digest checks.
+
+`tests/test_healing_slack.py` covers the Slack report with fake clients and a throwaway `127.0.0.1` HTTP server: each status message, send/secret/URL failures, the evidence-failure and partial-rejection cases, the Lambda entry point with stubbed boto3 (secret client retry settings), lazy import of `urllib.request`, and isolation of the handler's result and exceptions from Slack failures.
 
 AWS service schemas consulted: [Config compliance notifications](https://docs.aws.amazon.com/config/latest/developerguide/example-config-rule-compliance-notification.html), [Inspector EventBridge finding schema](https://docs.aws.amazon.com/inspector/latest/user/eventbridge-integration.html), [ECR scan results](https://docs.aws.amazon.com/AmazonECR/latest/APIReference/API_DescribeImageScanFindings.html), and [CodeBuild StartBuild](https://docs.aws.amazon.com/codebuild/latest/APIReference/API_StartBuild.html). CodeBuild's API token alone is short-lived; the durable reservation supplies replay protection.

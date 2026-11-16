@@ -259,6 +259,7 @@
         "arn:aws:sqs:ap-northeast-2:852093844554:team4-*",
         "arn:aws:dynamodb:ap-northeast-2:852093844554:table/team4-image-remediation",
         "arn:aws:secretsmanager:ap-northeast-2:852093844554:secret:team4/demo/token-*",
+        "arn:aws:secretsmanager:ap-northeast-2:852093844554:secret:team4/notifications/slack-webhook-*",
         "arn:aws:logs:ap-northeast-2:852093844554:log-group:/aws/*/team4*",
         "arn:aws:cloudwatch:ap-northeast-2:852093844554:alarm:team4-*"
       ]

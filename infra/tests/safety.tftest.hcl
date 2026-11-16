@@ -28,6 +28,10 @@ run "default_cost_and_mutation_guards" {
     error_message = "Config/Inspector automation and enhanced scanning must remain opt-in."
   }
   assert {
+    condition     = length(aws_secretsmanager_secret.slack_webhook) == 0
+    error_message = "Slack reporting and its webhook secret must remain opt-in."
+  }
+  assert {
     condition     = aws_eks_cluster.demo.vpc_config[0].public_access_cidrs == toset(["203.0.113.10/32"])
     error_message = "The EKS API must stay limited to approved operator CIDRs."
   }
@@ -72,6 +76,49 @@ run "explicit_automation_keeps_dry_run" {
     condition     = jsondecode(aws_iam_role.github_deploy[0].assume_role_policy).Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:sub"] == "repo:realthoroughbred@272421931/capstone_1@1378935906:environment:aws-demo"
     error_message = "The GitHub role must match the verified immutable subject, with no legacy fallback or wildcard."
   }
+}
+
+run "slack_reporting_creates_one_dedicated_secret" {
+  command = plan
+  variables {
+    enable_self_healing       = true
+    create_config_recorder    = true
+    enable_slack_notification = true
+  }
+  assert {
+    condition     = length(aws_secretsmanager_secret.slack_webhook) == 1 && aws_secretsmanager_secret.slack_webhook[0].name == "team4/notifications/slack-webhook"
+    error_message = "Exactly one dedicated webhook secret is expected; its value must not be managed by Terraform."
+  }
+  assert {
+    condition     = aws_secretsmanager_secret.slack_webhook[0].recovery_window_in_days == 7
+    error_message = "The webhook secret keeps the project's seven-day recovery window."
+  }
+  assert {
+    condition     = aws_lambda_function.healing[0].environment[0].variables.DRY_RUN == "true"
+    error_message = "Enabling Slack must not enable live remediation."
+  }
+}
+
+run "slack_disabled_leaves_lambda_without_secret_access" {
+  command = plan
+  variables {
+    enable_self_healing    = true
+    create_config_recorder = true
+  }
+  assert {
+    condition     = aws_lambda_function.healing[0].environment[0].variables.SLACK_WEBHOOK_SECRET_ARN == ""
+    error_message = "Without enable_slack_notification the Lambda must have no webhook secret configured."
+  }
+  assert {
+    condition     = length(aws_secretsmanager_secret.slack_webhook) == 0
+    error_message = "Without enable_slack_notification no webhook secret may be created."
+  }
+}
+
+run "reject_slack_without_self_healing" {
+  command = plan
+  variables { enable_slack_notification = true }
+  expect_failures = [var.enable_slack_notification]
 }
 
 run "approved_failure_notifications" {

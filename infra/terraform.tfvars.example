@@ -25,6 +25,9 @@ enable_self_healing = false
 healing_dry_run = true
 # Existing approved standard SNS topic, same account/region; empty means no human notifications.
 notification_topic_arn = ""
+# Slack report of self-healing results. Creates only an empty secret; put the Incoming Webhook URL in it
+# outside Terraform (see automation/README.md). Requires enable_self_healing.
+enable_slack_notification = false
 # Inspect aws configservice describe-configuration-recorders first.
 # Never overwrite an existing recorder or organizational configuration.
 create_config_recorder = false

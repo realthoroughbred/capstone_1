@@ -8,9 +8,14 @@ import os
 import time
 
 try:
-    from .common import Rejected, audit, aws_error_code, dry_run, evidence, identity, require, required, timestamp
+    from .common import (Rejected, audit, aws_error_code, dry_run, evidence, identity, notify_slack, post_json,
+                         require, required, timestamp)
 except ImportError:  # Lambda archive has these modules at its root.
-    from common import Rejected, audit, aws_error_code, dry_run, evidence, identity, require, required, timestamp
+    from common import (Rejected, audit, aws_error_code, dry_run, evidence, identity, notify_slack, post_json,
+                        require, required, timestamp)
+
+# Constant failure codes raised by remediate(); only these may be shown in Slack.
+_FAILURE_REASONS = ("security_group_revoke_failed", "security_group_verification_failed")
 
 
 def _rules(ec2, group_id):
@@ -141,19 +146,81 @@ def remediate(event, env, ec2, sts, sleep=time.sleep):
     return result
 
 
-def lambda_handler(event, context):
-    import boto3
-    from botocore.config import Config
-    region = os.environ.get("EXPECTED_REGION")
-    config = Config(connect_timeout=3, read_timeout=5, retries={"max_attempts": 2, "mode": "standard"})
+def _event_target(event):
+    # Untrusted: notify_slack only displays it after matching the sg-ID format.
     try:
-        result = remediate(event, os.environ,
-                           boto3.client("ec2", region_name=region, config=config),
-                           boto3.client("sts", region_name=region, config=config))
-        return evidence(result, os.environ, boto3.client("s3", region_name=region, config=config), "sg-healing")
+        return event["detail"]["newEvaluationResult"]["evaluationResultIdentifier"][
+            "evaluationResultQualifier"]["resourceId"]
+    except (KeyError, TypeError):
+        return None
+
+
+def handle(event, env, make_clients, get_secrets, post=post_json, clock=time.monotonic):
+    """Remediate, persist evidence, then report to Slack.
+
+    make_clients() returns (ec2, sts, s3). The Slack report runs last and is
+    best-effort, so it can neither delay a revoke nor change the outcome.
+    """
+    started = clock()
+    target = _event_target(event)
+
+    def report(result):
+        # Slack must never replace the return value or the exception of the caller
+        # (the callers below are inside or right before their own raise/return).
+        try:
+            duration = result.get("handler_duration_ms")
+            if duration is None:  # REJECTED/FAILED never reach the end of remediate().
+                duration = round((clock() - started) * 1000)
+            notify_slack(result, env, get_secrets, target=target, duration_ms=duration, post=post)
+        except Exception:
+            pass
+
+    try:
+        ec2, sts, s3 = make_clients()
+        result = remediate(event, env, ec2, sts)
     except Rejected as exc:
-        return audit({"status": "REJECTED", "reason": str(exc)})
-    except Exception:
-        audit({"status": "FAILED", "reason": "remediation_or_verification_failed"})
+        result = audit({"status": "REJECTED", "reason": str(exc)})
+        report(result)
+        return result
+    except Exception as exc:
+        failed = audit({"status": "FAILED", "reason": "remediation_or_verification_failed"})
+        known = isinstance(exc, RuntimeError) and str(exc) in _FAILURE_REASONS
+        report(dict(failed, reason=str(exc) if known else failed["reason"]))
         # Sanitized failure activates Lambda retries and the failure destination.
         raise RuntimeError("remediation_or_verification_failed") from None
+    # The security group outcome is final here. A failed evidence write must not turn
+    # a successful revoke into a reported FAILED: record and report the real result,
+    # then fail the invocation exactly as before so Lambda retries the write.
+    try:
+        result = evidence(result, env, s3, "sg-healing")
+    except Exception:
+        unsaved = audit(dict(result, evidence_saved=False))
+        audit({"status": "FAILED", "reason": "evidence_write_failed"})
+        report(unsaved)
+        raise RuntimeError("remediation_or_verification_failed") from None
+    report(result)
+    return result
+
+
+def lambda_handler(event, context):
+    region = os.environ.get("EXPECTED_REGION")
+
+    def make_clients():
+        import boto3
+        from botocore.config import Config
+        config = Config(connect_timeout=3, read_timeout=5, retries={"max_attempts": 2, "mode": "standard"})
+        return (boto3.client("ec2", region_name=region, config=config),
+                boto3.client("sts", region_name=region, config=config),
+                boto3.client("s3", region_name=region, config=config))
+
+    def get_secrets():
+        import boto3
+        from botocore.config import Config
+        # Tight limits: Slack is optional and must not hold the invocation open.
+        # total_max_attempts counts the first request, so 1 means no retry at all.
+        # (max_attempts counts retries after the first request: 1 would mean two tries.)
+        config = Config(connect_timeout=2, read_timeout=3,
+                        retries={"total_max_attempts": 1, "mode": "standard"})
+        return boto3.client("secretsmanager", region_name=region, config=config)
+
+    return handle(event, os.environ, make_clients, get_secrets)

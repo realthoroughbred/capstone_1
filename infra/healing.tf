@@ -171,6 +171,15 @@ resource "aws_cloudwatch_log_group" "healing" {
   retention_in_days = 365
   kms_key_id        = aws_kms_key.project.arn
 }
+# Intentionally no secret_version resource: the Incoming Webhook URL is a bearer secret and is written outside Terraform state.
+resource "aws_secretsmanager_secret" "slack_webhook" {
+  #checkov:skip=CKV2_AWS_57:A Slack Incoming Webhook URL is rotated by regenerating it in Slack; no rotation Lambda is created.
+  count                   = local.slack_enabled ? 1 : 0
+  name                    = "${var.project}/notifications/slack-webhook"
+  description             = "Slack Incoming Webhook URL for self-healing reports; value stored outside Terraform"
+  kms_key_id              = aws_kms_key.project.arn
+  recovery_window_in_days = 7
+}
 resource "aws_iam_role" "healing" {
   permissions_boundary = var.iam_permissions_boundary_arn
   count                = var.enable_self_healing ? 1 : 0
@@ -186,7 +195,7 @@ resource "aws_iam_role_policy" "healing" {
   role  = aws_iam_role.healing[0].id
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+    Statement = concat([
       { Effect = "Allow", Action = ["sts:GetCallerIdentity", "ec2:DescribeSecurityGroups", "ec2:DescribeSecurityGroupRules", "ec2:DescribeNetworkInterfaces"], Resource = "*" },
       { Effect = "Allow", Action = ["ec2:RevokeSecurityGroupIngress"], Resource = aws_security_group.healing_demo.arn, Condition = { StringEquals = { "ec2:ResourceTag/Project" = var.project, "ec2:ResourceTag/DemoOnly" = "true" } } },
       { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.healing[0].arn}:*" },
@@ -195,7 +204,9 @@ resource "aws_iam_role_policy" "healing" {
       { Effect = "Allow", Action = ["kms:GenerateDataKey", "kms:Decrypt"], Resource = aws_kms_key.project.arn, Condition = { StringEquals = { "kms:ViaService" = "s3.${var.region}.amazonaws.com" } } },
       { Effect = "Allow", Action = ["kms:Decrypt"], Resource = aws_kms_key.project.arn },
       { Effect = "Allow", Action = ["sqs:SendMessage"], Resource = aws_sqs_queue.failures[0].arn }
-    ]
+      ], local.slack_enabled ? [
+      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = aws_secretsmanager_secret.slack_webhook[0].arn }
+    ] : [])
   })
 }
 resource "aws_lambda_function" "healing" {
@@ -223,6 +234,7 @@ resource "aws_lambda_function" "healing" {
       ALLOWED_SECURITY_GROUP_IDS = aws_security_group.healing_demo.id
       CONFIG_RULE_NAME           = aws_config_config_rule.restricted_ssh[0].name
       EVIDENCE_BUCKET            = aws_s3_bucket.evidence[0].id
+      SLACK_WEBHOOK_SECRET_ARN   = local.slack_enabled ? aws_secretsmanager_secret.slack_webhook[0].arn : ""
     }
   }
   depends_on = [aws_iam_role_policy.healing, aws_cloudwatch_log_group.healing]

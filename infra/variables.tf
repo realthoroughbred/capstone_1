@@ -114,6 +114,15 @@ variable "healing_use_unreserved_concurrency_for_demo" {
   type        = bool
   default     = false
 }
+variable "enable_slack_notification" {
+  description = "Report SG self-healing results to Slack. Creates an empty Secrets Manager secret; store the Incoming Webhook URL outside Terraform. Requires enable_self_healing."
+  type        = bool
+  default     = false
+  validation {
+    condition     = !var.enable_slack_notification || var.enable_self_healing
+    error_message = "Slack reports the SG self-healing results; set enable_self_healing = true as well."
+  }
+}
 variable "notification_topic_arn" {
   description = "Optional existing standard SNS topic approved for failure notifications. Must be in the target account and region; no topic or subscriptions are created."
   type        = string
